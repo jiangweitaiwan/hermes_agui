@@ -134,3 +134,12 @@ Runtime 的 in-memory runner 僅維護 UI events，不取代 Hermes 執行歷史
 每個 UI Thread 有獨立 agent instance；Node 保留服務 token 並限制本機同來源存取。
 官方 transport correlation ID 由 HttpAgent middleware 移除，其餘協定輸入維持既有驗證。
 執行方式見 [README](../examples/copilotkit/README.md)，驗證結果見 [Phase 5 report](phase-5-report.md)。
+
+## Phase 6：原生能力驗收
+
+Tools、Memory、Skills、Context Management 沿用原生實作；HTTP 原生能力測試確認
+記憶寫入與技能載入不重建舊 prefix、新 Thread 讀取新快照，以及不同 profile 同名技能不混用。
+MemoryManager 的背景同步與 eviction/shutdown hooks 在 owning profile 下執行；
+原生自動 compression 將 model/display history 分開持久保存並支援重啟恢復。
+範圍、生命週期與隔離語意見 [原生能力說明](agui-native-capabilities.md)，
+驗證結果見 [Phase 6 report](phase-6-report.md)。

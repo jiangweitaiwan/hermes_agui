@@ -123,3 +123,10 @@ HERMES_PYTHON=/absolute/path/to/test-env/bin/python scripts/run_tests.sh tests/h
 - [AG-UI HttpAgent](https://docs.ag-ui.com/sdk/js/client/http-agent)
 
 API 以 lockfile 安裝版本的實際 declarations 與行為測試為準；後續文件可能對應更新版本。
+
+## 原生能力（Phase 6）
+
+Memory、Skills、Context compression 由 Python 的原生 Hermes 實作負責。
+同一 profile 的多個 UI Thread 共用長期 memory／skills，各自保留獨立對話歷史與
+已建立的 prompt snapshot。Thread 切換不等於切換使用者。需要隔離使用者資料時
+應使用不同可信 profile/workspace。詳見 [原生能力與驗收](../../docs/agui-native-capabilities.md)。

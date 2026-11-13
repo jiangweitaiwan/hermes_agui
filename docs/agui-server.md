@@ -157,3 +157,12 @@ callback，不會補造結果。native 工具失敗可讓模型繼續處理，�
 [Phase 3 report](phase-3-report.md)。事件順序參照 [官方 Events](https://docs.ag-ui.com/concepts/events)。
 Phase 4 驗證見 [Phase 4 report](phase-4-report.md)；CopilotKit UI 與啟動方式見
 [範例 README](../examples/copilotkit/README.md) 與 [Phase 5 report](phase-5-report.md)。
+
+## 原生能力與 profile 範圍
+
+同一 profile 的 Thread 共用 built-in MEMORY.md／USER.md 與可見的 skills；Thread ID
+或不同 principal 只隔離 session history，不會分出另一份 memory 檔案。既有 Agent
+保持 prompt snapshot，新 Thread 可讀取後續記憶寫入。Service eviction／shutdown
+透過 owning scope 的原生 close 執行 provider extraction／flush；每個 HTTP Run
+結束不等於 session end。自動 compression 與可配置 ContextEngine 也沿用原生流程。
+完整策略見 [Phase 6 原生能力](agui-native-capabilities.md)。
