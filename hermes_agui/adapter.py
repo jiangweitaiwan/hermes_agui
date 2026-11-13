@@ -1,10 +1,12 @@
 """HTTP run admission and cooperative cleanup, outside the native agent loop."""
 
 import asyncio
+import sqlite3
 from dataclasses import dataclass, field
 from typing import Any
 
 from hermes_agui.message_adapter import TurnInput
+from hermes_agui.event_bridge import EventBridge
 
 
 class AdmissionError(Exception):
@@ -18,20 +20,22 @@ class Run:
     turn: TurnInput
     stop: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task | None = None
+    bridge: EventBridge | None = None
 
 
 class AgentAdapter:
     """Owned by one event loop and one principal's service.
 
     Admission never queues two HTTP runs for one thread. Receipts are bounded and
-    retained until process restart; exhaustion fails closed instead of evicting IDs.
+    durable in the HTTP host; exhaustion fails closed instead of evicting IDs.
     """
 
-    def __init__(self, service, config):
+    def __init__(self, service, config, *, receipt_store=None):
         self.service, self.config = service, config
         self.active: dict[str, Run] = {}
         self.receipts: set[tuple[str, str, str]] = set()
         self.closed = False
+        self.receipt_store = receipt_store
 
     def start(self, turn: TurnInput) -> Run:
         if self.closed:
@@ -44,7 +48,18 @@ class AgentAdapter:
         if len(self.active) >= self.config.max_active_runs or len(self.receipts) + 2 > self.config.max_receipts:
             raise AdmissionError(503, "Server admission capacity reached")
         run = Run(turn)
-        self.receipts.update(keys)
+        run.bridge = EventBridge(turn, run.stop, self.config)
+        if self.receipt_store is not None:
+            try:
+                outcome = self.receipt_store.reserve(turn)
+            except sqlite3.Error:
+                raise AdmissionError(503, "Session admission storage unavailable") from None
+            if outcome == "duplicate":
+                raise AdmissionError(409, "Run or user message ID has already been submitted")
+            if outcome == "full":
+                raise AdmissionError(503, "Server admission capacity reached")
+        else:
+            self.receipts.update(keys)
         self.active[turn.thread_id] = run
         run.task = asyncio.create_task(self._execute(run))
         return run
@@ -54,7 +69,8 @@ class AgentAdapter:
         try:
             if run.stop.is_set():
                 return {"interrupted": True}
-            future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id)
+            future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
+                                         callbacks=run.bridge.callbacks)
             wrapped = asyncio.wrap_future(future)
             while not wrapped.done():
                 if run.stop.is_set():

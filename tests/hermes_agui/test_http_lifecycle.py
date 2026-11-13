@@ -72,11 +72,19 @@ async def test_admission_shutdown_and_repeated_cancel_until_worker_settles(cance
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("spec", ["2.0", "2.4"])
-async def test_asgi_disconnect_during_silent_model_wait_cancels_owned_run(tmp_path, spec):
+@pytest.mark.parametrize("after_delta", [False, True])
+async def test_asgi_disconnect_cancels_owned_run(tmp_path, spec, after_delta):
     import json
 
+    class Service(ControlledService):
+        def submit(self, *args, **kwargs):
+            future = super().submit(*args, **kwargs)
+            if after_delta:
+                kwargs["callbacks"]["stream_delta_callback"]("visible partial")
+            return future
+
     app = create_app(AgentConfig(home=tmp_path, cwd=tmp_path), ServerConfig("secret"),
-                     service_factory=ControlledService)
+                     service_factory=Service)
     started = asyncio.Event()
     body = json.dumps(payload()).encode()
     received = False
@@ -91,7 +99,8 @@ async def test_asgi_disconnect_during_silent_model_wait_cancels_owned_run(tmp_pa
         return {"type": "http.disconnect"}
 
     async def send(message):
-        if message["type"] == "http.response.body" and b"RUN_STARTED" in message.get("body", b""):
+        marker = b"TEXT_MESSAGE_CONTENT" if after_delta else b"RUN_STARTED"
+        if message["type"] == "http.response.body" and marker in message.get("body", b""):
             started.set()
 
     scope = {"type": "http", "asgi": {"version": "3.0", "spec_version": spec}, "http_version": "1.1",
@@ -103,4 +112,27 @@ async def test_asgi_disconnect_during_silent_model_wait_cancels_owned_run(tmp_pa
         service = app.state.adapter.service
         await async_wait_until(lambda: not app.state.adapter.active, timeout=10)
         assert service.cancels >= 2 and service.future.done()
+    assert service.closed
+
+
+@pytest.mark.asyncio
+async def test_overflow_cancels_native_work_before_admission_is_released():
+    class Flood(ControlledService):
+        def submit(self, *args, **kwargs):
+            future = super().submit(*args, **kwargs)
+            for _ in range(3):
+                kwargs["callbacks"]["stream_delta_callback"]("delta")
+            return future
+
+    service = Flood()
+    adapter = AgentAdapter(service, ServerConfig("secret", event_capacity=1))
+    run = adapter.start(TurnInput("thread", "run", "user", "hello"))
+
+    async def consume():
+        return [e async for e in run.bridge.events(run.task)]
+
+    output = await asyncio.wait_for(consume(), 10)
+    assert output[-1].type.value == "RUN_ERROR"
+    assert service.future.done() and service.cancels >= 2 and not adapter.active
+    await adapter.close()
     assert service.closed

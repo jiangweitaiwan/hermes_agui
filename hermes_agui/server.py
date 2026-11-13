@@ -1,15 +1,10 @@
-"""FastAPI AG-UI endpoint. Phase 2 returns buffered final text over official SSE."""
+"""FastAPI AG-UI endpoint with native callback streaming over official SSE."""
 
-import asyncio
 from contextlib import asynccontextmanager
 import secrets
-import uuid
 
 import anyio
-from ag_ui.core import (
-    RunAgentInput, RunErrorEvent, RunFinishedEvent, RunStartedEvent,
-    TextMessageContentEvent, TextMessageEndEvent, TextMessageStartEvent,
-)
+from ag_ui.core import RunAgentInput
 from ag_ui.encoder import EventEncoder
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -19,6 +14,7 @@ from hermes_agui.adapter import AdmissionError, AgentAdapter
 from hermes_agui.config import ServerConfig
 from hermes_agui.core import AgentConfig, HermesAgentService
 from hermes_agui.message_adapter import adapt_input
+from hermes_agui.receipts import ReceiptStore
 
 
 class RunResponse(StreamingResponse):
@@ -43,13 +39,16 @@ class RunResponse(StreamingResponse):
             self.run.stop.set()
 
 
-def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_factory=HermesAgentService) -> FastAPI:
+def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_factory=HermesAgentService,
+               authorize=None) -> FastAPI:
     """No native service, provider or database is created before ASGI lifespan."""
     @asynccontextmanager
     async def lifespan(app):
+        receipts = ReceiptStore(agent_config.home, agent_config.principal, config.max_receipts)
+        service_options = {"authorize": authorize} if authorize is not None else {}
         service = service_factory(agent_config, max_workers=config.max_active_runs,
-                                  max_pending=config.max_active_runs)
-        app.state.adapter = AgentAdapter(service, config)
+                                  max_pending=config.max_active_runs, **service_options)
+        app.state.adapter = AgentAdapter(service, config, receipt_store=receipts)
         try:
             yield
         finally:
@@ -76,6 +75,11 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
             turn = adapt_input(value)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
+        if authorize is not None:
+            try:
+                authorize(agent_config.principal, turn.thread_id)
+            except PermissionError:
+                raise HTTPException(403, "Thread access denied") from None
         try:
             run = app.state.adapter.start(turn)
         except AdmissionError as exc:
@@ -84,20 +88,8 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
 
         async def events():
             try:
-                yield encoder.encode(RunStartedEvent(thread_id=turn.thread_id, run_id=turn.run_id))
-                # Shield keeps ownership in the adapter when Starlette cancels the
-                # disconnected response. Lifespan still awaits native cleanup.
-                result = await asyncio.shield(run.task)
-                if any(result.get(key) for key in ("failed", "partial", "interrupted")) or not result.get("completed"):
-                    yield encoder.encode(RunErrorEvent(message="Agent execution failed or was interrupted", code="AGENT_ERROR"))
-                    return
-                text = result.get("final_response")
-                if isinstance(text, str) and text:
-                    message_id = str(uuid.uuid4())
-                    yield encoder.encode(TextMessageStartEvent(message_id=message_id, role="assistant"))
-                    yield encoder.encode(TextMessageContentEvent(message_id=message_id, delta=text))
-                    yield encoder.encode(TextMessageEndEvent(message_id=message_id))
-                yield encoder.encode(RunFinishedEvent(thread_id=turn.thread_id, run_id=turn.run_id))
+                async for event in run.bridge.events(run.task):
+                    yield encoder.encode(event)
             finally:
                 run.stop.set()
 

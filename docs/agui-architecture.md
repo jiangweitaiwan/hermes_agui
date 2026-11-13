@@ -1,7 +1,7 @@
 # Phase 1：Headless Hermes Python API
 
 本階段提供 `hermes_agui.core.AgentConfig` 與 `HermesAgentService`，執行既有
-`AIAgent.run_conversation`。此頁記錄 Phase 1 Python API；Phase 2 HTTP/SSE 介面見 [agui-server.md](agui-server.md)。
+`AIAgent.run_conversation`。此頁記錄 Phase 1 Python API；Phase 2/3 HTTP/SSE 與 callback bridge 介面見 [agui-server.md](agui-server.md)。
 尚無 CopilotKit 整合。
 原生 Loop、Tools、Memory、Skills、Prompt 與 ContextEngine 均保持原實作。
 
@@ -84,7 +84,7 @@ host 提供的 run ID 必須唯一；本階段不提供 request 重試去重。I
 取消走 `AIAgent.interrupt(hard_cancel=True)`；不是 Python thread 強制終止保證。
 非合作工具或外部 backend 可能延後結束，host 不可在 future 尚未 settled 時宣稱已釋放。
 Phase 2 HTTP Adapter 已提供斷線取消與工作追蹤（見 agui-server.md）；
-純 Python API 的 queued cancellation 限制仍如上述，token queue bridge 留在 Phase 3。
+純 Python API 的 queued cancellation 限制仍如上述，Phase 3 已提供有界 callback mailbox 與文字/tool event bridge。
 
 ## Callback 與結果
 
@@ -117,3 +117,12 @@ python scripts/check --base HEAD
 
 測試使用本機 `FakeLLMServer`，實際走 AIAgent、provider transport、tool registry 與 SQLite，
 不消耗真實模型 token。具體結果、環境限制與尚未驗證事項於本階段交付報告記錄。
+
+## Phase 4：持久 Admission
+
+HTTP host 使用 `ReceiptStore` 在 profile 的 `agui-receipts.db` 原子保留 principal/thread/run
+與 message IDs；Hermes `state.db` 仍獨占執行歷史。重啟後 SessionManager 的穩定 ID
+映射恢復同一 Session，UI transcript 不匯入。相同 thread 並發回覆 409。
+可信 `create_app(authorize=...)` hook 在 admission 前與原生 Service 邊界檢查存取權；
+單 app 仍固定 principal/profile。收據不儲存輸出、不重播，也不保證 crash 後一定完成。
+詳見 [HTTP 策略](agui-server.md) 與 [Phase 4 report](phase-4-report.md)。

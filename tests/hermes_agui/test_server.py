@@ -29,7 +29,7 @@ class StubService:
         self.calls = []
         self.closed = False
 
-    def submit(self, thread, text, *, run_id):
+    def submit(self, thread, text, *, run_id, callbacks=None):
         self.calls.append((thread, text, run_id))
         future = Future()
         future.set_result({"completed": True, "final_response": "answer", "messages": "PRIVATE PROMPT"})
@@ -112,3 +112,40 @@ def test_http_real_native_history_and_thread_isolation(tmp_path):
         assert transcripts[1].count("hello") == 1
         assert transcripts[1].count("continue") == 1
         assert "continue" not in transcripts[2]
+
+
+@pytest.mark.parametrize("exists", [True, False], ids=["tool-success", "tool-error"])
+def test_native_tool_rounds_stream_safe_events_and_hide_reasoning(tmp_path, exists):
+    from tests.fakes.fake_llm_provider import ToolCall
+
+    target = tmp_path / "sample.txt"
+    if exists:
+        target.write_text("PRIVATE FILE CONTENT", encoding="utf-8")
+    script = [ToolCall("read_file", {"path": str(target)}, text="checking"),
+              ToolCall("read_file", {"path": str(target)}),
+              Text("final streamed answer", reasoning="PRIVATE REASONING", chunk_chars=3)]
+    with FakeLLMServer(script) as provider:
+        home = write_hermes_home(tmp_path / "profile", provider.base_url)
+        cfg = AgentConfig(home=home, cwd=tmp_path, enabled_toolsets=("file",),
+                          agent_options={"skip_background_review": True, "max_iterations": 4})
+        with TestClient(create_app(cfg, ServerConfig("local-secret"))) as client:
+            response = client.post("/agent", headers=AUTH, json=payload())
+            output = events(response)
+        assert output[-1]["type"] == "RUN_FINISHED", response.text
+        calls = [e["toolCallId"] for e in output if e["type"] == "TOOL_CALL_START"]
+        assert len(calls) == len(set(calls)) == 2
+        for call_id in calls:
+            related = [e for e in output if e.get("toolCallId") == call_id]
+            assert [e["type"] for e in related] == [
+                "TOOL_CALL_START", "TOOL_CALL_ARGS", "TOOL_CALL_END", "TOOL_CALL_RESULT"]
+            assert json.loads(related[-1]["content"]) == {"content": "[withheld]"}
+        text = [e["delta"] for e in output if e["type"] == "TEXT_MESSAGE_CONTENT"]
+        assert "".join(text).count("final streamed answer") == 1
+        assert len(text) > 2
+        assert "PRIVATE" not in response.text
+        rows = provider.main_requests()[-1]["messages"]
+        results = [m for m in rows if m["role"] == "tool"]
+        assert len(results) == 2
+        assert ("PRIVATE FILE CONTENT" if exists else "error") in str(results[0]["content"])
+        if exists:
+            assert json.loads(results[1]["content"])["status"] == "unchanged"

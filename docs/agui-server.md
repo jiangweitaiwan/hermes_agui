@@ -1,8 +1,8 @@
-# Phase 2：AG-UI HTTP Server
+# AG-UI HTTP Server（Phase 2–4）
 
 本階段提供 `POST /agent` 與 `GET /health`。Request、事件與 SSE 編碼使用官方
-`ag-ui-protocol` **1.0.0**；FastAPI/Uvicorn 沿用專案版本。文字在原生 turn 完成後一次
-傳送，完整 token/tool callback bridge 留在 Phase 3。本階段沒有 CopilotKit UI 驗收。
+`ag-ui-protocol` **1.0.0**；FastAPI/Uvicorn 沿用專案版本。Phase 3 已接入原生文字與
+工具 callback 串流。本階段沒有 CopilotKit UI 驗收。
 
 ## 啟動
 
@@ -35,10 +35,15 @@ curl -N http://127.0.0.1:8000/agent \
        "forwardedProps":{},"messages":[{"id":"user-1","role":"user","content":"Hello"}]}'
 ```
 
-成功時依序發出 `RUN_STARTED`、可選的 `TEXT_MESSAGE_START/CONTENT/END`、`RUN_FINISHED`。
-`CONTENT.delta` 為完成後的文字，沒有假裝成 token streaming。執行失敗、partial、interrupt
-或建構例外則發出 `RUN_STARTED`、泛化的 `RUN_ERROR`；error 後不再發 `RUN_FINISHED`。
-不公開原生 exception、messages、system prompt、reasoning 或 tool result。
+成功時從 `RUN_STARTED` 開始，即時發出 `TEXT_MESSAGE_START/CONTENT/END` 與工具事件，
+最後 `RUN_FINISHED`。文字 callback 的 delta 直接傳送，不等待整個 turn 完成，不重送
+整份 final。工具事件為 `TOOL_CALL_START/ARGS/END/RESULT`；完整參數安全投影一次送出，
+沒有偽造增量參數。工具結果保留 tool role，沿用 native call ID。
+
+執行失敗、partial、interrupt、投影錯誤或滿載以泛化 `RUN_ERROR` 結束；先關閉已開始
+的文字訊息，error 後不再發 `RUN_FINISHED`。已送出的 partial 文字無法撤回。
+不公開原生 exception、messages、system prompt 或 reasoning；tool payload 預設遮蔽。
+若 native streaming 被關閉或原生 hold_stream 阻擋 delta，才使用 completed final fallback。
 
 `GET /health` 不驗證 provider 可用性；僅回傳 `{"status":"ok"}`，不建立 Agent 或讀取 secrets。
 ASGI lifespan 開始時建立 Headless Service，結束時取消／等待已接收工作並關閉 native resources。
@@ -60,10 +65,15 @@ ASGI lifespan 開始時建立 Headless Service，結束時取消／等待已接�
 - 每個已接收的 `(threadId, runId)` 與 `(threadId, user message ID)` 均保留收據。
   重送回覆 409，不自動重跑或重播結果；失敗與斷線也保留收據。上限預設 4096 筆收據
   （最多 2048 個 Run），滿時回覆 503，避免靜默驅逐後重複執行。
-- 收據與 admission 僅存在單一程序內，**不是跨重啟 exactly-once 保證**。程序重啟後需使用
-  新 Run/message IDs 並先確認 history，不能盲目重試。多 worker、多節點與持久收據屬 Phase 4。
+- Phase 4 收據儲存在 profile 的 `agui-receipts.db`，以 principal/thread 隔離，兩個 ID
+  在 SQLite transaction 中原子保留，跨重啟仍拒絕重送。只儲存 ID，不儲存對話或工具內容。
+  保留先於 native submit；crash 可能留下尚未執行的收據，因此是 at-most-once admission，
+  不保證 exactly-once completion，也不重播結果。失敗、取消及不確定的工作不自動重跑。
+  不應刪除收據來重試有副作用的工作；滿載時由 host 調高上限。
+  Session 映射由 canonical home、可信 principal 與 thread 決定，重啟後載入原生歷史。
+  HTTP admission 仍限單 ASGI worker／單節點；持久收據不代表支援多 worker。
 
-HTTP 401 表示 token 不符；422 表示 SDK/schema 或上述語意不合法；409 表示重送或 thread
+HTTP 401 表示 token 不符；403 表示 Thread ACL 拒絕；422 表示 SDK/schema 或上述語意不合法；409 表示重送或 thread
 忙碌；503 表示 admission/shutdown 限制。開始 SSE 後的執行錯誤以 `RUN_ERROR` 表示。
 FastAPI 的 validation error 也使用泛化內容，避免回傳原始輸入。
 
@@ -77,7 +87,10 @@ Response 同時監聽 ASGI disconnect，包括模型沒有輸出的時段，並�
 
 這是合作取消；無法強殺 Python thread 或保證外部工具立即退出。非合作工具會讓 admission
 及 shutdown 等待；不得在此時宣稱已清理。程序被 OS 強殺或部署強制逾時不在此保證內。
-沒有直接從 worker 操作 asyncio.Queue，也尚未引入 Phase 3 的 token queue/backpressure。
+worker 透過 lock 保護的有界 mailbox 與 `loop.call_soon_threadsafe` 通知 ASGI loop，
+不直接操作 asyncio.Queue。預設 pending 上限 256 項／UTF-8 payload 1 MiB；單一回覆
+文字最多 1 MiB，每 Run 最多追蹤 256 個 tool IDs、ID bytes 合計 1 MiB。容量不足時
+將 Run 標記失敗並合作取消，不阻塞 provider reader 或靜默丟棄後宣告成功。
 
 ## 嵌入與授權
 
@@ -90,13 +103,46 @@ from hermes_agui.server import create_app
 app = create_app(
     AgentConfig(home=Path('/srv/hermes/profile'), cwd=Path('/srv/workspace'), principal='alice'),
     ServerConfig(bearer_token=read_secret()),  # read_secret 是 host 自行實作的秘密來源
+    authorize=check_thread_access,  # 可信 host 函式，接收 principal、thread_id
 )
 ```
 
 一個 app 固定一個可信 principal/profile，token 授予該 principal 的 thread 存取權。
-Thread ID 本身不授權；不讀 client 提供的 user/profile。需要自訂 ACL 的可信 host 可透過
-`service_factory` 建立帶原生 `authorize(principal, thread_id)` 的 `HermesAgentService`。
+Thread ID 本身不授權；不讀 client 提供的 user/profile。可信 host 可提供 `authorize(principal, thread_id)`；拒絕時拋出 `PermissionError`。
+HTTP 在保留收據前檢查，原生 Service 在執行與 cancel/evict 時再次檢查。hook 必須快速、
+thread-safe，不能信任 client 的身份宣告。既有 `service_factory` 授權方式仍可使用，
+但只有 `create_app(authorize=...)` 提供 HTTP admission 前的 403 檢查。
 本階段未實作每個 HTTP 使用者的身份解析、多租戶路由或獨立 OS 工作空間。
+
+## 工具公開投影
+
+預設 arguments 與 result 都傳送 `{"content":"[withheld]"}`，仍保留 call name/ID 及
+結果事件。工具原始內容不影響 Hermes 模型的執行歷史；只遮蔽傳到 UI 的投影。
+沒有可靠的通用遮罩能保證任意 shell/file 輸出不含秘密，因此公開內容必須由可信 host
+明確選擇。以下例子只對已知工具提供摘要：
+
+```python
+def public_tool_payload(kind, name, value):
+    if kind == "arguments":
+        return {}  # 不公開參數
+    if name == "read_file":
+        return {"message": "File operation returned; contents withheld"}
+    return {"content": "[withheld]"}
+
+config = ServerConfig(
+    bearer_token=read_secret(),
+    event_capacity=256,
+    event_bytes=1048576,
+    tool_projection=public_tool_payload,
+)
+```
+
+投影接收 `(kind, tool_name, native_value)`，其中 kind 為 `arguments` 或 `result`；
+傳回 JSON 可序列化資料。它在 callback thread 同步執行，必須快速且 thread-safe，
+不可等待 UI；不可序列化／NaN／拋出例外會使 Run 失敗，不回傳原始錯誤。
+
+只觀察原生 callback 有提供的已執行工具；blocked、invalid、skipped 工具可能沒有完整
+callback，不會補造結果。native 工具失敗可讓模型繼續處理，不必然導致 RUN_ERROR。
 
 ## 官方依據與驗證
 
@@ -107,5 +153,6 @@ Thread ID 本身不授權；不讀 client 提供的 user/profile。需要自訂 
 - [官方 Python Request 型別](https://github.com/ag-ui-protocol/ag-ui/blob/main/sdks/python/ag_ui/core/types.py)
 - [官方 SSE Encoder](https://github.com/ag-ui-protocol/ag-ui/blob/main/sdks/python/ag_ui/encoder/encoder.py)
 
-可重現測試方式與結果見 [Phase 2 report](phase-2-report.md)。下一階段才接入文字與 tool
-callbacks、thread-safe bounded queue、tool result 遮罩與事件順序驗證。
+可重現測試方式與結果見 [Phase 2 report](phase-2-report.md) 與
+[Phase 3 report](phase-3-report.md)。事件順序參照 [官方 Events](https://docs.ag-ui.com/concepts/events)。
+Phase 4 驗證見 [Phase 4 report](phase-4-report.md)；CopilotKit UI 留在 Phase 5。
