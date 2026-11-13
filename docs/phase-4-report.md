@@ -44,3 +44,28 @@ SQLite transaction 保護收據原子性，並不將程序內 active-run trackin
 
 ## Validation
 
+命令：
+
+```bash
+HERMES_PYTHON=/private/tmp/hermes-agui-phase2-env/bin/python \
+HERMES_TEST_WORKERS=3 HERMES_TEST_FILE_RETRIES=0 \
+scripts/run_tests.sh tests/hermes_agui/
+.venv/bin/python scripts/check --only ruff,health --base HEAD
+.venv/bin/python scripts/check --base HEAD
+git diff --check
+```
+
+完整回歸：**8 files、46 passed、0 failed**，97.5 秒，3 workers。
+使用 loopback FakeLLMServer，實際載入 native Agent/SQLite，不消耗真實模型 token。
+初次 sandbox 執行因 OS 拒絕子程序而零收集；允許子程序與 loopback 後完整重跑通過。
+Ruff、code health 通過，0 blocking、0 advisory；`git diff --check` 通過。
+
+全套 `scripts/check`：17 項中 11 項通過，6 項因 checkout 既有缺檔而無法執行，
+與 Phase 3 報告一致，不宣稱完整 CI 綠燈：
+
+- `scripts/ci/check_os_marker_fakes.py`
+- `scripts/ci/check_agents_md_size.py`
+- `scripts/ci/check_line_endings.py`
+- `scripts/ci/check_lazy_deps_imports.py`
+- `scripts/ci/check_profile_archive_boundary.py`
+- `scripts/ci/check_blob_size.py`
