@@ -212,3 +212,22 @@ Phase 1 定義為純 Python headless service + 原生能力契約測試；不新
 - **設定衝突處理**：計畫書部署章提議 host/port/session/logging 等 env vars，但 root AGENTS.md 禁止新增非秘密行為的 HERMES_* env config；實作採原生 config.yaml／適當 CLI flags，只有 secrets 進 .env。
 
 Phase 0 已完成 source-level User → LLM → Tool → LLM → Final 路徑與介面盤點。沒有執行測試套件或真實模型，因此通過／失敗數量不適用；不宣稱 Headless／AG-UI 整合已通過動態驗收。本次僅新增本文件，未新增依賴、刪除模組、修改 loop、建立 commit 或部署。等待 Phase 0 確認後才開始 Phase 1。
+
+## 10. Phase 1 驗證後補充（2026-11-14）
+
+Phase 1 自使用者確認後開始，base 為 `fa65202`（`add:phase 0`）。實作與測試報告見
+[phase-1-report.md](phase-1-report.md)，使用介面見 [agui-architecture.md](agui-architecture.md)。
+
+進一步追蹤確認：原生 lease 只在 contention 時自動 reload；Adapter 在 lease 外先讀 DB
+仍可能在「另一 writer 恰於 read 與 acquire 之間提交」時使用舊 history。因此 Phase 1
+為公開 turn facade 增加 `reload_history=False` 可選項，Headless caller 設 True，沿既有
+admission 的讀取路徑在 lease 內載入。未改寫 Loop，也未更動預設 caller-owned history 行為。
+
+另確認 checkout 缺少原生 runner 必需的 `scripts/ci/list_os_marked_tests.py` 與 code-health
+pattern 檔；Phase 1 補回這兩項 upstream dependency。完整 CI helper 仍有缺檔限制。
+`setup.py` 也明確禁止一般 wheel build，因此 Phase 1 改用 PM editable 安裝與 checkout 外
+匯入驗證；Phase 0 所提一般 wheel smoke 不應透過繞過 native build guard 完成。
+
+Caller context 的動態契約另抓出 `gateway.session_context.set_current_session_id` 仍會更新
+共用 `os.environ`，即使 turn 已包在私有 Context。Phase 1 對此 helper 增加 multiplex
+模式的 ContextVar-only 路徑，單一 CLI 與 delegation 的既有語意以回歸測試保留。

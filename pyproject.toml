@@ -707,6 +707,8 @@ exclude-newer-package = { certifi = false }
 
 [tool.setuptools.packages.find]
 include = [
+  "hermes_agui",
+  "hermes_agui.*",
   "agent",
   "agent.*",
   "tools",

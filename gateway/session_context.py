@@ -89,8 +89,12 @@ def _runtime_cwd(func: str, *args: Any) -> None:
 def set_current_session_id(session_id: str) -> None:
     """Synchronize ``HERMES_SESSION_ID`` across ContextVar and ``os.environ`` (tools read it
     with an os.environ fallback).  Delegated subagent children (built in the parent process)
-    get ONLY the task-local write, or they would clobber the parent's id."""
+    get ONLY the task-local write, or they would clobber the parent's id. Multiplex
+    hosts likewise cannot publish one conversation's id into every other task."""
     _SESSION_ID.set(session_id)
+    from agent.secret_scope import is_multiplex_active
+    if is_multiplex_active():
+        return
     try:
         from agent.delegation_context import is_delegated_child_context
         if is_delegated_child_context():

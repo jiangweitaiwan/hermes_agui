@@ -299,6 +299,7 @@ def _durable_session_exists(db, session_id: str) -> Optional[bool]:
 def admit_durable_turn_lease(
     agent, *, session_id: str, relay_turn_id: str, task_context: dict[str, Any],
     conversation_history: Optional[list[dict[str, Any]]],
+    reload_history: bool = False,
 ) -> TurnLeaseAdmission:
     """Acquire the session turn lease (the row need not exist yet); build (not start) its threads.
 
@@ -324,7 +325,9 @@ def admit_durable_turn_lease(
         f"pid={os.getpid()}{holder_namespace_token()}:turn={relay_turn_id}"
         f":platform={task_context['platform'] or 'unknown'}"
     )
-    reload_needed = announced = False
+    # A storage-owned host must not read before admission: an uncontended
+    # acquisition can still follow another writer's commit after that read.
+    reload_needed, announced = reload_history, False
 
     def _on_contended() -> None:
         # A busy state.db, not a known holder: say nothing, but still reload after admission,
@@ -379,7 +382,8 @@ def admit_durable_turn_lease(
             if announced:
                 agent._emit_status("Session is free; loading the latest transcript...")
             # The holder may have compressed/rotated the session while we waited: reload only
-            # AFTER admission; an immediate acquisition skips this (needless prompt-cache miss).
+            # AFTER admission. Caller-owned history skips an uncontended reload;
+            # storage-owned hosts explicitly request it without rebuilding the prompt.
             latest_session_id = db.resolve_resume_session_id(session_id)
             if latest_session_id:
                 agent.session_id = latest_session_id
