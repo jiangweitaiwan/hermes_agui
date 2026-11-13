@@ -47,6 +47,9 @@ tmp/
 temp_vision_images/
 hermes-*/*
 examples/
+!/examples/
+/examples/*
+!/examples/copilotkit/
 # Skills ship worked examples as support files; the bare pattern above is for dataset dumps.
 !optional-skills/**/examples/
 !skills/**/examples/
@@ -68,6 +71,7 @@ node_modules
 # a new standalone npm project must add its own `!` line here, or git silently skips its lock.
 **/package-lock.json
 **/npm-shrinkwrap.json
+!/examples/copilotkit/package-lock.json
 !/website/package-lock.json
 !/scripts/whatsapp-bridge/package-lock.json
 !/plugins/platforms/photon/sidecar/package-lock.json

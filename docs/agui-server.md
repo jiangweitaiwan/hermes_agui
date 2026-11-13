@@ -2,7 +2,7 @@
 
 本階段提供 `POST /agent` 與 `GET /health`。Request、事件與 SSE 編碼使用官方
 `ag-ui-protocol` **1.0.0**；FastAPI/Uvicorn 沿用專案版本。Phase 3 已接入原生文字與
-工具 callback 串流。本階段沒有 CopilotKit UI 驗收。
+工具 callback 串流。Phase 5 已完成 [CopilotKit 範例與 UI 驗證](../examples/copilotkit/README.md)。
 
 ## 啟動
 
@@ -22,7 +22,7 @@ CLI 預設 home 使用原生 `get_hermes_home()`，cwd 使用啟動目錄。未�
 CLI 的新增參數均見 `python -m hermes_agui.server --help`。
 
 服務預設只監聽 loopback；對外部署由可信反向代理提供 TLS，使用單一 ASGI worker。
-本階段不提供 CORS、Docker 或 Node Runtime。Native tools 具有該程序的 OS 權限；token
+Python 不提供 CORS 或 Docker；Phase 5 的獨立 Node Runtime 範例使用同來源前端。Native tools 具有該程序的 OS 權限；token
 持有人可以使用該 profile，並非隔離沙箱。
 
 ```bash
@@ -155,4 +155,5 @@ callback，不會補造結果。native 工具失敗可讓模型繼續處理，�
 
 可重現測試方式與結果見 [Phase 2 report](phase-2-report.md) 與
 [Phase 3 report](phase-3-report.md)。事件順序參照 [官方 Events](https://docs.ag-ui.com/concepts/events)。
-Phase 4 驗證見 [Phase 4 report](phase-4-report.md)；CopilotKit UI 留在 Phase 5。
+Phase 4 驗證見 [Phase 4 report](phase-4-report.md)；CopilotKit UI 與啟動方式見
+[範例 README](../examples/copilotkit/README.md) 與 [Phase 5 report](phase-5-report.md)。

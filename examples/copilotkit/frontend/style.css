@@ -1,0 +1,21 @@
+:root { font-family: Inter, system-ui, sans-serif; color: #19302c; background: #f3f4ef; }
+body { margin: 0; }
+main { max-width: 1180px; margin: auto; padding: 32px; }
+header { display: flex; justify-content: space-between; align-items: end; margin-bottom: 28px; }
+h1 { font-size: 30px; letter-spacing: -.8px; margin: 6px 0; }
+.eyebrow { font-size: 11px; letter-spacing: 3px; color: #53776e; }
+header > p, footer { font-size: 13px; color: #5c6d67; }
+.workspace { display: grid; grid-template-columns: 185px minmax(0, 1fr); min-height: 70vh; border: 1px solid #d8e0da; border-radius: 16px; overflow: hidden; background: white; }
+nav { display: flex; flex-direction: column; gap: 8px; padding: 18px; background: #e8eee7; }
+nav button { text-align: left; border: 0; border-radius: 8px; padding: 12px; cursor: pointer; background: transparent; color: inherit; }
+nav button:first-child { background: #193e34; color: white; margin-bottom: 12px; }
+nav button[aria-current] { background: #d3e1d5; font-weight: 600; }
+nav button:disabled { opacity: .5; cursor: default; }
+.chat { min-width: 0; }
+.chat section:not([hidden]) { display: flex; flex-direction: column; height: 72vh; }
+.connection { padding: 10px 24px; font-size: 12px; color: #557168; border-bottom: 1px solid #eef1ec; }
+.error { margin: 12px 20px; color: #9b3028; padding: 12px; background: #fff1ee; border-radius: 8px; }
+.tool-result { margin: 8px 0; padding: 12px; border: 1px solid #d3e1d5; border-radius: 8px; font-size: 13px; }
+.tool-result pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+footer { margin-top: 16px; }
+@media (max-width: 640px) { main { padding: 16px; } header { display: block; } .workspace { grid-template-columns: 1fr; } nav { flex-direction: row; overflow: auto; } nav button { white-space: nowrap; } nav button:first-child { margin-bottom: 0; } }

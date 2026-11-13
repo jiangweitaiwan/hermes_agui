@@ -2,7 +2,7 @@
 
 本階段提供 `hermes_agui.core.AgentConfig` 與 `HermesAgentService`，執行既有
 `AIAgent.run_conversation`。此頁記錄 Phase 1 Python API；Phase 2/3 HTTP/SSE 與 callback bridge 介面見 [agui-server.md](agui-server.md)。
-尚無 CopilotKit 整合。
+Phase 5 的 CopilotKit 整合範例見 [examples/copilotkit](../examples/copilotkit/README.md)。
 原生 Loop、Tools、Memory、Skills、Prompt 與 ContextEngine 均保持原實作。
 
 ## 使用方式
@@ -126,3 +126,11 @@ HTTP host 使用 `ReceiptStore` 在 profile 的 `agui-receipts.db` 原子保留 
 可信 `create_app(authorize=...)` hook 在 admission 前與原生 Service 邊界檢查存取權；
 單 app 仍固定 principal/profile。收據不儲存輸出、不重播，也不保證 crash 後一定完成。
 詳見 [HTTP 策略](agui-server.md) 與 [Phase 4 report](phase-4-report.md)。
+
+## Phase 5：CopilotKit Runtime 與 UI
+
+新增獨立 Node/React 範例；官方 v2 Runtime 與 HttpAgent 將 SSE 接到 CopilotKit UI。
+Runtime 的 in-memory runner 僅維護 UI events，不取代 Hermes 執行歷史。
+每個 UI Thread 有獨立 agent instance；Node 保留服務 token 並限制本機同來源存取。
+官方 transport correlation ID 由 HttpAgent middleware 移除，其餘協定輸入維持既有驗證。
+執行方式見 [README](../examples/copilotkit/README.md)，驗證結果見 [Phase 5 report](phase-5-report.md)。
