@@ -1,7 +1,8 @@
 # Phase 1：Headless Hermes Python API
 
 本階段提供 `hermes_agui.core.AgentConfig` 與 `HermesAgentService`，執行既有
-`AIAgent.run_conversation`。尚無 HTTP endpoint、SSE、AG-UI SDK 或 CopilotKit 整合。
+`AIAgent.run_conversation`。此頁記錄 Phase 1 Python API；Phase 2 HTTP/SSE 介面見 [agui-server.md](agui-server.md)。
+尚無 CopilotKit 整合。
 原生 Loop、Tools、Memory、Skills、Prompt 與 ContextEngine 均保持原實作。
 
 ## 使用方式
@@ -82,7 +83,8 @@ host 提供的 run ID 必須唯一；本階段不提供 request 重試去重。I
 
 取消走 `AIAgent.interrupt(hard_cancel=True)`；不是 Python thread 強制終止保證。
 非合作工具或外部 backend 可能延後結束，host 不可在 future 尚未 settled 時宣稱已釋放。
-async client disconnect 的完整取消／queue bridge 屬 Phase 2–3，尚未提供。
+Phase 2 HTTP Adapter 已提供斷線取消與工作追蹤（見 agui-server.md）；
+純 Python API 的 queued cancellation 限制仍如上述，token queue bridge 留在 Phase 3。
 
 ## Callback 與結果
 
