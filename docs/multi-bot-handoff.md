@@ -61,3 +61,9 @@ home/principal 歷史；多 Bot legacy agent/cancel 只有設定 `default_bot` �
 process-local HITL、SQLite 歷史權威及固定 prompt prefix。此為可信 Bot 的應用層隔離，
 共用 OS 權限與工具 registry。尚未交付委派、graph、跨重啟 HITL、分散式 worker 或
 UI 完整歷史恢復。真實 provider 與新 Docker image/volume 權限驗收未執行。
+
+## Part 2
+
+委派與 Graph 接口的啟動、契約、測試及後續範圍見
+[第二輪交接](multi-bot-part-2.md)。`bots.example.json`／範例 YAML 現已啟用委派；
+使用新版範例須提供 `DELEGATION_TOKEN`，或同時移除兩邊 delegation 區塊保持停用。

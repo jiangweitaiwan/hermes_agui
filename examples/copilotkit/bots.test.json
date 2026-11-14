@@ -1,1 +1,25 @@
-{"bots":[{"id":"researcher","agentUrl":"http://127.0.0.1:8765/bots/researcher/agent","tokenEnv":"RESEARCHER_TOKEN"},{"id":"reviewer","agentUrl":"http://127.0.0.1:8765/bots/reviewer/agent","tokenEnv":"REVIEWER_TOKEN"}]}
+{
+  "bots": [
+    {
+      "id": "researcher",
+      "agentUrl": "http://127.0.0.1:8765/bots/researcher/agent",
+      "tokenEnv": "RESEARCHER_TOKEN"
+    },
+    {
+      "id": "reviewer",
+      "agentUrl": "http://127.0.0.1:8765/bots/reviewer/agent",
+      "tokenEnv": "REVIEWER_TOKEN"
+    }
+  ],
+  "delegation": {
+    "tokenEnv": "DELEGATION_TOKEN",
+    "allow": {
+      "researcher": [
+        "reviewer"
+      ],
+      "reviewer": [
+        "researcher"
+      ]
+    }
+  }
+}

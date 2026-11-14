@@ -6,7 +6,7 @@ process.env.DO_NOT_TRACK = "1";
 
 const { createServer } = await import("node:http");
 const { createCopilotNodeHandler } = await import("@copilotkit/runtime/v2/node");
-const { createRuntimeHandler } = await import("./runtime");
+const { createApplication } = await import("./application");
 const { Hono } = await import("hono");
 const { serveStatic } = await import("@hono/node-server/serve-static");
 const { getRequestListener } = await import("@hono/node-server");
@@ -25,7 +25,20 @@ const settings = registry ? Object.fromEntries(registry.bots.map((bot: { id: str
   agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent",
   token: process.env.AGUI_API_KEY ?? "",
 };
-const runtime = createCopilotNodeHandler(createRuntimeHandler(settings));
+const application = createApplication(registry ? settings : { hermes: settings }, {
+  delegation: registry?.delegation ? { ...registry.delegation,
+    token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
+});
+const runtime = createCopilotNodeHandler(application.runtime);
+const internal = application.delegation
+  ? (await import("./delegation-http")).createDelegationServer(application.delegation) : undefined;
+if (internal) {
+  const internalPort = registry.delegation.listenPort ?? 3001;
+  if (!Number.isInteger(internalPort) || internalPort < 1 || internalPort > 65535 || internalPort === port) {
+    throw new Error("Invalid delegation listenPort");
+  }
+  internal.listen(internalPort, registry.delegation.listenHost ?? "127.0.0.1");
+}
 const production = process.argv.includes("--production");
 const vite = production ? undefined : await (await import("vite")).createServer({
   server: { middlewareMode: true },
@@ -63,6 +76,8 @@ const server = createServer((req, res) => {
 server.listen(port, "127.0.0.1", () => console.log(`Hermes chat: http://127.0.0.1:${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
+    internal?.close();
+    internal?.closeAllConnections();
     server.close(() => { void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
     server.closeAllConnections();
   });

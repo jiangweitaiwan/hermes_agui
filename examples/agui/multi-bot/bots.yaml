@@ -1,4 +1,8 @@
 max_active_runs: 8
+delegation:
+  url: http://host.docker.internal:3001/internal/delegations
+  token_env: DELEGATION_TOKEN
+  timeout: 60
 # Optional: default_bot: researcher enables legacy /agent and /threads/.../cancel.
 bots:
   - id: researcher

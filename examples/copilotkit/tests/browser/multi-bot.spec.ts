@@ -43,6 +43,14 @@ test("Bot switching isolates concurrent streams, tools, HITL and errors", async 
   await expect(chat).not.toContainText("Beta private answer.");
   await page.getByRole("button", { name: "對話 1", exact: true }).click();
   await expect(chat).toContainText("Beta private answer.");
+  await send("delegate researcher");
+  await expect(chat.getByTestId("tool-call").filter({ hasText: "message_bot" })).toContainText("message_bot");
+  await expect(chat).toContainText("Delegation completed: Independent delegated answer.");
+  await choose("researcher");
+  await expect(chat).not.toContainText("Delegation completed");
+  await send("delegate reviewer");
+  await expect(chat).toContainText("Delegation completed: Independent delegated answer.");
+  await choose("reviewer");
   await send("fail");
   await expect(chat.getByRole("alert")).toBeVisible();
   await choose("researcher");

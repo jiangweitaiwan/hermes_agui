@@ -4,6 +4,7 @@ Run via the example's Playwright webServer. No real credentials or model calls.
 """
 
 import argparse
+import json
 import os
 import socket
 from pathlib import Path
@@ -29,6 +30,13 @@ def serve(port):
     def respond(record):
         messages = record["body"]["messages"]
         text = next(m["content"] for m in reversed(messages) if m["role"] == "user")
+        if text.startswith("delegate "):
+            if messages[-1]["role"] == "tool":
+                result = json.loads(messages[-1]["content"])
+                return Text("Delegation " + result["status"] + ": " + result.get("text", ""))
+            return ToolCall("message_bot", {"target_bot_id": text.split()[1], "task": "child summary"})
+        if text == "child summary":
+            return Text("Independent delegated answer.")
         if text == "ask color":
             if messages[-1]["role"] == "tool":
                 return Text("Clarification received: Blue.")
@@ -83,7 +91,9 @@ def serve(port):
                 from dataclasses import replace
                 bots.append(BotConfig(name, replace(cfg, home=bot_home, cwd=bot_cwd, principal=name),
                                       ServerConfig(name)))
-            app = create_host(bots, service_factory=StreamingProbeService)
+            from hermes_agui.delegation import DelegationConfig
+            app = create_host(bots, service_factory=StreamingProbeService,
+                delegation=DelegationConfig("http://127.0.0.1:3001/internal/delegations", "browser-delegation-only"))
         else:
             app = create_app(cfg, ServerConfig("browser-test-only"), service_factory=StreamingProbeService)
 

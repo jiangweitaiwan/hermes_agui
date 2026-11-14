@@ -144,3 +144,22 @@ Phase 7 支援原生 clarify、一次性 approval、interrupt／resume 與取消
 每 Bot 有獨立 runner 與 Thread UI。完整單 host、雙 profile/volume 啟動方式見
 [部署指南](../../docs/agui-deployment.md#單程序雙-bot里程碑-a--b)。
 既有 `AGUI_URL` / `AGUI_API_KEY` 單 Bot 模式繼續支援。
+
+### 跨 Bot 委派與 Graph 接口（Part 2）
+
+雙 Bot 設定 `bots.example.json` 現在包含 `delegation`：方向性 `allow`、
+`tokenEnv`、`listenHost`／`listenPort`（預設 `127.0.0.1:3001`）、
+`timeoutMs`（預設 55000，最大 290000）。兩個程序提供相同的 `DELEGATION_TOKEN`，
+Node 另保留各 Bot 原有 token。刪除 Python YAML 與 Node JSON 的 `delegation` 區塊
+即可停用；單 Bot 的既有環境變數不變。
+
+Node 的內部 listener 僅接受 `POST /internal/delegations`，拒絕瀏覽器 Origin，
+以來源 Bot token 驗證請求，再向 Python 查證父 Run 仍有效及深度為 0。
+此服務接口不經 CopilotKit 的瀏覽器路由。範例綁 `0.0.0.0:3001` 以接收 Python
+容器經 `host.docker.internal` 的回呼；全本機啟動時改成 `127.0.0.1`。
+完整啟動步驟與結果見 [Part 2 交接](../../docs/multi-bot-part-2.md)。
+
+Graph 接口由 `server/application.ts:createApplication` 的 `graph` option 注入。
+`server/graph-memory.ts` 定義 `GraphMemoryPort`、具型別 scope、來源、可見範圍及結果。
+預設無 provider；授權通過的操作回 `disabled`。產品對話不自動 query/write。
+provider 範例與契約測試在 `tests/graph-memory.test.ts`，in-memory provider 僅存在測試。

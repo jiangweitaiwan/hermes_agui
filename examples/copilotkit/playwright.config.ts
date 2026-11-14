@@ -25,7 +25,7 @@ export default defineConfig({
     },
     {
       command: process.env.COPILOTKIT_TEST_PRODUCTION === "1" ? "npm start" : "npm run dev",
-      env: { ...(process.env.MULTI_BOT_TEST === "1" ? { AGUI_BOTS_CONFIG: "./bots.test.json", RESEARCHER_TOKEN: "researcher", REVIEWER_TOKEN: "reviewer" } : {}), AGUI_URL: "http://127.0.0.1:8765/agent", AGUI_API_KEY: "browser-test-only" },
+      env: { ...(process.env.MULTI_BOT_TEST === "1" ? { AGUI_BOTS_CONFIG: "./bots.test.json", RESEARCHER_TOKEN: "researcher", REVIEWER_TOKEN: "reviewer", DELEGATION_TOKEN: "browser-delegation-only" } : {}), AGUI_URL: "http://127.0.0.1:8765/agent", AGUI_API_KEY: "browser-test-only" },
       url: "http://127.0.0.1:3000",
       reuseExistingServer: false,
       timeout: 120_000,

@@ -188,3 +188,9 @@ AGUI_BOTS_CONFIG=./bots.example.json npm run dev
 endpoint。多 Bot 預設不開 legacy `/agent`，明確加入 `default_bot` 才開啟 legacy
 agent/cancel，並使用該 Bot 的 token。Bot ID 改名不改 native namespace，但不可把
 既有 profile 指派給另一 principal；舊單 Bot 的 home/principal 保持不變即可續用歷史。
+
+
+新版雙 Bot 範例同時啟用短任務委派，兩個 shell 另提供相同 `DELEGATION_TOKEN`。
+Node 內部 listener 在 3001 接收容器透過 `host.docker.internal` 的回呼；
+全本機部署改成 loopback。停用時移除兩份設定的 `delegation` 區塊。
+詳細契約、GraphMemoryPort 接入與驗證紀錄見 [Part 2 交接](multi-bot-part-2.md)。

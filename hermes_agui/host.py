@@ -55,5 +55,12 @@ def load_host(path: Path):
         token = os.environ[item["token_env"]]
         bots.append(BotConfig(item["id"], AgentConfig(**agent),
                               ServerConfig(bearer_token=token, **item.get("server", {}))))
-    return create_host(bots, default_bot=data.get("default_bot"),
+    delegation = None
+    if data.get("delegation"):
+        from hermes_agui.delegation import DelegationConfig
+
+        settings = dict(data["delegation"])
+        settings["token"] = os.environ[settings.pop("token_env")]
+        delegation = DelegationConfig(**settings)
+    return create_host(bots, delegation=delegation, default_bot=data.get("default_bot"),
                        max_active_runs=data.get("max_active_runs", 8))

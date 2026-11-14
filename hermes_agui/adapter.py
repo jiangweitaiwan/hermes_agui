@@ -21,6 +21,7 @@ class Run:
     stop: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task | None = None
     bridge: EventBridge | None = None
+    delegation_depth: int = 0
     resume_ids: set[str] = field(default_factory=set)
 
 
@@ -31,15 +32,16 @@ class AgentAdapter:
     durable in the HTTP host; exhaustion fails closed instead of evicting IDs.
     """
 
-    def __init__(self, service, config, *, receipt_store=None, host_has_capacity=None):
+    def __init__(self, service, config, *, receipt_store=None, host_has_capacity=None, delegation=None, bot_id=None):
         self.service, self.config = service, config
+        self.delegation, self.bot_id = delegation, bot_id
         self.active: dict[str, Run] = {}
         self.receipts: set[tuple[str, str, str]] = set()
         self.closed = False
         self.receipt_store = receipt_store
         self.host_has_capacity = host_has_capacity
 
-    def start(self, turn: TurnInput) -> Run:
+    def start(self, turn: TurnInput, *, delegation_depth=0) -> Run:
         if self.closed:
             raise AdmissionError(503, "Server is shutting down")
         if turn.thread_id in self.active:
@@ -51,7 +53,7 @@ class AgentAdapter:
             raise AdmissionError(503, "Server admission capacity reached")
         if self.host_has_capacity is not None and not self.host_has_capacity():
             raise AdmissionError(503, "Host admission capacity reached")
-        run = Run(turn)
+        run = Run(turn, delegation_depth=delegation_depth)
         run.bridge = EventBridge(turn, run.stop, self.config)
         if self.receipt_store is not None:
             try:
@@ -95,8 +97,16 @@ class AgentAdapter:
         try:
             if run.stop.is_set():
                 return {"interrupted": True}
-            future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
-                                         callbacks=run.bridge.callbacks)
+            from hermes_agui.delegation import _execution
+
+            token = _execution.set((asyncio.get_running_loop(), self.delegation, self.bot_id,
+                turn.thread_id, turn.run_id, run.delegation_depth, run.stop, self.config.bearer_token)
+                if self.delegation else None)
+            try:
+                future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
+                                             callbacks=run.bridge.callbacks)
+            finally:
+                _execution.reset(token)
             wrapped = asyncio.wrap_future(future)
             while not wrapped.done():
                 if run.stop.is_set():

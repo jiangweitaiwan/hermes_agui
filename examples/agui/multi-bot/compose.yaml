@@ -7,8 +7,10 @@ services:
     command: [--bots-config, /srv/bots.yaml, --host, 0.0.0.0, --port, "8000"]
     environment:
       RESEARCHER_TOKEN: ${RESEARCHER_TOKEN:?Set RESEARCHER_TOKEN}
+      DELEGATION_TOKEN: ${DELEGATION_TOKEN:?Set DELEGATION_TOKEN}
       REVIEWER_TOKEN: ${REVIEWER_TOKEN:?Set REVIEWER_TOKEN}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+    extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["127.0.0.1:8000:8000"]
     volumes:
       - ./bots.yaml:/srv/bots.yaml:ro

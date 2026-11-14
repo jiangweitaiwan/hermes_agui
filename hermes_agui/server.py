@@ -51,7 +51,7 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
 
 
 def create_host(bots, *, default_bot=None, max_active_runs=8,
-                service_factory=HermesAgentService):
+                service_factory=HermesAgentService, delegation=None):
     """One lifespan; independent trusted service and HTTP state for each Bot."""
     from contextlib import AsyncExitStack
     from hermes_agui.host import validate_bots
@@ -63,11 +63,29 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
         async with AsyncExitStack() as stack:
             app.state.adapters = {}
             for bot_id, bot in registry.items():
+                if delegation:
+                    from dataclasses import replace
+                    from hermes_agui.delegation import register_tool
+                    from tools.registry import registry as tools
+                    from hermes_cli.tools_config import _get_platform_tools
+                    from hermes_cli.config import load_config_readonly
+                    from agent.runtime_scope import bind_profile_scope
+
+                    register_tool(bot.agent.home)
+                    stack.callback(tools.deregister, "message_bot", scope=str(bot.agent.home))
+                    with bind_profile_scope(bot.agent.home):
+                        enabled = bot.agent.enabled_toolsets
+                        if enabled is None:
+                            enabled = sorted(_get_platform_tools(load_config_readonly(), "api_server",
+                                include_default_mcp_servers=True))
+                    bot = replace(bot, agent=replace(bot.agent,
+                        enabled_toolsets=tuple(dict.fromkeys([*enabled, "agui_bots"]))))
                 receipts = ReceiptStore(bot.agent.home, bot.agent.principal, bot.server.max_receipts)
                 options = {"authorize": bot.authorize} if bot.authorize else {}
                 service = service_factory(bot.agent, max_workers=bot.server.max_active_runs,
                                           max_pending=bot.server.max_active_runs, **options)
                 adapter = AgentAdapter(service, bot.server, receipt_store=receipts,
+                                       delegation=delegation, bot_id=bot_id,
                                        host_has_capacity=lambda: sum(len(a.active) for a in app.state.adapters.values()) < max_active_runs)
                 stack.push_async_callback(adapter.close)
                 app.state.adapters[bot_id] = adapter
@@ -97,7 +115,13 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
 
     @app.post("/agent")
     @app.post("/bots/{bot_id}/agent")
-    async def agent(value: RunAgentInput, target=Depends(authenticate)):
+    async def agent(value: RunAgentInput, request: Request, target=Depends(authenticate)):
+        depth = 0
+        marker = request.headers.get("X-Hermes-Delegation")
+        if marker is not None:
+            if not delegation or not secrets.compare_digest(marker.encode(), delegation.token.encode()):
+                raise HTTPException(403, "Invalid delegation credential")
+            depth = 1
         _bot_id, bot, adapter = target
         authorize, agent_config = bot.authorize, bot.agent
         try:
@@ -116,7 +140,7 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
             except PermissionError:
                 raise HTTPException(403, "Thread access denied") from None
         try:
-            run = adapter.resume(value) if value.resume else adapter.start(turn)
+            run = adapter.resume(value) if value.resume else adapter.start(turn, delegation_depth=depth)
         except AdmissionError as exc:
             raise HTTPException(exc.status, exc.detail) from None
         encoder = EventEncoder()
@@ -131,6 +155,21 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
 
         return RunResponse(events(), run, media_type=encoder.get_content_type(),
                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.get("/bots/{bot_id}/delegation/parent")
+    async def delegation_parent(thread_id: str, run_id: str, target=Depends(authenticate)):
+        _bot_id, bot, adapter = target
+        if not delegation:
+            raise HTTPException(404, "Delegation disabled")
+        if bot.authorize:
+            try:
+                bot.authorize(bot.agent.principal, thread_id)
+            except PermissionError:
+                raise HTTPException(403, "Thread access denied") from None
+        run = adapter.active.get(thread_id)
+        if run is None or run.turn.run_id != run_id or run.stop.is_set() or run.task.done():
+            raise HTTPException(409, "Parent run is not active")
+        return {"depth": run.delegation_depth}
 
     @app.post("/threads/{thread_id}/cancel")
     @app.post("/bots/{bot_id}/threads/{thread_id}/cancel")
