@@ -6,7 +6,7 @@ import secrets
 import anyio
 from ag_ui.core import RunAgentInput
 from ag_ui.encoder import EventEncoder
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -42,25 +42,50 @@ class RunResponse(StreamingResponse):
 
 def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_factory=HermesAgentService,
                authorize=None) -> FastAPI:
-    """No native service, provider or database is created before ASGI lifespan."""
+    """Legacy single-Bot factory, preserving profile/history identity."""
+    from hermes_agui.host import BotConfig
+
+    return create_host([BotConfig("hermes", agent_config, config, authorize)],
+                       default_bot="hermes", service_factory=service_factory,
+                       max_active_runs=config.max_active_runs)
+
+
+def create_host(bots, *, default_bot=None, max_active_runs=8,
+                service_factory=HermesAgentService):
+    """One lifespan; independent trusted service and HTTP state for each Bot."""
+    from contextlib import AsyncExitStack
+    from hermes_agui.host import validate_bots
+
+    registry = validate_bots(bots, default_bot, max_active_runs)
+
     @asynccontextmanager
     async def lifespan(app):
-        receipts = ReceiptStore(agent_config.home, agent_config.principal, config.max_receipts)
-        service_options = {"authorize": authorize} if authorize is not None else {}
-        service = service_factory(agent_config, max_workers=config.max_active_runs,
-                                  max_pending=config.max_active_runs, **service_options)
-        app.state.adapter = AgentAdapter(service, config, receipt_store=receipts)
-        try:
+        async with AsyncExitStack() as stack:
+            app.state.adapters = {}
+            for bot_id, bot in registry.items():
+                receipts = ReceiptStore(bot.agent.home, bot.agent.principal, bot.server.max_receipts)
+                options = {"authorize": bot.authorize} if bot.authorize else {}
+                service = service_factory(bot.agent, max_workers=bot.server.max_active_runs,
+                                          max_pending=bot.server.max_active_runs, **options)
+                adapter = AgentAdapter(service, bot.server, receipt_store=receipts,
+                                       host_has_capacity=lambda: sum(len(a.active) for a in app.state.adapters.values()) < max_active_runs)
+                stack.push_async_callback(adapter.close)
+                app.state.adapters[bot_id] = adapter
+            if default_bot:
+                app.state.adapter = app.state.adapters[default_bot]
             yield
-        finally:
-            await app.state.adapter.close()
 
     app = FastAPI(title="Hermes AG-UI", lifespan=lifespan)
 
-    async def authenticate(authorization: str | None = Header(default=None)):
-        expected = f"Bearer {config.bearer_token}".encode()
+    async def authenticate(request: Request, authorization: str | None = Header(default=None)):
+        bot_id = request.path_params.get("bot_id", default_bot)
+        bot = registry.get(bot_id)
+        if bot is None:
+            raise HTTPException(404, "Unknown Bot")
+        expected = f"Bearer {bot.server.bearer_token}".encode()
         if authorization is None or not secrets.compare_digest(authorization.encode(), expected):
             raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
+        return bot_id, bot, app.state.adapters[bot_id]
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request, _exc):
@@ -70,8 +95,11 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
     async def health():
         return {"status": "ok"}
 
-    @app.post("/agent", dependencies=[Depends(authenticate)])
-    async def agent(value: RunAgentInput):
+    @app.post("/agent")
+    @app.post("/bots/{bot_id}/agent")
+    async def agent(value: RunAgentInput, target=Depends(authenticate)):
+        _bot_id, bot, adapter = target
+        authorize, agent_config = bot.authorize, bot.agent
         try:
             if value.resume:
                 if (not value.thread_id or len(value.thread_id) > 512 or value.tools or value.context
@@ -88,7 +116,7 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
             except PermissionError:
                 raise HTTPException(403, "Thread access denied") from None
         try:
-            run = app.state.adapter.resume(value) if value.resume else app.state.adapter.start(turn)
+            run = adapter.resume(value) if value.resume else adapter.start(turn)
         except AdmissionError as exc:
             raise HTTPException(exc.status, exc.detail) from None
         encoder = EventEncoder()
@@ -104,14 +132,17 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
         return RunResponse(events(), run, media_type=encoder.get_content_type(),
                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-    @app.post("/threads/{thread_id}/cancel", dependencies=[Depends(authenticate)])
-    async def cancel(thread_id: str):
+    @app.post("/threads/{thread_id}/cancel")
+    @app.post("/bots/{bot_id}/threads/{thread_id}/cancel")
+    async def cancel(thread_id: str, target=Depends(authenticate)):
+        _bot_id, bot, adapter = target
+        authorize, agent_config = bot.authorize, bot.agent
         if authorize is not None:
             try:
                 authorize(agent_config.principal, thread_id)
             except PermissionError:
                 raise HTTPException(403, "Thread access denied") from None
-        run = app.state.adapter.active.get(thread_id)
+        run = adapter.active.get(thread_id)
         if run is None:
             raise HTTPException(409, "No active run")
         run.stop.set()
@@ -134,7 +165,14 @@ def main():
     parser.add_argument("--cwd", type=Path, default=Path.cwd())
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--bots-config", type=Path)
     args = parser.parse_args()
+    if args.bots_config:
+        from hermes_agui.host import load_host
+
+        app = load_host(args.bots_config)
+        uvicorn.run(app, host=args.host, port=args.port)
+        return
     token = os.environ.get("AGUI_API_KEY", "")
     if not token:
         parser.error("Set the AGUI_API_KEY secret before starting the server")

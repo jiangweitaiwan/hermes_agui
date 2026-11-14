@@ -136,3 +136,11 @@ Memory、Skills、Context compression 由 Python 的原生 Hermes 實作負責�
 Phase 7 支援原生 clarify、一次性 approval、interrupt／resume 與取消。
 範例 UI 使用官方 `useInterrupt` 呈現決策表單。Continuation 僅於同一程序存活期間有效，
 預設等待 90 秒；完整協定、授權與部署限制見 [HITL 說明](../../docs/agui-human-input.md)。
+
+### 多 Bot
+
+設定 `AGUI_BOTS_CONFIG=./bots.example.json`，在 Node 程序提供其中 `tokenEnv`
+指定的秘密，即可將 researcher/reviewer 註冊到同一 Python host。瀏覽器只選 Bot ID，
+每 Bot 有獨立 runner 與 Thread UI。完整單 host、雙 profile/volume 啟動方式見
+[部署指南](../../docs/agui-deployment.md#單程序雙-bot里程碑-a--b)。
+既有 `AGUI_URL` / `AGUI_API_KEY` 單 Bot 模式繼續支援。

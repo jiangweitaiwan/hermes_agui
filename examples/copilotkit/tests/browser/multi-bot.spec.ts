@@ -1,0 +1,50 @@
+import { expect, test } from "@playwright/test";
+
+test("Bot switching isolates concurrent streams, tools, HITL and errors", async ({ page, request }) => {
+  test.skip(process.env.MULTI_BOT_TEST !== "1", "dual-Bot fixture only");
+  await page.goto("/");
+  const chat = page.locator("section:visible");
+  const choose = (name: string) => page.getByRole("navigation", { name: "Bot 列表" }).getByRole("button", { name, exact: true }).click();
+  async function send(text: string) {
+    await expect(chat.getByRole("status")).toHaveText("已連線");
+    await chat.locator("textarea").fill(text);
+    await chat.locator("textarea").press("Enter");
+  }
+  await choose("researcher");
+  await send("stream");
+  await expect(chat).toContainText("First");
+  await choose("reviewer");
+  await send("hello beta");
+  await expect(chat).toContainText("Beta private answer.");
+  await expect(chat).not.toContainText("First streamed");
+  await send("ask color");
+  const card = chat.getByRole("form", { name: "等待使用者回覆" });
+  await expect(card).toBeVisible();
+  await choose("researcher");
+  await expect(chat.getByRole("status")).toHaveText("執行中…");
+  await expect(chat.getByRole("form")).toHaveCount(0);
+  // Stop the active A stream while B remains paused and independently resumable.
+  await chat.getByRole("button", { name: /stop/i }).click();
+  await request.post("http://127.0.0.1:8765/__test/release");
+  await expect(chat.getByRole("status")).toHaveText("已連線");
+  await send("hello alpha");
+  await expect(chat).toContainText("Alpha private answer.");
+  await choose("reviewer");
+  await expect(card).toBeVisible();
+  await card.getByRole("textbox", { name: "Which color?" }).fill("Blue");
+  await card.getByRole("button", { name: "送出回覆" }).click();
+  await expect(chat).toContainText("Clarification received: Blue.");
+  await send("read sample");
+  await expect(chat.getByTestId("tool-call").filter({ hasText: "read_file" })).toContainText("read_file");
+  await expect(chat).toContainText("Native tool finished.");
+  await page.getByRole("button", { name: "新增對話" }).click();
+  await send("hello alpha");
+  await expect(chat).toContainText("Alpha private answer.");
+  await expect(chat).not.toContainText("Beta private answer.");
+  await page.getByRole("button", { name: "對話 1", exact: true }).click();
+  await expect(chat).toContainText("Beta private answer.");
+  await send("fail");
+  await expect(chat.getByRole("alert")).toBeVisible();
+  await choose("researcher");
+  await expect(chat.getByRole("alert")).toHaveCount(0);
+});

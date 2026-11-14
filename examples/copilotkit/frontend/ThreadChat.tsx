@@ -4,12 +4,13 @@ import { CopilotChatView, useAgent, useCopilotKit } from "@copilotkit/react-core
 import { ThreadHumanInput } from "./HumanInput";
 
 interface ThreadChatProps {
+  botId: string;
   threadId: string;
   visible: boolean;
 }
 
-export function ThreadChat({ threadId, visible }: ThreadChatProps) {
-  const { agent, isReady } = useAgent({ agentId: `chat-${threadId}`, runtimeAgentId: "hermes", threadId });
+export function ThreadChat({ botId, threadId, visible }: ThreadChatProps) {
+  const { agent, isReady } = useAgent({ agentId: `chat-${botId}-${threadId}`, runtimeAgentId: botId, threadId });
   const { copilotkit } = useCopilotKit();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -42,10 +43,10 @@ export function ThreadChat({ threadId, visible }: ThreadChatProps) {
   }
 
   return (
-    <section hidden={!visible} aria-label="對話" data-thread-id={threadId}>
+    <section hidden={!visible} aria-label="對話" data-thread-id={threadId} data-bot-id={botId}>
       <div className="connection" role="status">{!isReady ? "連線中…" : agent.isRunning ? "執行中…" : "已連線"}</div>
       {error && <p className="error" role="alert">{error}</p>}
-      {isReady && <ThreadHumanInput agentId={`chat-${threadId}`} onWaiting={setWaiting} />}
+      {isReady && <ThreadHumanInput agentId={`chat-${botId}-${threadId}`} onWaiting={setWaiting} />}
       <CopilotChatView
         messages={agent.messages}
         isRunning={agent.isRunning}

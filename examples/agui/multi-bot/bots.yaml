@@ -1,0 +1,19 @@
+max_active_runs: 8
+# Optional: default_bot: researcher enables legacy /agent and /threads/.../cancel.
+bots:
+  - id: researcher
+    token_env: RESEARCHER_TOKEN
+    agent:
+      home: /srv/hermes/researcher
+      cwd: /srv/workspaces/researcher
+      principal: local-researcher
+    server:
+      max_active_runs: 4
+  - id: reviewer
+    token_env: REVIEWER_TOKEN
+    agent:
+      home: /srv/hermes/reviewer
+      cwd: /srv/workspaces/reviewer
+      principal: local-reviewer
+    server:
+      max_active_runs: 4

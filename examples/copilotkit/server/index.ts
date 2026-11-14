@@ -13,10 +13,19 @@ const { getRequestListener } = await import("@hono/node-server");
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid PORT");
-const runtime = createCopilotNodeHandler(createRuntimeHandler({
+const registry = process.env.AGUI_BOTS_CONFIG
+  ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
+  : undefined;
+if (registry && (!Array.isArray(registry.bots) || registry.bots.length === 0 ||
+  new Set(registry.bots.map((bot: { id: string }) => bot.id)).size !== registry.bots.length)) {
+  throw new Error("Configure unique Bot IDs");
+}
+const settings = registry ? Object.fromEntries(registry.bots.map((bot: { id: string; agentUrl: string; tokenEnv: string }) =>
+  [bot.id, { agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "" }])) : {
   agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent",
   token: process.env.AGUI_API_KEY ?? "",
-}));
+};
+const runtime = createCopilotNodeHandler(createRuntimeHandler(settings));
 const production = process.argv.includes("--production");
 const vite = production ? undefined : await (await import("vite")).createServer({
   server: { middlewareMode: true },
@@ -36,6 +45,10 @@ const server = createServer((req, res) => {
     return;
   }
   const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+  if (path === "/api/bots") {
+    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(Object.keys(registry ? settings : { hermes: settings })));
+    return;
+  }
   if (path === "/api/copilotkit" || path.startsWith("/api/copilotkit/")) {
     void runtime(req, res).catch(() => {
       if (!res.headersSent) res.writeHead(500);
@@ -50,7 +63,7 @@ const server = createServer((req, res) => {
 server.listen(port, "127.0.0.1", () => console.log(`Hermes chat: http://127.0.0.1:${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
-    server.close(() => { void vite?.close().then(() => process.exit(0)); });
+    server.close(() => { void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

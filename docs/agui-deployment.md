@@ -139,3 +139,52 @@ scripts/run_tests.sh tests/hermes_agui/test_runtime_container.py -m integration
 history 及 receipts。測試的 server restart 發生在同一容器內；Compose 的跨容器 volume
 生命週期另外由 named volume 配置提供，並未宣稱跨節點或跨程序 HITL checkpoint。
 本次實際執行結果見 [Phase 8 report](phase-8-report.md)。
+
+## 單程序雙 Bot（里程碑 A / B）
+
+範例在 `examples/agui/multi-bot/`，仍使用同一 `Dockerfile.agui`、一個 Python
+程序、單 ASGI worker。`bots.yaml` 是可信伺服器設定；`token_env` 只指定秘密來源。
+ID 不可重複，各 Bot 的 canonical profile/workspace 不可相同或互為父子目錄，
+每個 Bot 必須使用不同 token。`max_active_runs` 是 host 總上限，每 Bot 的
+`server.max_active_runs` 是各自上限；等待 HITL 仍佔容量，不排隊等待 host 名額。
+
+```bash
+cd examples/agui/multi-bot
+cp .env.example .env
+# 設定三個 secrets，並編輯 researcher.yaml / reviewer.yaml 的模型。
+docker compose up -d --build
+curl --fail http://127.0.0.1:8000/health
+```
+
+| Bot / principal | Agent endpoint | profile volume | workspace volume |
+|---|---|---|---|
+| researcher / local-researcher | `/bots/researcher/agent` | researcher-profile → `/srv/hermes/researcher` | researcher-workspace → `/srv/workspaces/researcher` |
+| reviewer / local-reviewer | `/bots/reviewer/agent` | reviewer-profile → `/srv/hermes/reviewer` | reviewer-workspace → `/srv/workspaces/reviewer` |
+
+兩個 native YAML 分別設定相應 `terminal.cwd`。所有 profile data、receipts、memory、
+skills 與 SQLite 都保存到各自 volume。共用程序、工具 registry 與 OS 權限，只適用可信
+且工具權限相容的 Bot；不是 OS sandbox。範例共用一個 provider secret，也可透過原生
+profile secret 設定分開供應。停止／更新時保留四個 volumes，勿執行 `down -v`。
+
+不用 Docker 時，先建立互不重疊的 workspace/profile，修改 `bots.yaml` 的路徑
+（相對路徑以此 YAML 所在目錄為準），提供 native config 與 secrets，再執行：
+
+```bash
+python -m hermes_agui.server --bots-config /absolute/path/bots.yaml --host 127.0.0.1 --port 8000
+```
+
+Node 在另一個 shell 載入相同 `RESEARCHER_TOKEN`、`REVIEWER_TOKEN`，沿用既有安裝：
+
+```bash
+cd examples/copilotkit
+AGUI_BOTS_CONFIG=./bots.example.json npm run dev
+# 或 npm run build 後：AGUI_BOTS_CONFIG=./bots.example.json npm start
+```
+
+開啟 `http://127.0.0.1:3000`，先選 Bot，再選該 Bot 的對話。JSON 只在 Node 讀取，
+`/api/bots` 只回傳 ID；token 不下發瀏覽器。`AGUI_URL` / `AGUI_API_KEY` 在未設定
+`AGUI_BOTS_CONFIG` 時保持原有單 Bot `hermes` 語意。
+取消用 `POST /bots/{bot_id}/threads/{threadId}/cancel`；resume 使用同一 Bot agent
+endpoint。多 Bot 預設不開 legacy `/agent`，明確加入 `default_bot` 才開啟 legacy
+agent/cancel，並使用該 Bot 的 token。Bot ID 改名不改 native namespace，但不可把
+既有 profile 指派給另一 principal；舊單 Bot 的 home/principal 保持不變即可續用歷史。

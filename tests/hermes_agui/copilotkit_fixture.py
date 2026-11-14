@@ -17,7 +17,8 @@ def serve(port):
 
     from hermes_agui.config import ServerConfig
     from hermes_agui.core import AgentConfig, HermesAgentService
-    from hermes_agui.server import create_app
+    from hermes_agui.server import create_app, create_host
+    from hermes_agui.host import BotConfig
     from tests.fakes.fake_llm_provider import Error, FakeLLMServer, Text, ToolCall, write_hermes_home
 
     release = threading.Event()
@@ -72,7 +73,19 @@ def serve(port):
         ))
         cfg = AgentConfig(home=home, cwd=workspace, enabled_toolsets=("file", "clarify"),
                           agent_options={"skip_background_review": True, "max_iterations": 3})
-        app = create_app(cfg, ServerConfig("browser-test-only"), service_factory=StreamingProbeService)
+        if os.environ.get("MULTI_BOT_TEST") == "1":
+            bots = []
+            for name in ("researcher", "reviewer"):
+                bot_home = write_hermes_home(workspace / name, provider.base_url,
+                    extra_config="updates:\n  check: false\nmodels_dev:\n  url: http://127.0.0.1:9/api.json\n")
+                bot_cwd = workspace / f"{name}-workspace"
+                bot_cwd.mkdir()
+                from dataclasses import replace
+                bots.append(BotConfig(name, replace(cfg, home=bot_home, cwd=bot_cwd, principal=name),
+                                      ServerConfig(name)))
+            app = create_host(bots, service_factory=StreamingProbeService)
+        else:
+            app = create_app(cfg, ServerConfig("browser-test-only"), service_factory=StreamingProbeService)
 
         @app.post("/__test/release")
         async def release_stream():

@@ -1,0 +1,28 @@
+services:
+  hermes-agui:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile.agui
+    image: hermes-agui:local
+    command: [--bots-config, /srv/bots.yaml, --host, 0.0.0.0, --port, "8000"]
+    environment:
+      RESEARCHER_TOKEN: ${RESEARCHER_TOKEN:?Set RESEARCHER_TOKEN}
+      REVIEWER_TOKEN: ${REVIEWER_TOKEN:?Set REVIEWER_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - ./bots.yaml:/srv/bots.yaml:ro
+      - researcher-profile:/srv/hermes/researcher
+      - reviewer-profile:/srv/hermes/reviewer
+      - researcher-workspace:/srv/workspaces/researcher
+      - reviewer-workspace:/srv/workspaces/reviewer
+      - ./researcher.yaml:/srv/hermes/researcher/config.yaml:ro
+      - ./reviewer.yaml:/srv/hermes/reviewer/config.yaml:ro
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 2m
+volumes:
+  researcher-profile:
+  reviewer-profile:
+  researcher-workspace:
+  reviewer-workspace:

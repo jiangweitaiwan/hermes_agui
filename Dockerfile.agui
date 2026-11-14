@@ -78,8 +78,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates bash git tini libatomic1 libstdc++6 libgomp1 && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --uid 10000 --create-home --home-dir /srv/hermes hermes && \
-    mkdir -p /srv/hermes/profile /srv/workspace && \
-    chown -R hermes:hermes /srv/hermes /srv/workspace
+    mkdir -p /srv/hermes/profile /srv/workspace /srv/hermes/researcher /srv/hermes/reviewer /srv/workspaces/researcher /srv/workspaces/reviewer && \
+    chown -R hermes:hermes /srv/hermes /srv/workspace /srv/workspaces
 COPY --from=sqlite_build /opt/sqlite-fixed/lib/libsqlite3.so.3.53.4 /usr/local/lib/
 RUN ln -s libsqlite3.so.3.53.4 /usr/local/lib/libsqlite3.so.0 && ldconfig
 COPY --from=build /opt/hermes /opt/hermes

@@ -31,12 +31,13 @@ class AgentAdapter:
     durable in the HTTP host; exhaustion fails closed instead of evicting IDs.
     """
 
-    def __init__(self, service, config, *, receipt_store=None):
+    def __init__(self, service, config, *, receipt_store=None, host_has_capacity=None):
         self.service, self.config = service, config
         self.active: dict[str, Run] = {}
         self.receipts: set[tuple[str, str, str]] = set()
         self.closed = False
         self.receipt_store = receipt_store
+        self.host_has_capacity = host_has_capacity
 
     def start(self, turn: TurnInput) -> Run:
         if self.closed:
@@ -48,6 +49,8 @@ class AgentAdapter:
             raise AdmissionError(409, "Run or user message ID has already been submitted")
         if len(self.active) >= self.config.max_active_runs or len(self.receipts) + 2 > self.config.max_receipts:
             raise AdmissionError(503, "Server admission capacity reached")
+        if self.host_has_capacity is not None and not self.host_has_capacity():
+            raise AdmissionError(503, "Host admission capacity reached")
         run = Run(turn)
         run.bridge = EventBridge(turn, run.stop, self.config)
         if self.receipt_store is not None:

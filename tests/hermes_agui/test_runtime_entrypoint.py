@@ -17,16 +17,19 @@ from tests.waiting import wait_until
 
 
 @contextmanager
-def runtime(home, workspace, tmp_path):
+def runtime(home, workspace, tmp_path, *, bots_config=None):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     env = {**os.environ, "AGUI_API_KEY": "runtime-test-token", "HERMES_HOME": str(home)}
     with (tmp_path / "server.log").open("a", encoding="utf-8") as log:
-        process = subprocess.Popen([
+        command = [
             sys.executable, "-m", "hermes_agui.server", "--home", str(home),
             "--cwd", str(workspace), "--port", str(port),
-        ], env=env, stdout=log, stderr=log)
+        ]
+        if bots_config is not None:
+            command += ["--bots-config", str(bots_config)]
+        process = subprocess.Popen(command, env=env, stdout=log, stderr=log)
         url = f"http://127.0.0.1:{port}"
 
         def ready():
@@ -107,3 +110,37 @@ def test_runtime_requires_auth_secret(tmp_path):
     ], env=env, capture_output=True, text=True, timeout=20, check=False)
     assert result.returncode == 2
     assert "Set the AGUI_API_KEY secret" in result.stderr
+
+
+@pytest.mark.platforms("posix")
+def test_multi_bot_cli_restart_preserves_separate_native_histories(tmp_path, monkeypatch):
+    with FakeLLMServer(lambda record: Text("reply: " + "|".join(
+        m["content"] for m in record["body"]["messages"] if m["role"] == "user"))) as provider:
+        bots = []
+        for name in ("researcher", "reviewer"):
+            workspace = tmp_path / f"{name}-workspace"
+            workspace.mkdir()
+            home = write_hermes_home(tmp_path / name, provider.base_url, extra_config=(
+                "platform_toolsets:\n  api_server: [todo]\nupdates:\n  check: false\n"
+                "models_dev:\n  url: http://127.0.0.1:9/api.json\n"))
+            monkeypatch.setenv(f"{name.upper()}_TOKEN", name)
+            bots.append({"id": name, "token_env": f"{name.upper()}_TOKEN",
+                         "agent": {"home": str(home), "cwd": str(workspace), "principal": name,
+                                   "agent_options": {"skip_background_review": True}}})
+        config = tmp_path / "bots.yaml"
+        config.write_text(json.dumps({"bots": bots}))
+        for restarted in (False, True):
+            with runtime(tmp_path / "launch-profile", tmp_path, tmp_path, bots_config=config) as url:
+                for name in ("researcher", "reviewer"):
+                    data = payload(runId="second" if restarted else "run", messages=[{
+                        "id": "second" if restarted else "u1", "role": "user",
+                        "content": "continue" if restarted else name}])
+                    request = Request(url + f"/bots/{name}/agent", data=json.dumps(data).encode(),
+                        headers={"Content-Type": "application/json", "Authorization": f"Bearer {name}"})
+                    with urlopen(request, timeout=40) as response:
+                        text = response.read().decode()
+                    assert '"type":"RUN_FINISHED"' in text.replace(" ", "")
+                    if restarted:
+                        messages = provider.main_requests()[-1]["messages"]
+                        assert any(m.get("content") == name for m in messages)
+                        assert not any(m.get("content") == ("reviewer" if name == "researcher" else "researcher") for m in messages)

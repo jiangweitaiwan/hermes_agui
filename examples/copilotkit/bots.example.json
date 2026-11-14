@@ -1,0 +1,1 @@
+{"bots":[{"id":"researcher","agentUrl":"http://127.0.0.1:8000/bots/researcher/agent","tokenEnv":"RESEARCHER_TOKEN"},{"id":"reviewer","agentUrl":"http://127.0.0.1:8000/bots/reviewer/agent","tokenEnv":"REVIEWER_TOKEN"}]}
