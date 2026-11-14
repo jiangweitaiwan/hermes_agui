@@ -5,6 +5,7 @@ unattended predicates, and the ``approvals.*`` config readers used by every
 gate in :mod:`tools.approval`.
 """
 
+from contextlib import contextmanager
 import contextvars
 import logging
 import os
@@ -35,6 +36,28 @@ _approval_session_id: contextvars.ContextVar[str] = _ctx("approval_session_id")
 _hermes_interactive_ctx: contextvars.ContextVar[str | None] = _ctx("hermes_interactive", None)
 
 
+_host_approval_callback = contextvars.ContextVar("host_approval_callback", default=None)
+
+
+@contextmanager
+def bind_host_approval(callback):
+    """A trusted headless host supplies a bounded human channel for this turn.
+
+    Context propagation carries it to native tool workers without changing the
+    platform identity or process environment. Absence preserves unattended policy.
+    """
+    from tools.terminal_tool import _get_approval_callback, set_approval_callback
+
+    previous = _get_approval_callback()
+    token = _host_approval_callback.set(callback)
+    set_approval_callback(callback)
+    try:
+        yield
+    finally:
+        set_approval_callback(previous)
+        _host_approval_callback.reset(token)
+
+
 def set_hermes_interactive_context(interactive: bool) -> contextvars.Token:
     """Bind interactive mode for the current context instead of mutating os.environ."""
     return _hermes_interactive_ctx.set("1" if interactive else "")
@@ -46,7 +69,9 @@ def reset_hermes_interactive_context(token: contextvars.Token) -> None:
 
 
 def _is_interactive_cli() -> bool:
-    """True for an interactive CLI/ACP session (contextvar first, env fallback)."""
+    """A callback-backed prompt surface: CLI/ACP or an explicitly bound host."""
+    if _host_approval_callback.get() is not None:
+        return True
     ctx_val = _hermes_interactive_ctx.get()
     return is_truthy_value(ctx_val) if ctx_val is not None else env_var_enabled("HERMES_INTERACTIVE")
 
@@ -189,14 +214,15 @@ _UNATTENDED_APPROVAL_PLATFORMS = frozenset({"webhook", "msgraph_webhook", "api_s
 
 
 def _is_unattended_platform_approval_context() -> bool:
-    """True when the session platform is a programmatic/unattended surface.
+    """True when a programmatic surface has no explicitly bound host channel.
 
     Webhook, msgraph_webhook, and api_server sessions bind ``HERMES_SESSION_PLATFORM`` like chat gateways
     do, but there is no human who can resolve a pending approval. Treating them as gateway approval contexts
     blocks the session for the full approval timeout (60-300s) and then fails closed anyway — the deadlock
     in #37284/#87509.
     """
-    return _get_session_platform() in _UNATTENDED_APPROVAL_PLATFORMS
+    return (_get_session_platform() in _UNATTENDED_APPROVAL_PLATFORMS
+            and not (_get_session_platform() == "api_server" and _host_approval_callback.get() is not None))
 
 
 # Platforms where a *registered* gateway notify callback still does not mean a human can answer:
@@ -257,6 +283,8 @@ def _resolve_cli_approval_callback(approval_callback=None):
     """Explicit callback, else the per-thread one from ``terminal_tool.set_approval_callback``."""
     if approval_callback is not None:
         return approval_callback
+    if _host_approval_callback.get() is not None:
+        return _host_approval_callback.get()
     try:
         from tools.terminal_tool import _get_approval_callback
         return _get_approval_callback()

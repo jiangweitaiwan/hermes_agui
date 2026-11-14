@@ -100,5 +100,5 @@ Agent 保留 prompt／tool snapshots。HTTP 測試在執行中更新技能與 wo
 自訂 engine 驗收另確認每個 Thread 有自己的 instance、請求選擇／usage／turn-complete
 hooks 仍運作，且 eviction／shutdown 在 owning scope 觸發 session-end。
 
-執行方式與結果見 [Phase 6 report](phase-6-report.md)。Phase 7 的 tool approval、clarify、
-interrupt resume／HITL 另行設計；這一階段沒有擴大原生 unattended 權限。
+執行方式與結果見 [Phase 6 report](phase-6-report.md)。Phase 6 沒有擴大原生 unattended 權限。
+Phase 7 的 tool approval、clarify 與 interrupt resume 見 [HITL](agui-human-input.md)。

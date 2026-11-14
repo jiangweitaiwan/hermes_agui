@@ -14,11 +14,12 @@ from hermes_agui.session_manager import Session, SessionManager
 # These are native callbacks, not AG-UI events. The dedicated reasoning sink is excluded.
 CALLBACKS = frozenset({"stream_delta_callback", "interim_assistant_callback", "tool_start_callback",
                       "tool_complete_callback", "tool_progress_callback", "step_callback", "status_callback",
-                      "notice_callback", "notice_clear_callback", "event_callback", "tool_gen_callback"})
+                      "notice_callback", "notice_clear_callback", "event_callback", "tool_gen_callback",
+                      "clarify_callback"})
 
 
 def _unavailable_clarify(questions):
-    return {"answers": {q["id"]: None for q in questions}, "outcome": "unavailable"}
+    return {"answers": {q["qid"]: None for q in questions}, "outcome": "unavailable"}
 
 
 class HermesAgentService:
@@ -77,7 +78,7 @@ class HermesAgentService:
         """
         self._check_access(session_id)
         callbacks = dict(callbacks or {})
-        if callbacks.keys() - CALLBACKS or any(not callable(cb) for cb in callbacks.values()):
+        if callbacks.keys() - (CALLBACKS | {"approval_callback"}) or any(not callable(cb) for cb in callbacks.values()):
             raise ValueError("callbacks must contain callable native display callbacks")
         if run_id is not None and (not isinstance(run_id, str) or not run_id):
             raise ValueError("run_id must be a nonempty string")
@@ -109,12 +110,15 @@ class HermesAgentService:
         previous = {key: getattr(agent, key) for key in CALLBACKS}
         for key in CALLBACKS:
             setattr(agent, key, callbacks.get(key))
-        agent.clarify_callback = _unavailable_clarify
+        agent.clarify_callback = callbacks.get("clarify_callback", _unavailable_clarify)
         with session.control:
             agent.clear_interrupt(hard_cancel=True)
             session.active_run = run_id
         try:
-            result = agent.run_conversation(message, task_id=agent.session_id, reload_history=True)
+            from tools.approval_context import bind_host_approval
+
+            with bind_host_approval(callbacks.get("approval_callback")):
+                result = agent.run_conversation(message, task_id=agent.session_id, reload_history=True)
             return {**result, "run_id": run_id, "external_session_id": external_id,
                     "native_session_id": agent.session_id}
         finally:

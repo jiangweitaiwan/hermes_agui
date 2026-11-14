@@ -96,8 +96,8 @@ asyncio.Queue。獨立 reasoning callback 不在白名單；原生 tool_progress
 
 每輪 callbacks 在完成／例外後解除；只使用一個文字 sink，避免重複 delta。
 Tool callback coverage 的 blocked／invalid／skipped 路徑限制，與 upstream 原生行為一致，
-詳見 `architecture-audit.md`。`clarify` 回覆 unavailable；approval 使用原生 unattended
-`api_server` policy，預設需要 approval 的操作拒絕，不開 yolo 或 terminal prompt。
+Phase 7 的 clarify／approval 透過原生 callbacks 轉成官方 interrupt／resume；沒有互動 channel
+的直接 Service 呼叫仍保留 unavailable／unattended policy。詳見 [HITL](agui-human-input.md)。
 
 結果保留原生 dict（包括 messages、completed、failed、partial、interrupted 等欄位），
 增加 `external_session_id`、`native_session_id`、`run_id`。不能用函式成功 return 判斷 Run 成功。

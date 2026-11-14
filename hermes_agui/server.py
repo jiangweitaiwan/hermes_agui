@@ -36,7 +36,8 @@ class RunResponse(StreamingResponse):
                 group.cancel_scope.cancel()
         finally:
             # Also covers disconnect before the generator is first advanced.
-            self.run.stop.set()
+            if not self.run.bridge.paused:
+                self.run.stop.set()
 
 
 def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_factory=HermesAgentService,
@@ -72,16 +73,22 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
     @app.post("/agent", dependencies=[Depends(authenticate)])
     async def agent(value: RunAgentInput):
         try:
-            turn = adapt_input(value)
+            if value.resume:
+                if (not value.thread_id or len(value.thread_id) > 512 or value.tools or value.context
+                        or value.state not in (None, {}) or value.forwarded_props not in (None, {})):
+                    raise ValueError("Invalid interrupt resume input")
+                turn = None
+            else:
+                turn = adapt_input(value)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         if authorize is not None:
             try:
-                authorize(agent_config.principal, turn.thread_id)
+                authorize(agent_config.principal, value.thread_id)
             except PermissionError:
                 raise HTTPException(403, "Thread access denied") from None
         try:
-            run = app.state.adapter.start(turn)
+            run = app.state.adapter.resume(value) if value.resume else app.state.adapter.start(turn)
         except AdmissionError as exc:
             raise HTTPException(exc.status, exc.detail) from None
         encoder = EventEncoder()
@@ -91,10 +98,24 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
                 async for event in run.bridge.events(run.task):
                     yield encoder.encode(event)
             finally:
-                run.stop.set()
+                if not run.bridge.paused:
+                    run.stop.set()
 
         return RunResponse(events(), run, media_type=encoder.get_content_type(),
                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/threads/{thread_id}/cancel", dependencies=[Depends(authenticate)])
+    async def cancel(thread_id: str):
+        if authorize is not None:
+            try:
+                authorize(agent_config.principal, thread_id)
+            except PermissionError:
+                raise HTTPException(403, "Thread access denied") from None
+        run = app.state.adapter.active.get(thread_id)
+        if run is None:
+            raise HTTPException(409, "No active run")
+        run.stop.set()
+        return {"status": "cancelling"}
 
     return app
 

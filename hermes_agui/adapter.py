@@ -21,6 +21,7 @@ class Run:
     stop: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task | None = None
     bridge: EventBridge | None = None
+    resume_ids: set[str] = field(default_factory=set)
 
 
 class AgentAdapter:
@@ -62,6 +63,28 @@ class AgentAdapter:
             self.receipts.update(keys)
         self.active[turn.thread_id] = run
         run.task = asyncio.create_task(self._execute(run))
+        return run
+
+    def resume(self, value) -> Run:
+        run = self.active.get(value.thread_id)
+        if self.closed or run is None or not run.bridge.paused or run.task.done():
+            raise AdmissionError(409, "No resumable interrupt for this thread")
+        if len(value.resume) != 1:
+            raise AdmissionError(422, "Submit exactly one interrupt decision")
+        if (not value.run_id or len(value.run_id) > 512 or value.run_id == run.turn.run_id
+                or value.run_id in run.resume_ids):
+            raise AdmissionError(422, "Resume requires a new run ID")
+        if len(run.resume_ids) >= self.config.event_capacity:
+            raise AdmissionError(503, "Continuation capacity reached; cancel this run")
+        try:
+            run.bridge.human.resolve(value.resume[0])
+        except ValueError as exc:
+            raise AdmissionError(409, str(exc)) from None
+        from dataclasses import replace
+
+        run.bridge.turn = replace(run.bridge.turn, run_id=value.run_id)
+        run.bridge.paused = False
+        run.resume_ids.add(value.run_id)
         return run
 
     async def _execute(self, run: Run) -> dict[str, Any]:

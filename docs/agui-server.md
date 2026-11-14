@@ -40,7 +40,7 @@ curl -N http://127.0.0.1:8000/agent \
 整份 final。工具事件為 `TOOL_CALL_START/ARGS/END/RESULT`；完整參數安全投影一次送出，
 沒有偽造增量參數。工具結果保留 tool role，沿用 native call ID。
 
-執行失敗、partial、interrupt、投影錯誤或滿載以泛化 `RUN_ERROR` 結束；先關閉已開始
+執行失敗、partial、原生 hard cancellation、投影錯誤或滿載以泛化 `RUN_ERROR` 結束；先關閉已開始
 的文字訊息，error 後不再發 `RUN_FINISHED`。已送出的 partial 文字無法撤回。
 不公開原生 exception、messages、system prompt 或 reasoning；tool payload 預設遮蔽。
 若 native streaming 被關閉或原生 hold_stream 阻擋 delta，才使用 completed final fallback。
@@ -52,15 +52,16 @@ ASGI lifespan 開始時建立 Headless Service，結束時取消／等待已接�
 
 - `threadId`、`runId`、最後一筆 user message ID 均須 1–512 字元。
 - `messages` 必須以非空文字 user message 結束，接受字串及純文字 parts。
-  不支援圖片、音訊、tool-result resume 或中斷恢復。
+  不支援圖片、音訊或 browser-side tool-result resume。Phase 7 的 interrupt resume
+  不需要新的 user message，格式見 [HITL](agui-human-input.md)。
 - 只將最後一筆 user text 交給 native service；前面的 UI history 全部忽略，不匯入、
   不比較、不替換 Hermes DB。全新 thread 也不以 UI history 建構過去對話。
   若使用者需要匯入對話，須等後續明確的 import/reconciliation API。
 - Hermes SQLite 是執行歷史的唯一權威；原生 admission 在 durable lease 下載入歷史。
   HTTP 層不重寫 Prompt、Context、Memory、Skills 或 Tool Dispatch。
-- 非空 `tools`、`context`、`state`、`forwardedProps`、`resume` 回覆 422；它們不會改變
+- 非空 `tools`、`context`、`state`、`forwardedProps` 回覆 422；它們不會改變
   native toolsets、profile、provider 或系統指令。前端與後端工具整合留在後續階段。
-- 同 thread active 時回覆 409；不同 thread 最多同時執行 4 個，超過容量回覆 503。
+- 同 thread active 時除匹配的 interrupt resume 外回覆 409；不同 thread 最多同時執行 4 個，超過容量回覆 503。
   HTTP 採計畫容許的「拒絕第二輪」策略；純 Python Service 仍支援原生同 Session 排隊。
 - 每個已接收的 `(threadId, runId)` 與 `(threadId, user message ID)` 均保留收據。
   重送回覆 409，不自動重跑或重播結果；失敗與斷線也保留收據。上限預設 4096 筆收據
@@ -166,3 +167,9 @@ Phase 4 驗證見 [Phase 4 report](phase-4-report.md)；CopilotKit UI 與啟動�
 透過 owning scope 的原生 close 執行 provider extraction／flush；每個 HTTP Run
 結束不等於 session end。自動 compression 與可配置 ContextEngine 也沿用原生流程。
 完整策略見 [Phase 6 原生能力](agui-native-capabilities.md)。
+
+## Human-in-the-loop
+
+Phase 7 支援原生 clarify、一次性 approval、interrupt／resume 與取消。
+範例 UI 使用官方 `useInterrupt` 呈現決策表單。Continuation 僅於同一程序存活期間有效，
+預設等待 90 秒；完整協定、授權與部署限制見 [HITL 說明](agui-human-input.md)。

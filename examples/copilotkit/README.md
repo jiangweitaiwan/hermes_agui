@@ -130,3 +130,9 @@ Memory、Skills、Context compression 由 Python 的原生 Hermes 實作負責�
 同一 profile 的多個 UI Thread 共用長期 memory／skills，各自保留獨立對話歷史與
 已建立的 prompt snapshot。Thread 切換不等於切換使用者。需要隔離使用者資料時
 應使用不同可信 profile/workspace。詳見 [原生能力與驗收](../../docs/agui-native-capabilities.md)。
+
+## Human-in-the-loop
+
+Phase 7 支援原生 clarify、一次性 approval、interrupt／resume 與取消。
+範例 UI 使用官方 `useInterrupt` 呈現決策表單。Continuation 僅於同一程序存活期間有效，
+預設等待 90 秒；完整協定、授權與部署限制見 [HITL 說明](../../docs/agui-human-input.md)。

@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  page.on("pageerror", error => { throw error; });
+});
+
 test("UI streams native turns, observes tools, isolates threads and displays errors", async ({ page, request }) => {
   const externalRequests: string[] = [];
   await page.route("**/*", route => {
@@ -67,4 +71,27 @@ test("UI streams native turns, observes tools, isolates threads and displays err
   expect(transcripts.some((row: { role: string; content?: string }[]) =>
     row.some(m => m.role === "tool" && m.content?.includes("Native tool fixture content")))).toBe(true);
   expect(externalRequests).toEqual([]);
+});
+
+
+test("native clarification and approval resume through the official runtime", async ({ page }) => {
+  await page.goto("/");
+  const chat = page.locator("section:visible");
+  await expect(chat.getByRole("status")).toHaveText("已連線");
+  const input = chat.locator("textarea");
+  await input.fill("ask color");
+  await input.press("Enter");
+  const card = chat.getByRole("form", { name: "等待使用者回覆" });
+  await expect(card).toBeVisible();
+  await card.getByRole("textbox", { name: "Which color?" }).fill("Blue");
+  await card.getByRole("button", { name: "送出回覆" }).click();
+  await expect(chat).toContainText("Clarification received: Blue.");
+  await expect(card).not.toBeVisible();
+  await expect(chat.getByRole("status")).toHaveText("已連線");
+  await input.fill("approve write");
+  await input.press("Enter");
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "拒絕", exact: true }).click();
+  await expect(chat).toContainText("Approval handled.");
+  await expect(card).not.toBeVisible();
 });

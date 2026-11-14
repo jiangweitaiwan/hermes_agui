@@ -12,7 +12,7 @@ import threading
 import uuid
 
 from ag_ui.core import (
-    RunErrorEvent, RunFinishedEvent, RunStartedEvent,
+    Interrupt, RunErrorEvent, RunFinishedEvent, RunStartedEvent,
     TextMessageContentEvent, TextMessageEndEvent, TextMessageStartEvent,
     ToolCallArgsEvent, ToolCallEndEvent, ToolCallResultEvent, ToolCallStartEvent,
 )
@@ -34,13 +34,19 @@ class EventBridge:
         self.calls = set()
         self.call_bytes = 0
         self.completed_calls = set()
+        from hermes_agui.human_input import HumanInput
+
+        self.human = HumanInput(self)
+        self.paused = False
 
     @property
     def callbacks(self):
         return {"stream_delta_callback": self.delta,
                 "interim_assistant_callback": self.interim,
                 "tool_start_callback": self.tool_start,
-                "tool_complete_callback": self.tool_complete}
+                "tool_complete_callback": self.tool_complete,
+                "clarify_callback": self.human.clarify,
+                "approval_callback": self.human.approve}
 
     def _signal(self):
         self.wake.set()
@@ -159,9 +165,15 @@ class EventBridge:
         yield ToolCallResultEvent(tool_call_id=call_id, message_id=str(uuid.uuid4()),
                                   content=result, role="tool")
 
+    def _on_human(self, value):
+        yield from self._end_text()
+        self.paused = True
+        yield RunFinishedEvent(thread_id=self.turn.thread_id, run_id=self.turn.run_id,
+                               outcome={"type": "interrupt", "interrupts": [Interrupt.model_validate_json(value)]})
+
     def _convert(self, kind, values):
         handler = {"delta": self._on_delta, "interim": self._on_interim,
-                   "start": self._on_start, "result": self._on_result}[kind]
+                   "start": self._on_start, "result": self._on_result, "human": self._on_human}[kind]
         yield from handler(*values)
 
     def _final_text(self, result):
@@ -184,9 +196,17 @@ class EventBridge:
                     self.pending.clear()
                     self.pending_bytes = 0
                     self.wake.clear()
-                for kind, values, _size in items:
+                for index, (kind, values, _size) in enumerate(items):
                     for event in self._convert(kind, values):
                         yield event
+                    if self.paused:
+                        # Keep callbacks arriving around the checkpoint for the
+                        # next HTTP stream; their native execution is still owned.
+                        with self.lock:
+                            for item in reversed(items[index + 1:]):
+                                self.pending.appendleft(item)
+                                self.pending_bytes += item[2]
+                        return
                 if task.done():
                     with self.lock:
                         if not self.pending:
@@ -207,7 +227,8 @@ class EventBridge:
             else:
                 yield RunFinishedEvent(thread_id=self.turn.thread_id, run_id=self.turn.run_id)
         finally:
-            with self.lock:
-                self.closed = True
-                self.pending.clear()
-                self.pending_bytes = 0
+            if not self.paused:
+                with self.lock:
+                    self.closed = True
+                    self.pending.clear()
+                    self.pending_bytes = 0

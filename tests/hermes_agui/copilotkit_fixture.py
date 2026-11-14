@@ -28,6 +28,14 @@ def serve(port):
     def respond(record):
         messages = record["body"]["messages"]
         text = next(m["content"] for m in reversed(messages) if m["role"] == "user")
+        if text == "ask color":
+            if messages[-1]["role"] == "tool":
+                return Text("Clarification received: Blue.")
+            return ToolCall("clarify", {"questions": [{"question": "Which color?", "choices": ["Red", "Blue"]}]})
+        if text == "approve write":
+            if messages[-1]["role"] == "tool":
+                return Text("Approval handled.")
+            return ToolCall("write_file", {"path": str(workspace / "AGENTS.md"), "content": "approved"})
         if text == "fail":
             return Error(400, "PRIVATE scripted provider failure")
         if text == "read sample":
@@ -62,7 +70,7 @@ def serve(port):
             "updates:\n  check: false\nmodels_dev:\n  url: http://127.0.0.1:9/api.json\n"
             "skills:\n  creation_nudge_interval: 0\nmemory:\n  nudge_interval: 0\n"
         ))
-        cfg = AgentConfig(home=home, cwd=workspace, enabled_toolsets=("file",),
+        cfg = AgentConfig(home=home, cwd=workspace, enabled_toolsets=("file", "clarify"),
                           agent_options={"skip_background_review": True, "max_iterations": 3})
         app = create_app(cfg, ServerConfig("browser-test-only"), service_factory=StreamingProbeService)
 
