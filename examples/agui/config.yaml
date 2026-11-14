@@ -1,0 +1,19 @@
+# Select a real model available to your account before starting.
+model:
+  provider: openai
+  default: replace-with-your-model-id
+terminal:
+  backend: local
+  cwd: /srv/workspace
+agent:
+  max_turns: 30
+# Shell execution remains a native tool; no terminal UI is started.
+# Adjust this native selection before creating a new Thread.
+platform_toolsets:
+  api_server: [terminal, file, memory, skills, todo, session_search, clarify]
+updates:
+  check: false
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false

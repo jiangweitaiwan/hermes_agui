@@ -1,0 +1,22 @@
+services:
+  hermes-agui:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.agui
+    image: hermes-agui:local
+    environment:
+      AGUI_API_KEY: ${AGUI_API_KEY:?Set AGUI_API_KEY in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env}
+    ports:
+      - "127.0.0.1:${AGUI_PORT:-8000}:8000"
+    volumes:
+      - profile:/srv/hermes/profile
+      - workspace:/srv/workspace
+      - ./config.yaml:/srv/hermes/profile/config.yaml:ro
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 2m
+
+volumes:
+  profile:
+  workspace:

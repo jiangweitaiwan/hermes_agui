@@ -143,3 +143,8 @@ MemoryManager 的背景同步與 eviction/shutdown hooks 在 owning profile 下�
 原生自動 compression 將 model/display history 分開持久保存並支援重啟恢復。
 範圍、生命週期與隔離語意見 [原生能力說明](agui-native-capabilities.md)，
 驗證結果見 [Phase 6 report](phase-6-report.md)。
+
+## Phase 8 runtime packaging
+
+獨立 AG-UI Dockerfile、Compose、保留依賴及部署驗證界線見
+[AG-UI deployment](agui-deployment.md)。Runtime 僅啟動 HTTP host；原生 core 與工具仍沿用 Hermes。

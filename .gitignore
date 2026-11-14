@@ -50,6 +50,7 @@ examples/
 !/examples/
 /examples/*
 !/examples/copilotkit/
+!/examples/agui/
 # Skills ship worked examples as support files; the bare pattern above is for dataset dumps.
 !optional-skills/**/examples/
 !skills/**/examples/

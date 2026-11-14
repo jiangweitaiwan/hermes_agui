@@ -22,7 +22,8 @@ CLI 預設 home 使用原生 `get_hermes_home()`，cwd 使用啟動目錄。未�
 CLI 的新增參數均見 `python -m hermes_agui.server --help`。
 
 服務預設只監聽 loopback；對外部署由可信反向代理提供 TLS，使用單一 ASGI worker。
-Python 不提供 CORS 或 Docker；Phase 5 的獨立 Node Runtime 範例使用同來源前端。Native tools 具有該程序的 OS 權限；token
+Python 不提供 CORS；Phase 5 的獨立 Node Runtime 範例使用同來源前端。
+Phase 8 的獨立 Docker／Compose 交付與驗證限制見 [部署說明](agui-deployment.md)。Native tools 具有該程序的 OS 權限；token
 持有人可以使用該 profile，並非隔離沙箱。
 
 ```bash
