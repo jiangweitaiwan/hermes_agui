@@ -7,6 +7,7 @@ process.env.DO_NOT_TRACK = "1";
 const { createServer } = await import("node:http");
 const { createCopilotNodeHandler } = await import("@copilotkit/runtime/v2/node");
 const { createApplication } = await import("./application");
+const { loadManagement } = await import("./bots/deployment");
 const { Hono } = await import("hono");
 const { serveStatic } = await import("@hono/node-server/serve-static");
 const { getRequestListener } = await import("@hono/node-server");
@@ -16,20 +17,33 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invali
 const registry = process.env.AGUI_BOTS_CONFIG
   ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
   : undefined;
-if (registry && (!Array.isArray(registry.bots) || registry.bots.length === 0 ||
+if (registry && (!Array.isArray(registry.bots) || (!registry.management && registry.bots.length === 0) ||
   new Set(registry.bots.map((bot: { id: string }) => bot.id)).size !== registry.bots.length)) {
   throw new Error("Configure unique Bot IDs");
 }
-const settings = registry ? Object.fromEntries(registry.bots.map((bot: { id: string; agentUrl: string; tokenEnv: string }) =>
-  [bot.id, { agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "" }])) : {
+interface DeploymentBot {
+  id: string;
+  agentUrl: string;
+  tokenEnv: string;
+  memory?: { keyEnv: string; principal: string; projectId: string };
+}
+const settings = registry ? Object.fromEntries(registry.bots.map((bot: DeploymentBot) =>
+  [bot.id, {
+    agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "",
+    memory: bot.memory ? { key: process.env[bot.memory.keyEnv] ?? "",
+      principal: bot.memory.principal, projectId: bot.memory.projectId } : undefined,
+  }])) : {
   agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent",
   token: process.env.AGUI_API_KEY ?? "",
 };
 const application = createApplication(registry ? settings : { hermes: settings }, {
+  management: loadManagement(registry?.management),
   delegation: registry?.delegation ? { ...registry.delegation,
     token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
 });
+await application.ready;
 const runtime = createCopilotNodeHandler(application.runtime);
+const management = application.management ? createCopilotNodeHandler(application.management.api) : undefined;
 const internal = application.delegation
   ? (await import("./delegation-http")).createDelegationServer(application.delegation) : undefined;
 if (internal) {
@@ -58,6 +72,13 @@ const server = createServer((req, res) => {
     return;
   }
   const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+  if (management && (path === "/api/bot-session" || path === "/api/bots" || path.startsWith("/api/bots/"))) {
+    void management(req, res).catch(() => {
+      if (!res.headersSent) res.writeHead(503);
+      res.end();
+    });
+    return;
+  }
   if (path === "/api/bots") {
     res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(Object.keys(registry ? settings : { hermes: settings })));
     return;
@@ -78,7 +99,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
+    server.close(() => { application.close(); void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

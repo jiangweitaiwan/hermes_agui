@@ -1,0 +1,33 @@
+import { expect, test } from "@playwright/test";
+
+test("owner creates, chats, edits, disables, enables and soft-deletes a native Bot", async ({ page }) => {
+  test.skip(process.env.DYNAMIC_BOT_TEST !== "1", "managed Host fixture only");
+  await page.goto("/");
+  const login = page.getByRole("form", { name: "管理登入" });
+  await login.getByLabel("存取金鑰").fill("browser-owner-secret");
+  await login.getByRole("button", { name: "登入", exact: true }).click();
+  const form = page.getByRole("form", { name: "建立 Bot", exact: true });
+  await form.getByLabel("Bot 名稱").fill("Financial Analyst");
+  await form.getByLabel("說明").fill("Analyze company finances.");
+  await form.getByLabel("memory", { exact: true }).check();
+  await form.getByRole("button", { name: "建立 Bot", exact: true }).click();
+  const nav = page.getByRole("navigation", { name: "Bot 列表" });
+  await expect(nav.getByRole("button", { name: "Financial Analyst", exact: true })).toBeVisible();
+  const chat = page.locator("section:visible");
+  await expect(chat.getByRole("status")).toHaveText("已連線");
+  await chat.locator("textarea").fill("hello alpha");
+  await chat.locator("textarea").press("Enter");
+  await expect(chat).toContainText("Alpha private answer.");
+  await page.getByRole("button", { name: "編輯 Financial Analyst", exact: true }).click();
+  const edit = page.getByRole("form", { name: "編輯 Bot", exact: true });
+  await edit.getByLabel("Bot 名稱").fill("Financial Analyst Updated");
+  await edit.getByRole("button", { name: "儲存 Bot", exact: true }).click();
+  await expect(nav.getByRole("button", { name: "Financial Analyst Updated", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "停用 Financial Analyst Updated", exact: true }).click();
+  await expect(nav.getByRole("button")).toHaveCount(0);
+  await page.getByRole("button", { name: "啟用／重試 Financial Analyst Updated", exact: true }).click();
+  await expect(nav.getByRole("button", { name: "Financial Analyst Updated", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "刪除 Financial Analyst Updated", exact: true }).click();
+  await expect(nav.getByRole("button")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "編輯 Financial Analyst Updated", exact: true })).toHaveCount(0);
+});

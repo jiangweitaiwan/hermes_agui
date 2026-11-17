@@ -81,7 +81,17 @@ def serve(port):
         ))
         cfg = AgentConfig(home=home, cwd=workspace, enabled_toolsets=("file", "clarify"),
                           agent_options={"skip_background_review": True, "max_iterations": 3})
-        if os.environ.get("MULTI_BOT_TEST") == "1":
+        if os.environ.get("DYNAMIC_BOT_TEST") == "1":
+            from hermes_agui.management import ManagementConfig
+            from hermes_agui.provisioner import ProvisionTemplate
+            from utils import load_yaml_file_readonly
+
+            app = create_host([], management=ManagementConfig(workspace / "managed", "browser-manager-secret", {
+                "native": ProvisionTemplate(model="fake-model", provider="custom", api_key="sk-fake-e2e",
+                    base_url=provider.base_url, config=load_yaml_file_readonly(home / "config.yaml"),
+                    toolsets=("memory", "skills"), agent_options={"skip_background_review": True, "max_iterations": 3}),
+            }))
+        elif os.environ.get("MULTI_BOT_TEST") == "1":
             bots = []
             for name in ("researcher", "reviewer"):
                 bot_home = write_hermes_home(workspace / name, provider.base_url,

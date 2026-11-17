@@ -10,11 +10,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from hermes_agui.adapter import AdmissionError, AgentAdapter
+from hermes_agui.adapter import AdmissionError
 from hermes_agui.config import ServerConfig
 from hermes_agui.core import AgentConfig, HermesAgentService
 from hermes_agui.message_adapter import adapt_input
-from hermes_agui.receipts import ReceiptStore
 
 
 class RunResponse(StreamingResponse):
@@ -51,49 +50,46 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
 
 
 def create_host(bots, *, default_bot=None, max_active_runs=8,
-                service_factory=HermesAgentService, delegation=None):
+                service_factory=HermesAgentService, delegation=None, management=None):
     """One lifespan; independent trusted service and HTTP state for each Bot."""
-    from contextlib import AsyncExitStack
     from hermes_agui.host import validate_bots
+    from hermes_agui.host_runtime import HostRuntime
 
-    registry = validate_bots(bots, default_bot, max_active_runs)
+    if not isinstance(max_active_runs, int) or max_active_runs < 1:
+        raise ValueError("Host capacity must be positive")
+    registry = validate_bots(bots, default_bot, max_active_runs) if bots else {}
+    if not registry and (management is None or default_bot is not None):
+        raise ValueError("Configure Bots or managed provisioning")
+    configured_bots = list(registry.values())
+    host = HostRuntime(registry, service_factory, delegation, max_active_runs)
 
     @asynccontextmanager
     async def lifespan(app):
-        async with AsyncExitStack() as stack:
-            app.state.adapters = {}
-            for bot_id, bot in registry.items():
-                if delegation:
-                    from dataclasses import replace
-                    from hermes_agui.delegation import register_tool
-                    from tools.registry import registry as tools
-                    from hermes_cli.tools_config import _get_platform_tools
-                    from hermes_cli.config import load_config_readonly
-                    from agent.runtime_scope import bind_profile_scope
+        app.state.adapters = host.adapters
+        app.state.host = host
+        try:
+            registry.clear()
+            host.disabled.clear()
+            for bot in configured_bots:
+                host.register_bot(bot)
+            if management:
+                from hermes_agui.management import HostManagement
 
-                    register_tool(bot.agent.home)
-                    stack.callback(tools.deregister, "message_bot", scope=str(bot.agent.home))
-                    with bind_profile_scope(bot.agent.home):
-                        enabled = bot.agent.enabled_toolsets
-                        if enabled is None:
-                            enabled = sorted(_get_platform_tools(load_config_readonly(), "api_server",
-                                include_default_mcp_servers=True))
-                    bot = replace(bot, agent=replace(bot.agent,
-                        enabled_toolsets=tuple(dict.fromkeys([*enabled, "agui_bots"]))))
-                receipts = ReceiptStore(bot.agent.home, bot.agent.principal, bot.server.max_receipts)
-                options = {"authorize": bot.authorize} if bot.authorize else {}
-                service = service_factory(bot.agent, max_workers=bot.server.max_active_runs,
-                                          max_pending=bot.server.max_active_runs, **options)
-                adapter = AgentAdapter(service, bot.server, receipt_store=receipts,
-                                       delegation=delegation, bot_id=bot_id,
-                                       host_has_capacity=lambda: sum(len(a.active) for a in app.state.adapters.values()) < max_active_runs)
-                stack.push_async_callback(adapter.close)
-                app.state.adapters[bot_id] = adapter
+                app.state.management = HostManagement(management, host)
+                app.state.management.restore()
             if default_bot:
-                app.state.adapter = app.state.adapters[default_bot]
+                app.state.adapter = host.adapters[default_bot]
             yield
+        finally:
+            await host.close()
+            if management and hasattr(app.state, "management"):
+                app.state.management.close()
 
     app = FastAPI(title="Hermes AG-UI", lifespan=lifespan)
+
+    if management:
+        from hermes_agui.management import mount_management
+        mount_management(app, management)
 
     async def authenticate(request: Request, authorization: str | None = Header(default=None)):
         bot_id = request.path_params.get("bot_id", default_bot)
@@ -116,6 +112,8 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
     @app.post("/agent")
     @app.post("/bots/{bot_id}/agent")
     async def agent(value: RunAgentInput, request: Request, target=Depends(authenticate)):
+        if target[0] in host.disabled:
+            raise HTTPException(409, "Bot is disabled")
         depth = 0
         marker = request.headers.get("X-Hermes-Delegation")
         if marker is not None:
@@ -131,7 +129,12 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
                     raise ValueError("Invalid interrupt resume input")
                 turn = None
             else:
-                turn = adapt_input(value)
+                from dataclasses import replace
+                from hermes_agui.runtime_memory import verify_memory
+
+                memory = verify_memory(value, _bot_id, bot)
+                clean = value.model_copy(update={"forwarded_props": {}}) if memory is not None else value
+                turn = replace(adapt_input(clean), runtime_memory=memory)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         if authorize is not None:

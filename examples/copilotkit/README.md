@@ -15,7 +15,7 @@ CopilotKit React UI (:3000)
 
 ## 啟動
 
-需要 Node **22.12+（<27）**、npm，以及已按專案 PM 流程安裝 `agui` extra 的 Python
+需要符合 `^22.13.0 || >=23.4.0 <27` 的 Node、npm，以及已按專案 PM 流程安裝 `agui` extra 的 Python
 環境。先在獨立 Hermes profile 設定 Provider。兩個終端使用相同 `AGUI_API_KEY`。
 
 終端 A（repository root）：
@@ -163,3 +163,18 @@ Graph 接口由 `server/application.ts:createApplication` 的 `graph` option 注
 `server/graph-memory.ts` 定義 `GraphMemoryPort`、具型別 scope、來源、可見範圍及結果。
 預設無 provider；授權通過的操作回 `disabled`。產品對話不自動 query/write。
 provider 範例與契約測試在 `tests/graph-memory.test.ts`，in-memory provider 僅存在測試。
+
+### Runtime shared memory (Part 1)
+
+Bots may opt into a signed, read-only Runtime Memory channel using backend `memory`
+settings. The graph provider is injected through `createApplication(..., { graph })`;
+no provider is enabled by default. See [configuration, trust boundary, tests and cache
+tradeoff](../../docs/runtime-memory-part-1.md). Browser-supplied ACL or memory envelopes
+are never accepted as trusted context. Native Hermes memory and SQLite remain authoritative.
+
+### Dynamic Bot Manager (Part 2)
+
+Enable backend `management` settings to create Bots without restarting either Runtime
+or Hermes Host. The UI authenticates the owner and offers approved model, skill and
+toolset templates. Lifecycle records persist in SQLite, and delegated runs use the
+target Bot's Runtime Memory pipeline. See [deployment, API and lifecycle details](../../docs/runtime-memory-bot-manager-part-2.md).

@@ -11,6 +11,7 @@ class TurnInput:
     run_id: str
     message_id: str
     text: str
+    runtime_memory: dict | None = None
 
 
 def adapt_input(value: RunAgentInput) -> TurnInput:

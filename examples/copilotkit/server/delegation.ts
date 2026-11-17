@@ -1,3 +1,4 @@
+import type { RunAgentInput } from "@ag-ui/core";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import type { RuntimeSettings } from "./runtime";
 
@@ -32,12 +33,13 @@ const parentUrl = (source: RuntimeSettings, call: Call) =>
 export class DelegationCoordinator {
   private records = new Map<string, RecordEntry>();
   private timeout: number;
-  constructor(private bots: Record<string, RuntimeSettings>, private settings: DelegationSettings) {
+  constructor(private bots: Record<string, RuntimeSettings>, private settings: DelegationSettings,
+    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>) {
     this.timeout = settings.timeoutMs ?? 55_000;
     if (!settings.token || !Number.isFinite(this.timeout) || this.timeout <= 0 || this.timeout > 290_000 ||
       !Number.isInteger(settings.maxRecords ?? 1024) || (settings.maxRecords ?? 1024) < 1 ||
-      Object.entries(settings.allow).some(([source, targets]) => !bots[source] ||
-        !Array.isArray(targets) || targets.some(target => !bots[target] || target === source))) {
+      Object.entries(settings.allow).some(([source, targets]) => !/^[a-z][a-z0-9_-]{0,63}$/.test(source) ||
+        !Array.isArray(targets) || targets.some(target => !/^[a-z][a-z0-9_-]{0,63}$/.test(target) || target === source))) {
       throw new Error("Invalid delegation configuration");
     }
   }
@@ -52,7 +54,7 @@ export class DelegationCoordinator {
         typeof call.task !== "string" || !call.task.trim() || Buffer.byteLength(call.task) > 16384) throw new Error();
     } catch { return Response.json({ status: "invalid_request" }, { status: 422 }); }
     const source = Object.hasOwn(this.bots, call.sourceBotId) ? this.bots[call.sourceBotId] : undefined;
-    if (!source || !equal(request.headers.get("authorization") ?? "", `Bearer ${source.token}`) ||
+    if (!source || !Object.hasOwn(this.bots, call.targetBotId) || !equal(request.headers.get("authorization") ?? "", `Bearer ${source.token}`) ||
       !(Object.hasOwn(this.settings.allow, call.sourceBotId) &&
         this.settings.allow[call.sourceBotId].includes(call.targetBotId))) {
       return Response.json({ status: "denied" }, { status: 403 });
@@ -96,15 +98,19 @@ export class DelegationCoordinator {
   }
   private async execute(call: Call, signal: AbortSignal): Promise<DelegationResult> {
     const target = this.bots[call.targetBotId];
+    if (!target) return { status: "denied" };
     const ids = { delegationId: randomUUID(), threadId: `delegation-${randomUUID()}`, runId: randomUUID() };
     let completed = false;
     try {
+      let input: RunAgentInput = { threadId: ids.threadId, runId: ids.runId, state: {}, tools: [], context: [],
+        forwardedProps: {}, messages: [{ id: randomUUID(), role: "user", content: call.task }] };
+      if (this.prepare) input = await this.prepare(call.targetBotId, input);
+      if (this.bots[call.targetBotId] !== target) return { ...ids, status: "denied" };
       const response = await fetch(target.agentUrl, {
         method: "POST", signal,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.token}`,
           "X-Hermes-Delegation": this.settings.token },
-        body: JSON.stringify({ threadId: ids.threadId, runId: ids.runId, state: {}, tools: [], context: [],
-          forwardedProps: {}, messages: [{ id: randomUUID(), role: "user", content: call.task }] }),
+        body: JSON.stringify(input),
       });
       if (!response.ok) {
         await response.body?.cancel();

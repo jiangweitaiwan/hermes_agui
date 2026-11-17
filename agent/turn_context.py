@@ -1433,6 +1433,7 @@ def build_api_messages(
     ``ephemeral_system_prompt``) is added at API time only — ``messages`` stays untouched
     beyond the sidecar stamp, and the system prompt is built ONCE per session and
     replayed verbatim."""
+    from agent.runtime_reference import apply_runtime_reference
     from agent.agent_runtime_helpers import fill_empty_non_final_wire_payload
     from agent.conversation_loop import _clone_message_for_send
     from agent.replay_cleanup import canonicalize_replay_history
@@ -1492,6 +1493,8 @@ def build_api_messages(
             # prefix stays byte-stable. User rows carry the injection sidecar; user
             # and assistant rows may carry a sanitize-divergence sidecar.
             api_msg["content"] = _api_content
+
+        apply_runtime_reference(api_msg, is_current=msg is current_turn_message)
 
         # Replay stored reasoning on every carrier the active route reads (and strip the
         # rest): message_sanitization.reasoning_replay_route owns the decision.

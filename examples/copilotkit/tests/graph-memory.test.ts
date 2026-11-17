@@ -53,7 +53,7 @@ test("boundary rejects provider leaks and bounds provider failures and timeout",
     query: async () => ({ status: "ok", hits: [...memory.records.values()] }), write: async () => { throw new Error("secret"); },
   } });
   const scope = graph.scope(identity());
-  expect(await graph.query(scope, { text: "q", limit: 1 })).toEqual({ status: "unavailable" });
+  expect(await graph.query(scope, { text: "q", limit: 1 })).toEqual({ status: "rejected", reason: "unauthorized" });
   expect(await graph.write(scope, entry(scope))).toEqual({ status: "unavailable" });
   let signal: AbortSignal | undefined;
   const slow = createGraphMemory({ authorize: () => true, timeoutMs: 5, provider: {

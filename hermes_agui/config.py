@@ -14,8 +14,14 @@ class ServerConfig:
     event_bytes: int = 1048576
     tool_projection: Callable[[str, str, Any], Any] | None = field(default=None, repr=False)
 
+    runtime_memory_key: str = field(default="", repr=False)
+    runtime_memory_project: str = ""
+
     def __post_init__(self):
         import math
+
+        if self.runtime_memory_key and (self.runtime_memory_key == self.bearer_token or not self.runtime_memory_project):
+            raise ValueError("Runtime memory requires a separate signing key and project")
 
         if not math.isfinite(self.human_input_timeout) or self.human_input_timeout <= 0:
             raise ValueError("human_input_timeout must be finite and positive")

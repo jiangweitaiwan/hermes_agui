@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CopilotKit } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
+import { BotManagement, type BotItem } from "./BotManagement";
 import { ThreadChat } from "./ThreadChat";
 import "./style.css";
 
@@ -58,20 +59,18 @@ function BotThreads({ botId, visible }: BotThreadsProps) {
 }
 
 function App() {
-  const [bots, setBots] = useState<string[]>([]);
+  const [bots, setBots] = useState<BotItem[]>([]);
   const [selected, setSelected] = useState("");
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    void fetch("/api/bots").then(r => {
-      if (!r.ok) throw new Error("Registry unavailable");
-      return r.json() as Promise<string[]>;
-    }).then(ids => { setBots(ids); setSelected(ids[0]); }).catch(() => setError(true));
-  }, []);
+  function updateBots(values: BotItem[]) {
+    setBots(values);
+    setSelected(current => values.some(bot => bot.id === current && bot.status === "active")
+      ? current : values.find(bot => bot.status === "active")?.id ?? "");
+  }
   return <>
-    <nav aria-label="Bot 列表">{bots.map(id => <button key={id}
-      aria-current={selected === id ? "page" : undefined} onClick={() => setSelected(id)}>{id}</button>)}</nav>
-    {error && <p role="alert">無法載入 Bot 清單</p>}
-    {bots.map(id => <BotThreads key={id} botId={id} visible={selected === id} />)}
+    <BotManagement bots={bots} onBots={updateBots} onOpen={setSelected} />
+    <nav aria-label="Bot 列表">{bots.filter(bot => bot.status === "active").map(bot => <button key={bot.id}
+      aria-current={selected === bot.id ? "page" : undefined} onClick={() => setSelected(bot.id)}>{bot.name}</button>)}</nav>
+    {bots.filter(bot => bot.status === "active").map(bot => <BotThreads key={bot.id} botId={bot.id} visible={selected === bot.id} />)}
   </>;
 }
 createRoot(document.getElementById("root")!).render(<App />);

@@ -75,8 +75,10 @@ export function createGraphMemory(options: GraphMemoryOptions) {
       if (result.status !== "ok") return normalizeFailure(result);
       if (!Array.isArray(result.hits) || result.hits.length > request.limit || result.hits.some(hit =>
         !hit || !bounded(hit.recordId, 512) || !bounded(hit.content, 16384) || !validSource(hit.source) ||
-        !visible(hit.visibility) || hit.principal !== scope.principal || hit.projectId !== scope.projectId ||
-        (hit.visibility === "bot_private" && hit.source.botId !== scope.botId))) return { status: "unavailable" };
+        !visible(hit.visibility))) return { status: "unavailable" };
+      if (result.hits.some(hit => !authorizedHit(hit, scope))) {
+        return { status: "rejected", reason: "unauthorized" };
+      }
       return { status: "ok", hits: result.hits.map(hit => ({
         recordId: hit.recordId, content: hit.content, visibility: hit.visibility,
         principal: hit.principal, projectId: hit.projectId,
@@ -104,4 +106,9 @@ function normalizeFailure(result: { status: string; reason?: string }): { status
     return { status: "rejected", reason: result.reason as GraphRejection["reason"] };
   }
   return { status: "unavailable" };
+}
+
+function authorizedHit(hit: GraphHit, scope: GraphScope): boolean {
+  return hit.principal === scope.principal && hit.projectId === scope.projectId &&
+    (hit.visibility === "project_shared" || hit.source.botId === scope.botId);
 }

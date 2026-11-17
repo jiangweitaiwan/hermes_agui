@@ -19,3 +19,11 @@ nav button:disabled { opacity: .5; cursor: default; }
 .tool-result pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 footer { margin-top: 16px; }
 @media (max-width: 640px) { main { padding: 16px; } header { display: block; } .workspace { grid-template-columns: 1fr; } nav { flex-direction: row; overflow: auto; } nav button { white-space: nowrap; } nav button:first-child { margin-bottom: 0; } }
+
+.bot-management { max-width: 1100px; margin: 1rem auto; padding: 1rem; }
+.bot-management:empty { display: none; }
+.bot-management form { display: grid; gap: .75rem; max-width: 42rem; }
+.bot-management label { display: flex; gap: .5rem; align-items: center; }
+.bot-management input:not([type=checkbox]), .bot-management textarea, .bot-management select { flex: 1; padding: .5rem; }
+.bot-management li { margin: .5rem 0; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.bot-management fieldset { display: flex; gap: .75rem; flex-wrap: wrap; }

@@ -103,8 +103,14 @@ class AgentAdapter:
                 turn.thread_id, turn.run_id, run.delegation_depth, run.stop, self.config.bearer_token)
                 if self.delegation else None)
             try:
-                future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
-                                             callbacks=run.bridge.callbacks)
+                from agent.runtime_reference import runtime_reference
+
+                reference_token = runtime_reference.set(turn.runtime_memory)
+                try:
+                    future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
+                                                 callbacks=run.bridge.callbacks)
+                finally:
+                    runtime_reference.reset(reference_token)
             finally:
                 _execution.reset(token)
             wrapped = asyncio.wrap_future(future)
