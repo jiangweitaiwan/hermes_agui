@@ -51,7 +51,8 @@ def serve(port):
             if messages[-1]["role"] == "tool":
                 return Text("Native tool finished.")
             return ToolCall("read_file", {"path": str(target)})
-        replies = {"hello alpha": "Alpha private answer.", "hello beta": "Beta private answer.",
+        replies = {"research graph memory": "Research finding: PostgreSQL write ahead logging provides durable database recovery after a crash.",
+                   "hello alpha": "Alpha private answer.", "hello beta": "Beta private answer.",
                    "continue": "Continued alpha conversation.",
                    "stream": "First streamed words. Remaining final answer."}
         return Text(replies.get(text, "Fixture answer."), chunk_chars=6)
@@ -91,6 +92,19 @@ def serve(port):
                     base_url=provider.base_url, config=load_yaml_file_readonly(home / "config.yaml"),
                     toolsets=("memory", "skills"), agent_options={"skip_background_review": True, "max_iterations": 3}),
             }))
+        elif os.environ.get("GRAPH_MEMORY_TEST") == "1":
+            from dataclasses import replace
+            bots = []
+            for name in ("a", "b", "c"):
+                bot_home = write_hermes_home(workspace / name, provider.base_url,
+                    extra_config="updates:\n  check: false\nmodels_dev:\n  url: http://127.0.0.1:9/api.json\n")
+                bot_cwd = workspace / f"{name}-workspace"
+                bot_cwd.mkdir()
+                bots.append(BotConfig(name, replace(cfg, home=bot_home, cwd=bot_cwd,
+                                                   principal="other" if name == "c" else "owner"),
+                                      ServerConfig(f"browser-test-{name}", runtime_memory_key="fixture-key",
+                                                   runtime_memory_project="other" if name == "c" else "project")))
+            app = create_host(bots, service_factory=StreamingProbeService)
         elif os.environ.get("MULTI_BOT_TEST") == "1":
             bots = []
             for name in ("researcher", "reviewer"):

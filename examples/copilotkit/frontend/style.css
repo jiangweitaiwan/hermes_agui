@@ -62,3 +62,14 @@ dialog input, dialog textarea, dialog select { min-width: 0; max-width: 100%; }
 .bot-management li p { flex-basis: 100%; overflow-wrap: anywhere; color: #5c6d67; }
 nav button:first-child { background: transparent; color: inherit; margin-bottom: 0; }
 nav button[aria-current] { background: #193e34; color: white; }
+
+.memory-explorer { padding: 1rem; max-width: 1200px; margin: auto; }
+.memory-explorer label { display: inline-flex; gap: .5rem; margin: .5rem; align-items: center; }
+.memory-explorer button { margin: .25rem; }
+.memory-explorer article { overflow-wrap: anywhere; padding: 1rem; border: 1px solid #708399; }
+.memory-explorer pre { overflow: auto; }
+.memory-explorer dl { display: flex; gap: 1rem; flex-wrap: wrap; }
+.memory-explorer dd { margin: 0; }
+.memory-graph { width: 100%; max-height: 480px; border: 1px solid #708399; touch-action: none; }
+.memory-graph g { cursor: grab; }
+@media (max-width: 600px) { .memory-graph { display: none; } .memory-explorer label { display: flex; flex-wrap: wrap; } }

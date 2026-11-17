@@ -1,3 +1,4 @@
+import { MemoryExplorer } from "../memory/MemoryExplorer";
 import { useState } from "react";
 import { BotManagement, type BotItem } from "../BotManagement";
 import { BotThreads } from "../BotThreads";
@@ -33,9 +34,7 @@ export function AppShell() {
       <div hidden={page !== "Bot Manager" && bots.length > 0}>
         <BotManagement bots={bots} onBots={updateBots} onOpen={open} />
       </div>
-      <div hidden={page !== "Graph Memory"} className="placeholder">
-        <h2>Graph Memory</h2><p>尚未開放。本期僅提供 Chat 與 Bot Manager；Graph Browser 尚未實作。</p>
-      </div>
+      {page === "Graph Memory" && <MemoryExplorer key={bots.map(b => b.id).join("/")} bots={bots} selected={selected} />}
       {page === "Chat" && !selected && <p role="status">請登入或在 Bot Manager 建立並啟用 Bot 後開始對話。</p>}
       {bots.filter(bot => bot.status === "active").map(bot =>
         <BotThreads key={bot.id} botId={bot.id} visible={page === "Chat" && selected === bot.id} />)}

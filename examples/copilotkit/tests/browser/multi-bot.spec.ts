@@ -14,7 +14,7 @@ test("Bot switching isolates concurrent streams, tools, HITL and errors", async 
   await send("stream");
   await expect(chat).toContainText("First");
   await page.getByRole("button", { name: "Graph Memory", exact: true }).click();
-  await expect(page.getByText("尚未開放。", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Graph Memory Explorer", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Chat", exact: true }).click();
   await expect(chat).toContainText("First");
   await expect(chat.getByRole("status")).toHaveText("執行中…");

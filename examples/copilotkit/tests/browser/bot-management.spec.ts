@@ -119,6 +119,6 @@ test("workspace handles allowlists, duplicate submit, lifecycle failures, logout
   await expect(page.getByText("Failed bot", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "工作空間導覽", exact: true }).click();
   await page.getByRole("button", { name: "Graph Memory", exact: true }).click();
-  await expect(page.getByText("尚未開放。", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Graph Memory Explorer", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

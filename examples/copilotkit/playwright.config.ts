@@ -39,7 +39,7 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: process.env.COPILOTKIT_TEST_PRODUCTION === "1" ? "npm start" : "npm run dev",
+      command: process.env.GRAPH_MEMORY_TEST === "1" ? "node --import tsx tests/fixtures/graph-browser-server.ts" : process.env.COPILOTKIT_TEST_PRODUCTION === "1" ? "npm start" : "npm run dev",
       env: { ...(process.env.DYNAMIC_BOT_TEST === "1" ? { AGUI_BOTS_CONFIG: dynamicConfiguration,
         BROWSER_MANAGER_TOKEN: "browser-manager-secret", BROWSER_USER_TOKEN: "browser-owner-secret" } : {}),
         ...(process.env.MULTI_BOT_TEST === "1" ? { AGUI_BOTS_CONFIG: "./bots.test.json", RESEARCHER_TOKEN: "researcher", REVIEWER_TOKEN: "reviewer", DELEGATION_TOKEN: "browser-delegation-only" } : {}), AGUI_URL: "http://127.0.0.1:8765/agent", AGUI_API_KEY: "browser-test-only" },

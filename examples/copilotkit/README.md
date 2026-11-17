@@ -450,7 +450,7 @@ HERMES_PYTHON=/path/to/test/python scripts/run_tests.sh tests/hermes_agui/
 
 ### Multi-Bot Workspace (Frontend Part 1)
 
-Workspace 提供 Chat、Bot Manager 與尚未開放的 Graph Memory 頁面。桌面側欄按 Bot 顯示
+Workspace 提供 Chat、Bot Manager 與 Graph Memory Explorer。桌面側欄按 Bot 顯示
 本頁的 thread 索引；行動版使用「工作空間導覽」展開。切換頁面、Bot 或 thread 保持既有
 CopilotKit/AG-UI 元件掛載，串流與 HITL 可返回繼續；重新整理沒有 server history 恢復功能。
 
@@ -488,7 +488,7 @@ Managed mode 的 server JSON 沿用以下配置形狀；Host 必須有相同的�
 並清除 Bot/thread/form 狀態。不將 credential 存入 localStorage。Static mode 隱藏管理寫入。
 建立／編輯只使用 server options；失敗的 Bot 可啟用／重試，只有 active 可開啟對話。
 停用保留有效知識；刪除前必須確認，會永久撤銷相關衍生記憶與分享副本，歷史稽核資料仍保留。
-Graph API、Wiki/Search/Dashboard、匯入／分享／撤銷 UI 尚未實作。完整交接見
+Graph API 與 Wiki/Search/Dashboard 已完成；匯入／分享／撤銷仍使用可信 CLI。前期交接見
 [Frontend Part 1](../../docs/frontend-workspace-part-1.md)。
 
 ### Frontend Workspace Part 2: read-only Graph Browser API
@@ -500,7 +500,7 @@ Active and disabled Bots retain read access while their owner and deployment pol
 deleted Bots cannot read. No endpoint writes, imports, shares, revokes or invokes an LLM/encoder.
 The existing evolution reconciliation may withdraw revoked memory before a read.
 
-DTOs for the later frontend are in `server/graph/browser-types.ts`. Part 3 UI is not implemented.
+Shared frontend DTOs are in `server/graph/browser-types.ts`. The Part 3 explorer uses these read-only routes.
 All endpoints accept `scope=all|bot_private|project_shared` (default `all`):
 
 | GET suffix | Parameters and response |
@@ -556,5 +556,53 @@ untrusted data. Render strings as text; disable raw HTML in Markdown, sanitize r
 allowlist link protocols, and never execute embedded scripts, event handlers or external resource
 loads. Do not convert filesystem paths or arbitrary Markdown links into API requests. Resolve Wiki
 navigation only through returned scoped IDs. Clear private state and in-flight results when changing
-identity/Bot/scope and after logout; do not cache private responses. This is a contract for Part 3,
-not a claim that a Graph frontend already exists.
+identity/Bot/scope and after logout; do not cache private responses. The Part 3 explorer follows this contract (see operation guide below).
+
+### Graph Memory Explorer（Frontend Part 3）
+
+1. 先啟動具有核准 template 的 managed Hermes Host，依上方 Multi-Bot Workspace 設定
+   `management`、owner 與 Host secret env，並設定 `AGUI_BOTS_CONFIG`。
+2. 在相同 server JSON 加入前述 Graph Memory 的 `graph.enabled: true`、私有 `dataRoot`、
+   `graph.evolution.enabled: true` 與 compiler 配置；沿用既有 runtime memory signing key 與
+   principal/project 設定。不要將 DATA_ROOT 放進 frontend/dist 或任何公開靜態目錄。
+   可先不設 embedding，使用既有 keyword/FTS；模型與 encoder secrets 只在 server env。
+3. 執行 `npm ci`、`npm run dev`，或 `npm run build && npm start`。開啟
+   `http://127.0.0.1:3000`，於 Bot Manager 登入並從核准模板建立 Bot。
+4. 在 Chat 完成一次對話；啟用 evolution 後，既有 worker 會處理 durable job。
+   開啟側欄 Graph Memory，選擇 Memory Bot 與 All / Bot Private / Shared。
+   All 僅包含此 Bot private 與同 owner/project 授權 shared，不包含其他 Bot private。
+5. Graph 可拖曳平移、拖曳節點、Zoom in/out、Fit graph、Degree size；選取節點或
+   Wiki pages 清單按鈕查看 Markdown、verification、revision、tags、related 與 Provenance。
+   Load neighbors 讀取同 scope 一層鄰居。手機使用 Wiki 清單；鍵盤可 Tab/Enter 操作。
+6. Memory Search 使用既有 FTS 的 title/body/snippet，搭配 type、verification 與 visibility 篩選。
+   Truncated 表示 bounded window；Load more 會以新頁替換舊頁，不累積 private cache。
+   Wiki links 僅導向 API related 提供的同 namespace 授權頁；broken/unavailable 不猜測內容。
+7. Memory Evolution Dashboard 顯示當前 stats、health 與最近 jobs，支援手動更新；僅在頁面
+   可見時每 15 秒輪詢，錯誤以 30–120 秒退避。Partial counts 是下限，unknown 不是零。
+   Evolution 關閉時 health/jobs 顯示 not available，pages/network/search 仍可使用。
+   Graph 關閉或 store 不可用時顯示 disabled/unavailable；授權失敗清空已載入記憶。
+8. 使用既有可信 CLI 刪除／撤銷來源後按 Refresh memory，會重新查詢有效 revision。
+   切 Bot、scope、query 或登出會清除舊結果及取消請求；離開 Graph 停止 Dashboard 輪詢。
+
+Markdown 不執行 raw HTML、不自動載入圖片、禁止 javascript/data URL；https/http 外連需手動點擊，
+以新視窗與安全 rel 開啟。Unverified/disputed 以原 DTO 標示，不等於已核實事實。
+沒有 graph 寫入、分享、撤銷、匯入或 reindex 按鈕，也不提供 raw session transcript。
+
+驗證指令（模型均為 fixture，沒有付費 API）：
+
+```bash
+npm test -- --reporter=dot
+npm run build
+# 環境需有 Hermes PM test interpreter 與 Playwright Chromium 或本機 Chrome。
+npm run test:e2e
+GRAPH_MEMORY_TEST=1 npm run test:e2e -- tests/browser/memory-explorer.spec.ts
+DYNAMIC_BOT_TEST=1 npm run test:e2e -- tests/browser/bot-management.spec.ts
+MULTI_BOT_TEST=1 npm run test:e2e -- tests/browser/multi-bot.spec.ts
+# repository root
+scripts/run_tests.sh tests/hermes_agui
+```
+
+Graph browser fixture 使用真實 Application、BotAuthentication、WikiStore、SQLite、HTTP API、
+原生 Hermes fake-model Host 與 mock compiler；慢回應／分頁／權限錯誤另用明確標示的 route mock。
+這不代表已驗證真實外部 provider 的 compiler 品質、embedding 效能或大型知識庫 SLA。
+完整結果、限制與 rollback 見 [Part 3 完成報告](../../docs/frontend-workspace-part-3.md)。
