@@ -38,7 +38,9 @@ class HermesAgentService:
         set_multiplex_active(True)
         self.config = config
         self._authorize = authorize
-        self._sessions = SessionManager(str(config.home), config.principal, max_sessions)
+        self._sessions = SessionManager(
+            config.session_home_identity or str(config.home), config.principal, max_sessions,
+        )
         self._execution = ExecutionManager(max_workers, max_pending)
 
     def submit(self, session_id: str, message: Any, *, run_id: str,

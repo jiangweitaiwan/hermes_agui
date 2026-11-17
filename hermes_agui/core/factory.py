@@ -24,12 +24,16 @@ class AgentConfig:
     enabled_toolsets: tuple[str, ...] | None = None
     disabled_toolsets: tuple[str, ...] = ()
     agent_options: dict[str, Any] = field(default_factory=dict, repr=False)
+    # An imported profile keeps its original identity input after relocation.
+    session_home_identity: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "home", Path(self.home).expanduser().resolve())
         object.__setattr__(self, "cwd", Path(self.cwd).expanduser().resolve(strict=True))
         if not self.cwd.is_dir() or not self.principal:
             raise ValueError("cwd must be a directory and principal must be nonempty")
+        if self.session_home_identity is not None and not self.session_home_identity:
+            raise ValueError("session_home_identity must be nonempty")
         object.__setattr__(self, "agent_options", dict(self.agent_options))
 
 
