@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "namespace": { "principal": "owner", "projectId": "project", "visibility": "bot_private", "botId": "a" },
+  "pages": [{ "file": "database.md", "expectedRevision": null }]
+}

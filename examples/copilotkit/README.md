@@ -178,3 +178,73 @@ Enable backend `management` settings to create Bots without restarting either Ru
 or Hermes Host. The UI authenticates the owner and offers approved model, skill and
 toolset templates. Lifecycle records persist in SQLite, and delegated runs use the
 target Bot's Runtime Memory pipeline. See [deployment, API and lifecycle details](../../docs/runtime-memory-bot-manager-part-2.md).
+
+### Wiki Graph retrieval (Graph Memory Part 1)
+
+Use Node 22.13+ with SQLite/FTS5 and `npm ci`. Add a server-owned `graph` section to
+`AGUI_BOTS_CONFIG` (JSON); omit it or set `enabled: false` to avoid opening a wiki database:
+
+```json
+{
+  "graph": {
+    "enabled": true,
+    "dataRoot": "/absolute/physical/path/wiki",
+    "timeoutMs": 2000,
+    "maxPages": 1000,
+    "maxPageBytes": 262144
+  }
+}
+```
+
+This section accompanies the existing `bots`, `memory`, management and delegation
+settings. Each Bot still needs its signed `memory` configuration. Namespace identity
+comes from these backend settings; custom graph authorization can only restrict access.
+An unavailable store fails soft; authorization failures stop the run. Shutdown closes
+the provider. No LLM, embeddings or automatic writes are enabled.
+
+Trusted local administrators can import compiled Markdown from a manifest, rebuild
+indexes and inspect aggregate counts, from `examples/copilotkit`:
+
+```bash
+npx tsx server/graph/cli.ts import /absolute/physical/path/wiki fixtures/wiki/manifest.json
+npx tsx server/graph/cli.ts reindex /absolute/physical/path/wiki
+npx tsx server/graph/cli.ts diagnose /absolute/physical/path/wiki
+npx tsx server/graph/cli.ts cleanup /absolute/physical/path/wiki
+```
+
+The seed describes the completed local stub session exercised in `wiki-runtime.test.ts`
+(`a`, `source-thread`, `source-run`); it is a test dataset. For your own data, explicitly
+set the namespace and replace the source with an actual completed session's Bot/thread/run.
+The CLI trusts the administrator's attestation; it cannot verify another service's session DB.
+Shared publication requires an explicit `project_shared` namespace in this local manifest.
+Private sources must match the namespace Bot. v1 accepts exactly one session source per
+page; document and multi-source publication await a provenance contract update.
+
+Frontmatter requires `id/title/type/sources/tags/related/created/updated`; types are
+`concept/entity/note/index`. IDs are safe slugs; timestamps are ISO UTC strings. YAML
+aliases/custom tags/unknown fields are rejected. Links `[[slug|alias]]` and `related`
+are confined to the same namespace; missing targets remain non-searchable edges.
+Each import requires `expectedRevision: null` for a new page or its current revision UUID
+for an update, and prints the new revision UUIDs. Duplicate slugs in one import fail;
+the same slug in different namespaces is allowed. Immutable Markdown plus the SQLite
+committed manifest are authoritative; FTS and edges are rebuildable with `reindex`.
+Schema version 1 rejects unknown future versions; back up before migrations.
+
+Search uses English words and CJK bigrams, eight lexical seed paragraphs and at most
+three outgoing links per seed, with lexical coverage ranking, hub penalties and stable
+tie breaks. Unrelated neighbors cannot qualify on their edge alone. Query output is
+bounded to 50 records/64 KiB and 16 KiB per paragraph; the existing assembler enforces
+20 records and 4096 UTF-8 JSON bytes. Timeout/abort checks discard late results;
+SQLite operations are synchronous and cooperate between bounded operations, so this
+is not a hard real-time deadline. Limit each page to 128 paragraphs.
+
+Use a physical data-root path (resolve macOS temporary-directory aliases with `realpath`); symlinks
+in its ancestors, revision paths and import paths are rejected. Keep this directory
+administrator-owned. Files and directories use 0600/0700 on creation. Stop Runtime
+and import processes before backing up the entire directory (SQLite and Markdown);
+restore them together and run `reindex`. Startup/`cleanup` removes orphan revision files
+under a SQLite writer lock; retained published revisions remain available for recovery.
+Filesystem rename and SQLite are separate resources: files are validated, synced and
+renamed before the SQLite transaction publishes pointers/indexes. Failed transactions
+can leave orphan files, which are invisible to readers. No deletion/revocation API is
+introduced in Part 1; disabling a Bot's runtime memory or graph feature stops injection.

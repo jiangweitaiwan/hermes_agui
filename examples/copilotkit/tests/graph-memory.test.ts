@@ -72,7 +72,7 @@ test("application composition defaults to disabled and accepts an injected provi
   const scope = application.graph.scope({ ...identity(), principal: "local-owner" });
   expect(await application.graph.query(scope, { text: "q", limit: 1 })).toEqual({ status: "disabled" });
   const injected = createApplication(bots, { graph: { provider: new MemoryProvider(), authorize: () => true } });
-  const s = injected.graph.scope(identity());
+  const s = injected.graph.scope({ ...identity(), principal: "local-owner" });
   expect(await injected.graph.write(s, entry(s))).toMatchObject({ status: "accepted" });
   expect(await injected.graph.query(s, { text: "graph", limit: 1 })).toMatchObject({ status: "ok", hits: [{}] });
 });

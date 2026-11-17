@@ -15,13 +15,17 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
   const bots = { ...initialBots };
   const allow = { ...options.delegation?.allow };
   const management = options.management ? createBotManagement(options.management, bots, allow) : undefined;
-  const graph = createGraphMemory(options.graph ?? { authorize: scope => {
+  const graph = createGraphMemory({ ...options.graph, authorize: (scope, operation) => {
+    if (options.graph && !options.graph.authorize(scope, operation)) return false;
     if (management) {
       const bot = management.manager.options.registry.get(scope.botId);
       return bot?.record.status === "active" && !bot.record.deletedAt &&
         bot.runtime.memory?.principal === scope.principal && bot.record.projectId === scope.projectId;
     }
-    return scope.principal === "local-owner" && Object.hasOwn(bots, scope.botId);
+    const bot = bots[scope.botId];
+    return Object.hasOwn(bots, scope.botId) && (bot.memory
+      ? bot.memory.principal === scope.principal && bot.memory.projectId === scope.projectId
+      : scope.principal === "local-owner");
   } });
   const memory = new RuntimeMemoryMiddleware(new RuntimeMemoryManager(new MemoryRetriever(graph)), graph.scope);
   const runtime = createRuntimeHandler(bots, memory, management ? { allowed: (request, id) => {

@@ -36,7 +36,10 @@ const settings = registry ? Object.fromEntries(registry.bots.map((bot: Deploymen
   agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent",
   token: process.env.AGUI_API_KEY ?? "",
 };
+const { loadWiki } = await import("./graph/provider");
+const wiki = loadWiki(registry?.graph);
 const application = createApplication(registry ? settings : { hermes: settings }, {
+  graph: registry?.graph?.enabled ? { provider: wiki, timeoutMs: registry.graph.timeoutMs, authorize: () => true } : undefined,
   management: loadManagement(registry?.management),
   delegation: registry?.delegation ? { ...registry.delegation,
     token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
@@ -99,7 +102,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { application.close(); void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
+    server.close(() => { application.close(); wiki?.close(); void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }
