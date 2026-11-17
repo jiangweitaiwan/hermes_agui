@@ -8,9 +8,11 @@ import { expect, test } from "vitest";
 import { createApplication } from "../server/application";
 import { WikiStore } from "../server/graph/wiki-store";
 import { WikiGraphProvider } from "../server/graph/provider";
+import { DocumentIngestor } from "../server/graph/ingest-queue";
+import { WikiCompiler } from "../server/graph/compiler";
 
 // Source provenance comes from an actually completed local stub AG-UI run.
-test("wiki hits reach signed ordinary/delegated AG-UI runs without mutating original messages", async () => {
+test.each(["session", "document"])("%s wiki hits reach signed ordinary/delegated AG-UI runs without mutating original messages", async kind => {
   const received: any[] = [];
   const server = createServer(async (req, res) => {
     if (req.method === "GET") { res.writeHead(200).end(JSON.stringify({ depth: 0 })); return; }
@@ -49,9 +51,19 @@ test("wiki hits reach signed ordinary/delegated AG-UI runs without mutating orig
   };
   try {
     const source = await run("source-run");
-    store.import({ principal: "owner", projectId: "project", visibility: "bot_private", botId: "a" }, [{ expectedRevision: null,
+    if (kind === "session") store.import({ principal: "owner", projectId: "project", visibility: "bot_private", botId: "a" }, [{ expectedRevision: null,
       markdown: `---\nid: database\ntitle: Database\ntype: note\nsources:\n  - botId: a\n    threadId: ${source.threadId}\n    runId: ${source.runId}\ntags: []\nrelated: []\ncreated: 2026-11-17T00:00:00.000Z\nupdated: 2026-11-17T00:00:00.000Z\n---\ndatabase reference confirmed`,
     }]);
+    if (kind === "document") {
+      const queue = new DocumentIngestor(store);
+      const ns = { principal: "owner", projectId: "project", visibility: "bot_private" as const, botId: "a" };
+      queue.enqueue(ns, { title: "Database policy", mime: "text/plain", content: "database reference confirmed", idempotencyKey: "doc" });
+      await new WikiCompiler(queue, { async json(stage) {
+        if (stage === "analysis") return { claims: [{ text: "database reference confirmed", quote: "database reference confirmed", certainty: "fact", conflict: false }] };
+        if (stage === "generation") return { pages: [{ id: "database", title: "Database", type: "concept", tags: [], related: [], claims: [0] }] };
+        return { claims: [0], conflict: false };
+      } }).runNext(ns);
+    }
     const ordinary = await run("retrieval-run");
     const response = await app.delegation!.handle(new Request("http://localhost/internal/delegations", {
       method: "POST", headers: { Authorization: "Bearer upstream" }, body: JSON.stringify({ sourceBotId: "b", targetBotId: "a",
@@ -63,7 +75,14 @@ test("wiki hits reach signed ordinary/delegated AG-UI runs without mutating orig
       expect(signed.signature).toBe(createHmac("sha256", bot.memory.key).update(signed.payload).digest("hex"));
       const decoded = JSON.parse(Buffer.from(signed.payload, "base64url").toString());
       expect(decoded).toMatchObject({ botId: "a", threadId: actual.threadId, runId: actual.runId });
-      expect(decoded.context.records).toEqual([expect.objectContaining({ content: "database reference confirmed", sourceBotId: "a", sourceThreadId: source.threadId })]);
+      if (kind === "session") {
+        expect(decoded.context.version).toBe(1);
+        expect(decoded.context.records).toEqual([expect.objectContaining({ content: "database reference confirmed", sourceBotId: "a", sourceThreadId: source.threadId })]);
+      } else {
+        expect(decoded.context.version).toBe(2);
+        expect(decoded.context.records).toEqual(expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining("database reference confirmed"),
+          sources: [expect.objectContaining({ kind: "document", title: "Database policy" })] })]));
+      }
       expect(actual.messages.every((m: any) => !JSON.stringify(m).includes("reference confirmed"))).toBe(true);
     }
   } finally {

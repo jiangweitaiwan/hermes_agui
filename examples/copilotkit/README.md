@@ -248,3 +248,91 @@ Filesystem rename and SQLite are separate resources: files are validated, synced
 renamed before the SQLite transaction publishes pointers/indexes. Failed transactions
 can leave orphan files, which are invisible to readers. No deletion/revocation API is
 introduced in Part 1; disabling a Bot's runtime memory or graph feature stops injection.
+
+### Graph Memory Part 2：外部文件編譯
+
+在 Part 1 的 Wiki provider 上新增 Markdown／純文字匯入、durable queue 與獨立 LLM compiler。
+Runtime 的 `graph` 設定和啟動方式不變；compiler 透過可信本地管理 CLI 執行，無新增公開 HTTP 上傳路由。
+只有具有本機資料目錄與部署設定讀寫權限的管理員使用此 CLI；這沿用 Part 1 的 OS 管理員信任邊界，
+並非提供未驗證使用者自行指定 namespace 的 API。先部署支援下述 v2 bridge 的 Hermes，再啟用文件記憶。
+
+建立伺服器管理設定 `wiki-ingest.json`（不要讓上傳者修改此檔）：
+
+```json
+{
+  "namespace": {
+    "principal": "local-owner", "projectId": "alpha",
+    "visibility": "bot_private", "botId": "researcher"
+  },
+  "compiler": {
+    "baseUrl": "https://openrouter.ai/api/v1", "model": "your-approved-model",
+    "keyEnv": "WIKI_COMPILER_API_KEY", "timeoutMs": 30000, "maxTokens": 4096
+  }
+}
+```
+
+API key 只放指定的 secret env；模型、URL 和 budget 放 JSON。也支援其他 OpenAI-compatible base URL
+（不含 `/chat/completions`）。每次 request timeout 預設 30 秒、輸出上限 4096 tokens，
+最多 120 秒／8192 tokens；整個 job 另有 120 秒期限。測試注入 mock，不需付費 API。
+`namespace` 必須與 Runtime 的 principal/project/bot 配置一致；shared 需要管理員明確指定
+`project_shared`。預設使用上例的 private；compiler 僅讀寫該 namespace，shared compiler 不讀 private。
+
+上傳 JSON `document.json`：
+
+```json
+{
+  "title": "Database decision", "mime": "text/markdown",
+  "content": "Project Alpha 使用 PostgreSQL。", "idempotencyKey": "database-import-001"
+}
+```
+
+不接受路徑、ACL、URL、任意 MIME。內容最多 1 MiB UTF-8，僅 `text/plain`／`text/markdown`，
+禁止 NUL；PDF／HTML 解析未實作。更新既有來源時加入 status 回傳的 `sourceId`，並換新的
+`idempotencyKey`。Source ID、內容 SHA-256、整數版本與 request key 分開保存；相同內容／標題
+在同一 namespace 重送會回原 job，不增加 revision。不同內容重用同一 key 會拒絕。
+
+於 `examples/copilotkit` 執行（`DATA_ROOT` 與 Runtime `graph.dataRoot` 相同）：
+
+```bash
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json enqueue document.json
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json status JOB_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json work
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json cancel JOB_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json retry JOB_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json delete SOURCE_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT wiki-ingest.json rebuild
+```
+
+`enqueue` 的 accepted 只代表已持久化。`work` 每次處理一個到期 job，可重複呼叫直至
+`processedJobId: null`；無常駐 worker／自動 session observer。狀態為 pending/running/completed/failed/cancelled。
+Job lease 30 秒、每 5 秒 heartbeat，崩潰後 lease 到期可重取；舊 worker token 不能發布。
+最多三次 attempt，失敗後 backoff 為 2 秒乘 2 的 attempt 次方，第三次進 failed（dead-letter）。
+`retry` 可人工重試 failed/cancelled；SIGINT／SIGTERM 取消目前 job。取消與撤銷會使進行中的發布失效。
+`status` 僅回 ID、版本、狀態、attempt 與一般錯誤代碼，不輸出原始內容、LLM response 或 secrets。
+
+Compiler 分 analysis → generation → merge：每 12000 字元做 evidence digest，最多 96 claims，
+每次 generation 最多八個頁面；候選 context 最多八頁，不掃描整庫到 prompt。
+JSON／引用索引／逐字 evidence quote／slug／頁面與段落大小均驗證後才發布。
+支援 entity/concept/decision/finding/procedure/preference/task，並由程式生成 source 摘錄頁。
+頁面保留 type、title、tags、related、多來源 references、時間和 verification；revision ID 保存在 SQLite manifest。
+Merge 只能選擇帶來源的新增主張，既有正文和 provenance 保留，矛盾標為 disputed；事實與推測分別標記。
+空結果可 no-op。這是保守的追加式 merge，沒有語意去重或自動裁定何者為真；LLM 的語意判斷仍需管理員審閱。
+所有來源與既有 Wiki 均作為不可信資料；LLM 不取得 filesystem、ACL 或命令執行權限。
+
+SQLite 在既有儲存 layout v1 上增設 document_sources／ingest_jobs／ingest_keys，不重寫 Part 1 revisions。
+原始 source 每版本 immutable，撤銷另標 deleted；檔案 revision 仍先驗證及 fsync/rename，
+再以單一 SQLite transaction 發布 active pointers、FTS、edges 和 completed job。
+跨檔案系統與 SQLite 不具天然交易原子性；孤立檔案沿用 `cleanup`，未提交版本不提供檢索。
+資料目錄仍應只有可信管理員可寫，拒絕 symlink／path traversal。
+
+單一 session 仍產生 MemoryContext v1；文件或多來源頁使用 v2，完整傳送 document ID、版本、hash、title
+及所有 session/document references，不捏造 thread/run ID。新版 Hermes 同時驗證 v1/v2、HMAC、run binding、
+private sources 和既有大小限制。舊 Hermes 會拒絕 v2；不做有損降級。
+Graph `write()` 仍 disabled，沒有提前加入 Part 3 自動 session 學習、embedding 或 hybrid retrieval。
+
+刪除是來源撤銷，立即取消相關 jobs，將所有包含該來源的衍生頁從 active manifest／FTS／edges 撤下。
+混合來源頁整頁撤下，避免殘留已撤銷主張；其他獨立來源頁保留。
+`rebuild` 在該 namespace 撤下文件衍生頁並重新排入未撤銷來源的全部版本，之後執行 `work` 逐筆編譯。
+歷史 revisions／raw sources 仍供稽核，這不是實體抹除 API；不會因 reindex 恢復已撤下頁面。
+備份／恢復須停止 Runtime 和 CLI worker，整個 DATA_ROOT（SQLite、journals 和 Markdown）一起處理。
+恢復後未完成 job 可於 lease 到期重取；降回舊版本前必須恢復升級前的完整備份，因舊 reader 不認識文件 provenance。

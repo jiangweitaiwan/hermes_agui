@@ -61,15 +61,15 @@ export class WikiStore {
     try { const result = action(); this.db.exec("COMMIT"); return result; }
     catch (error) { this.db.exec("ROLLBACK"); throw error; }
   }
-  import(ns: Namespace, inputs: { markdown: string; expectedRevision: string | null }[]): string[] {
+  import(ns: Namespace, inputs: { markdown: string; expectedRevision: string | null }[], publish?: () => void): string[] {
     ns = NamespaceSchema.parse(ns);
     const key = namespaceKey(ns);
     const parsed = inputs.map(input => {
       if (Buffer.byteLength(input.markdown) > this.maxPageBytes) throw new Error("Page size limit");
       const page = parsePage(input.markdown);
-      // v1 cannot convey multi-source ACL/provenance; refuse lossy publication.
-      if (page.sources.length !== 1 || (ns.visibility === "bot_private" && page.sources[0].botId !== ns.botId)) {
-        throw new Error("v1 requires one real session source in the owning scope");
+      // Scope belongs to the server, never to generated Markdown.
+      if (ns.visibility === "bot_private" && page.sources.some(source => source.botId !== ns.botId)) {
+        throw new Error("Page source outside owning scope");
       }
       return { ...input, page, revision: randomUUID() };
     });
@@ -102,6 +102,7 @@ export class WikiStore {
           .run(key, input.page.id, input.revision);
         this.index(key, input.page);
       }
+      publish?.();
       return parsed.map(p => p.revision);
     });
   }

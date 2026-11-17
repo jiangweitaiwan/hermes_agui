@@ -57,7 +57,7 @@ export class WikiRetriever {
       if (!content || content !== row.content) throw new Error("Stale wiki index; reindex required");
       const hit: GraphHit = { recordId: `${revision.revision}:${row.ordinal}`, content,
         principal: scope.principal, projectId: scope.projectId,
-        visibility: row.ns === namespaces[0] ? "bot_private" : "project_shared", source: page.sources[0] };
+        visibility: row.ns === namespaces[0] ? "bot_private" : "project_shared", source: page.sources[0], ...(page.sources.length > 1 || "kind" in page.sources[0] ? { sources: page.sources } : {}) };
       const size = Buffer.byteLength(JSON.stringify(hit));
       if (bytes + size > 65536) continue;
       hits.push(hit); bytes += size;

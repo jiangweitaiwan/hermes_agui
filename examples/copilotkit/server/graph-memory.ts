@@ -1,3 +1,4 @@
+import { ProvenanceSchema, type Provenance } from "./graph/provenance";
 /** Server-only graph adapter contract. Native SQLite remains conversation authority. */
 export interface GraphScope {
   readonly principal: string; readonly botId: string; readonly projectId: string;
@@ -9,7 +10,7 @@ export interface GraphEntry {
   content: string; visibility: Visibility; source: GraphSource; idempotencyKey: string;
 }
 export interface GraphHit {
-  recordId: string; content: string; visibility: Visibility; source: GraphSource;
+  recordId: string; content: string; visibility: Visibility; source: Provenance; sources?: Provenance[];
   principal: string; projectId: string;
 }
 export interface GraphQuery { text: string; limit: number }
@@ -33,8 +34,7 @@ const bounded = (value: unknown, bytes: number): value is string =>
 const validScope = (scope: GraphScope) => scope &&
   [scope.principal, scope.botId, scope.projectId, scope.threadId, scope.runId].every(value => bounded(value, 512));
 const visible = (value: unknown): value is Visibility => value === "bot_private" || value === "project_shared";
-const validSource = (source: GraphSource) => source &&
-  [source.botId, source.threadId, source.runId].every(value => bounded(value, 512));
+const validSource = (source: unknown) => ProvenanceSchema.safeParse(source).success;
 
 export function createGraphMemory(options: GraphMemoryOptions) {
   const timeout = options.timeoutMs ?? 2000;
@@ -75,14 +75,15 @@ export function createGraphMemory(options: GraphMemoryOptions) {
       if (result.status !== "ok") return normalizeFailure(result);
       if (!Array.isArray(result.hits) || result.hits.length > request.limit || result.hits.some(hit =>
         !hit || !bounded(hit.recordId, 512) || !bounded(hit.content, 16384) || !validSource(hit.source) ||
-        !visible(hit.visibility))) return { status: "unavailable" };
+        !visible(hit.visibility) || (hit.sources !== undefined && (!Array.isArray(hit.sources) ||
+          hit.sources.length < 1 || hit.sources.length > 20 || hit.sources.some(s => !validSource(s)))))) return { status: "unavailable" };
       if (result.hits.some(hit => !authorizedHit(hit, scope))) {
         return { status: "rejected", reason: "unauthorized" };
       }
       return { status: "ok", hits: result.hits.map(hit => ({
         recordId: hit.recordId, content: hit.content, visibility: hit.visibility,
         principal: hit.principal, projectId: hit.projectId,
-        source: { botId: hit.source.botId, threadId: hit.source.threadId, runId: hit.source.runId },
+        source: structuredClone(hit.source), ...(hit.sources ? { sources: structuredClone(hit.sources) } : {}),
       })) };
     },
     async write(scope: GraphScope, entry: GraphEntry): Promise<GraphWriteResult> {
@@ -110,5 +111,5 @@ function normalizeFailure(result: { status: string; reason?: string }): { status
 
 function authorizedHit(hit: GraphHit, scope: GraphScope): boolean {
   return hit.principal === scope.principal && hit.projectId === scope.projectId &&
-    (hit.visibility === "project_shared" || hit.source.botId === scope.botId);
+    (hit.visibility === "project_shared" || [hit.source, ...(hit.sources ?? [])].every(s => s.botId === scope.botId));
 }

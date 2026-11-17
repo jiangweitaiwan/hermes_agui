@@ -6,7 +6,7 @@ import json
 import re
 import time
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, TypeAdapter
 from typing import Literal
 
 
@@ -23,6 +23,38 @@ class MemoryContext(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     version: Literal[1]
     records: list[MemoryRecord] = Field(max_length=20)
+
+
+class SessionSource(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    botId: StrictStr = Field(min_length=1, max_length=512)
+    threadId: StrictStr = Field(min_length=1, max_length=512)
+    runId: StrictStr = Field(min_length=1, max_length=512)
+
+
+class DocumentSource(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    kind: Literal["document"]
+    botId: StrictStr = Field(min_length=1, max_length=512)
+    sourceId: StrictStr = Field(pattern=r"^[a-f0-9-]{36}$")
+    version: int = Field(gt=0, strict=True)
+    hash: StrictStr = Field(pattern=r"^[a-f0-9]{64}$")
+    title: StrictStr = Field(min_length=1, max_length=512)
+
+
+class MemoryRecordV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    id: StrictStr = Field(min_length=1, max_length=512)
+    content: StrictStr = Field(min_length=1, max_length=16384)
+    sourceBotId: StrictStr = Field(min_length=1, max_length=512)
+    visibility: Literal["bot_private", "project_shared"]
+    sources: list[SessionSource | DocumentSource] = Field(min_length=1, max_length=20)
+
+
+class MemoryContextV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    version: Literal[2]
+    records: list[MemoryRecordV2] = Field(max_length=20)
 
 
 def _decode_envelope(props, key):
@@ -57,10 +89,15 @@ def _validate_binding(data, value, bot_id, bot):
 def _validate_context(data, bot_id):
     if not isinstance(data, dict) or type(data.get("version")) is not int:
         raise ValueError
-    context = MemoryContext.model_validate(data).model_dump()
+    context = TypeAdapter(MemoryContext | MemoryContextV2).validate_python(data).model_dump()
     if len(json.dumps(context, ensure_ascii=False, separators=(",", ":")).encode()) > 8192:
         raise ValueError
     if any(r["visibility"] == "bot_private" and r["sourceBotId"] != bot_id for r in context["records"]):
+        raise ValueError
+    if context["version"] == 2 and any(
+        r["visibility"] == "bot_private" and any(s["botId"] != bot_id for s in r["sources"])
+        for r in context["records"]
+    ):
         raise ValueError
     return context
 
