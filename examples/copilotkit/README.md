@@ -490,3 +490,71 @@ Managed mode 的 server JSON 沿用以下配置形狀；Host 必須有相同的�
 停用保留有效知識；刪除前必須確認，會永久撤銷相關衍生記憶與分享副本，歷史稽核資料仍保留。
 Graph API、Wiki/Search/Dashboard、匯入／分享／撤銷 UI 尚未實作。完整交接見
 [Frontend Part 1](../../docs/frontend-workspace-part-1.md)。
+
+### Frontend Workspace Part 2: read-only Graph Browser API
+
+Managed deployments expose `GET /api/graph/:botId/...`, using the existing Bearer/session login,
+local Host/Origin guards, Bot ownership, server runtime principal/project and graph deployment
+policy. Every response is JSON with `Cache-Control: no-store`. Static mode exposes no graph data.
+Active and disabled Bots retain read access while their owner and deployment policy remain valid;
+deleted Bots cannot read. No endpoint writes, imports, shares, revokes or invokes an LLM/encoder.
+The existing evolution reconciliation may withdraw revoked memory before a read.
+
+DTOs for the later frontend are in `server/graph/browser-types.ts`. Part 3 UI is not implemented.
+All endpoints accept `scope=all|bot_private|project_shared` (default `all`):
+
+| GET suffix | Parameters and response |
+| --- | --- |
+| `stats` | `{pages, edges, private, shared, partial}`; active validated pages, edges with visible endpoints only |
+| `pages` | `limit` (default 100, 1–300), `cursor`, `type`, `verification`, `q`; `{pages, nextCursor, partial}` |
+| `pages/:visibility/:pageId` | Active revision only: summary, `revisionId`, `tags`, untrusted `body`, visible `related`, scoped `provenance` |
+| `search` | Required `q`, optional list filters/pagination; summaries with snippets of at most 320 Unicode characters, using existing FTS terms/CJK bigrams |
+| `network` | List filters/pagination; optional paired `pageId`/`visibility` focus and `depth=1|2` (default 1); `{nodes, edges, nextCursor, truncated}` |
+| `health` | `{status:"ok", pages, brokenLinks, isolated, conflicts, staleProvenance, indexDrift, pending, failed, lagMs, partial}` |
+| `jobs` | `limit` (at most 50); `{status:"ok", jobs:[{id,state,createdAt?}]}`; no raw source, errors or lease information |
+
+Summary fields: `{id,pageId,title,type,visibility,verification}`; missing stored verification is
+`unverified`. IDs are `visibility:pageId`, local to the selected Bot, preserving same-slug private
+and shared pages. Network edges are directed namespace-local SQLite edges; endpoints must both be
+returned nodes. Focus walks incoming/outgoing links within one namespace; it never expands through
+an unauthorized page. Filters apply to returned nodes. Pagination covers bounded result windows;
+edges between nodes in different windows are intentionally omitted. There are no typed or cross
+namespace relations. Focus traversal has a 301-candidate neighborhood cap; `truncated` remains true
+when that cap is reached, even after paging through the bounded neighborhood. Related pages in details are bounded to the store's validated links.
+
+Queries reject unknown/duplicate parameters, malformed IDs/cursors, invalid enums and limits with
+400; `q` is at most 512 characters/2048 UTF-8 bytes. Cursors bind Bot/owner/principal/project,
+endpoint, scope and every filter (including limit); they are pagination hints, never authorization.
+They use stable `visibility:pageId` keyset ordering. Each request reauthorizes and reads current
+publication pointers; paging across requests is a live view and does not pin old revisions.
+Unauthenticated requests return 401, foreign/missing/deleted Bots and inaccessible pages share 404,
+foreign Origin returns 403, non-GET requests return 405 with `Allow: GET`. Static mode, disabled or
+unavailable graph, work/response budget exhaustion return 503; graph unavailable/disabled responses
+have a typed `status`. Health/jobs return 503 `status:"unavailable"` when evolution is disabled.
+
+Each response uses the existing WikiStore connection with a bounded SQLite transaction, serializing
+against publication and revocation; there is no second writing store. Markdown must pass the existing
+active/read checksum and schema checks. All source owners must still be retained, including mixed
+pages and project-shared sources. With evolution off these checks remain enabled; document provenance
+must match a non-revoked source version/hash, and tracked sessions must have a live source. Missing
+source tables deny document evidence. Legacy session-only imports retain the existing trusted local
+administrator attestation contract; no native session database lookup is introduced.
+
+Work limits: at most 300 candidate pages per window, 650 Markdown parses (including focus/related),
+8 MiB parsed-page work, 2 MiB response JSON, 300 nodes and 1500 edges. Over-budget requests fail closed
+with 503. List `partial`/`nextCursor` and network `truncated` describe bounded windows. Stats and health
+scan only the first 300 scoped candidates; with `partial=true` numeric counts are lower bounds, not totals.
+Health analyzes validated visible pages only (`staleProvenance=0` after evidence validation), measures
+FTS section drift, and counts pending/failed jobs and lag in the most recent 50 retained-owner jobs
+per selected namespace. Jobs without recorded enqueue time omit `createdAt`; lag excludes those jobs.
+Health is partial when its job window is full. Broken-link and isolation counts are `null` when diagnostics are partial, since incomplete
+neighborhoods cannot determine those counts. These bounded diagnostics do
+not replace the existing full administrator `health` CLI. No database migration or dependency is added.
+
+**Frontend rendering contract:** treat titles, snippets, Markdown, provenance titles and tags as
+untrusted data. Render strings as text; disable raw HTML in Markdown, sanitize rendered output,
+allowlist link protocols, and never execute embedded scripts, event handlers or external resource
+loads. Do not convert filesystem paths or arbitrary Markdown links into API requests. Resolve Wiki
+navigation only through returned scoped IDs. Clear private state and in-flight results when changing
+identity/Bot/scope and after logout; do not cache private responses. This is a contract for Part 3,
+not a claim that a Graph frontend already exists.

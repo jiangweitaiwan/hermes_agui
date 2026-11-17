@@ -26,7 +26,8 @@ export interface GraphMemoryPort {
 }
 export interface GraphMemoryOptions {
   provider?: GraphMemoryPort;
-  authorize: (scope: GraphScope, operation: "query" | "write") => boolean;
+  /** Deployment ACL is namespace-based; callers need no synthetic run/thread identity. */
+  authorize: (scope: Pick<GraphScope, "principal" | "projectId" | "botId">, operation: "query" | "write") => boolean;
   timeoutMs?: number;
 }
 const bounded = (value: unknown, bytes: number): value is string =>

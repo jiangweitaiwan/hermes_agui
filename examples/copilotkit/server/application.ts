@@ -1,3 +1,4 @@
+import { createGraphApi } from "./graph/api";
 import { MemoryEvolution, type EvolutionOptions } from "./graph/evolution";
 import type { Namespace } from "./graph/types";
 import { RuntimeMemoryManager } from "./memory/runtime-memory-manager";
@@ -14,7 +15,7 @@ import { sameOrigin } from "./bots/api";
 export function createApplication(initialBots: Record<string, RuntimeSettings>, options: {
   delegation?: DelegationSettings; graph?: GraphMemoryOptions; management?: BotManagementSettings; evolution?: EvolutionOptions;
 } = {}) {
-  if (options.evolution && options.management?.users.some(user => options.management!.users.some(other =>
+  if (options.graph && options.management?.users.some(user => options.management!.users.some(other =>
     other.ownerId !== user.ownerId && other.principal === user.principal && other.projectId === user.projectId))) {
     throw new Error("Graph memory requires distinct owner principals within a project");
   }
@@ -40,7 +41,7 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
       user.principal === ns.principal && user.projectId === ns.projectId);
     return !!bot?.memory && !stored?.record.deletedAt && ownerAllowed &&
       bot.memory.principal === ns.principal && bot.memory.projectId === ns.projectId &&
-      (!options.graph || options.graph.authorize({ principal: ns.principal, projectId: ns.projectId, botId: id, threadId: "ingest", runId: "ingest" }, "write"));
+      (!options.graph || options.graph.authorize({ principal: ns.principal, projectId: ns.projectId, botId: id }, "write"));
   };
   const evolution = options.evolution ? new MemoryEvolution(options.evolution, ns => {
     const ids = ns.visibility === "project_shared" ? Object.keys(bots) : [ns.botId];
@@ -61,6 +62,8 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
       return runtime(request);
     },
     graph, management, evolution,
+    graphApi: createGraphApi({ management, provider: options.graph?.provider, evolution, retained: (ns, id) => retained(ns, id) &&
+      (!options.graph || options.graph.authorize({ principal: ns.principal, projectId: ns.projectId, botId: id }, "query")) }),
     ready: (management ? management.manager.restore() : Promise.resolve()).then(() => { evolution?.reconcile(); evolution?.start(); }),
     close: () => {
       if (!evolution) { management?.close(); return Promise.resolve(); }

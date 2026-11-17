@@ -57,6 +57,7 @@ const metricsTimer = application.evolution ? setInterval(() => {
 }, 60000) : undefined;
 metricsTimer?.unref();
 const runtime = createCopilotNodeHandler(application.runtime);
+const graphApi = createCopilotNodeHandler(async request => application.graphApi(request));
 const management = application.management ? createCopilotNodeHandler(application.management.api) : undefined;
 const internal = application.delegation
   ? (await import("./delegation-http")).createDelegationServer(application.delegation) : undefined;
@@ -86,6 +87,13 @@ const server = createServer((req, res) => {
     return;
   }
   const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+  if (path === "/api/graph" || path.startsWith("/api/graph/")) {
+    void graphApi(req, res).catch(() => {
+      if (!res.headersSent) res.writeHead(503, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      res.end();
+    });
+    return;
+  }
   if (management && (path === "/api/bot-session" || path === "/api/bots" || path.startsWith("/api/bots/"))) {
     void management(req, res).catch(() => {
       if (!res.headersSent) res.writeHead(503);
