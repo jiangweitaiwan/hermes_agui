@@ -13,6 +13,11 @@ test("Bot switching isolates concurrent streams, tools, HITL and errors", async 
   await choose("researcher");
   await send("stream");
   await expect(chat).toContainText("First");
+  await page.getByRole("button", { name: "Graph Memory", exact: true }).click();
+  await expect(page.getByText("尚未開放。", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await expect(chat).toContainText("First");
+  await expect(chat.getByRole("status")).toHaveText("執行中…");
   await choose("reviewer");
   await send("hello beta");
   await expect(chat).toContainText("Beta private answer.");

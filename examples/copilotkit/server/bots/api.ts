@@ -62,6 +62,7 @@ export function createBotApi(manager: BotManager, auth: BotAuthentication) {
         if (typeof value?.token !== "string") throw new BotError(422, "Token required");
         return auth.login(request, value.token);
       }
+      if (path === "/api/bot-session" && request.method === "DELETE") return auth.logout(request);
       const identity = auth.authenticate(request);
       if (!identity) throw new BotError(401, "Authentication required");
       return await dispatch(request, path, identity);

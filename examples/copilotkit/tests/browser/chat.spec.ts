@@ -15,6 +15,10 @@ test("UI streams native turns, observes tools, isolates threads and displays err
     return route.continue();
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Bot Manager", exact: true }).click();
+  await expect(page.getByText("Static mode：", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "新增 Bot", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
   const chat = page.locator("section:visible");
   await expect(chat.getByRole("status")).toHaveText("已連線");
   const input = () => chat.locator("textarea");

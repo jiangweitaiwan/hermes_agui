@@ -38,8 +38,10 @@ export function BotEditor({ editing, templates, bots, busy, onSave, onCancel }: 
   const options = (values: string[]) => values.map(value => ({ id: value, name: value }));
   return <form aria-label={editing ? "編輯 Bot" : "建立 Bot"} onSubmit={event => {
     event.preventDefault();
-    if (selected) void onSave({ name, description, templateId, harness: selected.harness,
-      skills, toolsets, delegationTargets: targets });
+    if (selected && !busy) void onSave({ name, description, templateId, harness: selected.harness,
+      skills: skills.filter(value => selected.skills.includes(value)),
+      toolsets: toolsets.filter(value => selected.toolsets.includes(value)),
+      delegationTargets: targets.filter(id => bots.some(bot => bot.id === id && bot.status === "active" && bot.id !== editing?.id)) });
   }}>
     <h3>{editing ? "編輯 Bot" : "建立 Bot"}</h3>
     {editing && <p>模型、工具與角色設定會在新對話生效；既有對話保留已載入的設定。</p>}

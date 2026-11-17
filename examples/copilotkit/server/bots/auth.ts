@@ -22,6 +22,14 @@ export class BotAuthentication {
     const session = cookie ? this.sessions.get(cookie) : undefined;
     return session && session.expires > Date.now() ? session.identity : undefined;
   }
+  logout(request: Request): Response {
+    const cookie = request.headers.get("cookie")?.split(";").map(v => v.trim())
+      .find(v => v.startsWith("hermes_session="))?.slice(15);
+    if (cookie) this.sessions.delete(cookie);
+    return new Response(null, { status: 204, headers: {
+      "Set-Cookie": "hermes_session=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0",
+    } });
+  }
   login(request: Request, token: string): Response {
     const user = this.users.find(user => equal(token, user.token));
     if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });

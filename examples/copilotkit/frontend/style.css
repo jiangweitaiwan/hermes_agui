@@ -27,3 +27,38 @@ footer { margin-top: 16px; }
 .bot-management input:not([type=checkbox]), .bot-management textarea, .bot-management select { flex: 1; padding: .5rem; }
 .bot-management li { margin: .5rem 0; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
 .bot-management fieldset { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; padding: .55rem .8rem; border: 1px solid #becdc3; border-radius: 8px; }
+button:disabled { cursor: default; opacity: .55; }
+:focus-visible { outline: 3px solid #237a64; outline-offset: 3px; }
+.app-shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
+.sidebar { padding: 18px; background: #e8eee7; border-right: 1px solid #becdc3; }
+.sidebar h1 { font-size: 21px; }
+.sidebar p { font-size: 13px; }
+.workspace-content { width: 100%; min-width: 0; padding: 24px; }
+.bot-management { margin: 0; padding: 0; }
+.bot-management ul { padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.bot-management li { padding: 18px; border: 1px solid #d8e0da; background: white; border-radius: 12px; }
+.bot-management li strong { flex-basis: 100%; }
+dialog { width: min(640px, calc(100vw - 32px)); max-height: 90vh; overflow: auto; border: 1px solid #becdc3; border-radius: 16px; padding: 24px; }
+dialog::backdrop { background: #102e2780; }
+dialog label { flex-wrap: wrap; }
+dialog input, dialog textarea, dialog select { min-width: 0; max-width: 100%; }
+.menu-toggle { display: none; }
+@media (max-width: 760px) {
+  .app-shell { display: block; }
+  .menu-toggle { display: block; margin: 12px; }
+  .sidebar { display: none; }
+  .sidebar.expanded { display: block; }
+  .sidebar nav { flex-direction: column; }
+  .workspace-content { padding: 16px; }
+  .workspace { grid-template-columns: 1fr; }
+  header { display: block; }
+}
+.workspace { grid-template-columns: minmax(0, 1fr); }
+.bot-management li p { flex-basis: 100%; overflow-wrap: anywhere; color: #5c6d67; }
+nav button:first-child { background: transparent; color: inherit; margin-bottom: 0; }
+nav button[aria-current] { background: #193e34; color: white; }

@@ -447,3 +447,46 @@ HERMES_PYTHON=/path/to/test/python scripts/run_tests.sh tests/hermes_agui/
 並檢查原生 SQLite 無注入 context。Evaluation 使用明確標示的 deterministic synonym fixture encoder，
 可重現 RRF/graph 的效果與噪音；數值不代表真實 embedding 模型品質或 production latency/cost。
 實際測試紀錄與限制見 `docs/graph-memory-part-3.md`。
+
+### Multi-Bot Workspace (Frontend Part 1)
+
+Workspace 提供 Chat、Bot Manager 與尚未開放的 Graph Memory 頁面。桌面側欄按 Bot 顯示
+本頁的 thread 索引；行動版使用「工作空間導覽」展開。切換頁面、Bot 或 thread 保持既有
+CopilotKit/AG-UI 元件掛載，串流與 HITL 可返回繼續；重新整理沒有 server history 恢復功能。
+
+在本機使用既有 Node 22.13+ 與 package-lock：
+
+```bash
+cd examples/copilotkit
+npm ci
+# Static mode：先依前述方式啟動 Hermes AG-UI，沿用 AGUI_URL / AGUI_API_KEY。
+npm run dev
+# Production assets：
+npm run build
+npm start
+```
+
+Runtime 預設只監聽 loopback。請維持 localhost host/origin 限制，不以此範例直接公開部署。
+Managed mode 的 server JSON 沿用以下配置形狀；Host 必須有相同的核准 native template ID，
+並由管理員在後端配置 provider/model key，瀏覽器不輸入 Host token 或模型 API key：
+
+```json
+{
+  "bots": [],
+  "management": {
+    "registryPath": "./data/bots.sqlite3",
+    "hostUrl": "http://127.0.0.1:8765",
+    "hostTokenEnv": "BOT_HOST_MANAGEMENT_KEY",
+    "users": [{ "ownerId": "owner", "principal": "owner", "projectId": "local", "tokenEnv": "BOT_OWNER_ACCESS_KEY" }],
+    "templates": [{ "id": "analyst", "name": "Approved analyst", "harness": "hermes", "provider": "custom", "model": "your-approved-model", "skills": [], "toolsets": ["memory", "skills"] }]
+  }
+}
+```
+
+將 `AGUI_BOTS_CONFIG` 指向此管理員持有的 JSON，秘密僅放上述 secret env，再啟動 Runtime。
+使用管理員配置的 owner 存取金鑰登入，session cookie 為 HttpOnly；登出會撤銷 server session
+並清除 Bot/thread/form 狀態。不將 credential 存入 localStorage。Static mode 隱藏管理寫入。
+建立／編輯只使用 server options；失敗的 Bot 可啟用／重試，只有 active 可開啟對話。
+停用保留有效知識；刪除前必須確認，會永久撤銷相關衍生記憶與分享副本，歷史稽核資料仍保留。
+Graph API、Wiki/Search/Dashboard、匯入／分享／撤銷 UI 尚未實作。完整交接見
+[Frontend Part 1](../../docs/frontend-workspace-part-1.md)。
