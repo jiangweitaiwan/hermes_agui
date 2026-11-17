@@ -23,6 +23,7 @@ Preserve conflicts, dates and provenance; distinguish facts from inference. Empt
 
 /** Independent adapter. Server config selects behavior; env contains only the secret. */
 export class OpenAICompilerLLM implements CompilerLLM {
+  readonly metrics = { calls: 0, promptTokens: 0, completionTokens: 0 };
   constructor(readonly options: { baseUrl: string; model: string; keyEnv: string; timeoutMs?: number; maxTokens?: number },
     readonly transport: typeof fetch = fetch) {
     const url = new URL(options.baseUrl);
@@ -32,6 +33,7 @@ export class OpenAICompilerLLM implements CompilerLLM {
     validateBudget(options.maxTokens ?? 4096, 8192);
   }
   async json(stage: string, data: unknown, signal: AbortSignal) {
+    this.metrics.calls++;
     const response = await this.transport(`${this.options.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST", signal: AbortSignal.any([signal, AbortSignal.timeout(this.options.timeoutMs ?? 30000)]),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env[this.options.keyEnv]}` },
@@ -53,6 +55,10 @@ export class OpenAICompilerLLM implements CompilerLLM {
       }
     } finally { await reader.cancel(); }
     const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    for (const [field, metric] of [["prompt_tokens", "promptTokens"], ["completion_tokens", "completionTokens"]] as const) {
+      const value = body.usage?.[field];
+      if (Number.isSafeInteger(value) && value >= 0) this.metrics[metric] += value;
+    }
     return JSON.parse(body.choices[0].message.content);
   }
 }
@@ -147,7 +153,7 @@ export class WikiCompiler {
     }, signal));
     if (merged.claims.some(i => !proposal.claims.includes(i))) throw new Error("Invalid merge reference");
     if (!merged.claims.length) return undefined;
-    const provenance = { kind: "document" as const, botId: ns.botId, sourceId: source.id,
+    const provenance = source.provenance ?? { kind: "document" as const, botId: source.botId ?? ns.botId, sourceId: source.id,
       version: source.version, hash: source.hash, title: source.title };
     const now = new Date().toISOString();
     const metadata = { id: proposal.id, title: old?.title ?? proposal.title, type: proposal.type,
@@ -155,7 +161,7 @@ export class WikiCompiler {
       related: [...new Set([...(old?.related ?? []), ...proposal.related])], created: old?.created ?? now, updated: now,
       verification: merged.conflict || claims.some(c => c.conflict) || old?.verification === "disputed" ? "disputed" : old?.verification ?? "unverified" };
     // Generated additions cannot erase existing evidence, verification or provenance.
-    const additions = merged.claims.map(i => `[${claims[i].certainty}${merged.conflict || claims[i].conflict ? "; conflict" : ""}] ${claims[i].text}\nEvidence: ${JSON.stringify(claims[i].quote)}`);
+    const additions = merged.claims.map(i => `[${claimLabel(source, claims[i])}${merged.conflict || claims[i].conflict ? "; conflict" : ""}] ${claims[i].text}\nEvidence: ${JSON.stringify(claims[i].quote)}`);
     const body = [old?.body, `## Evidence ${now} — ${source.id} v${source.version}`, ...additions].filter(Boolean).join("\n\n");
     return { markdown: `---\n${stringify(metadata)}---\n${body}\n`, expectedRevision: current?.revision ?? null };
   }
@@ -166,7 +172,7 @@ export class WikiCompiler {
     if (old && old.type !== "source") throw new Error("Reserved source page conflict");
     const now = new Date().toISOString();
     const metadata = { id, title: source.title, type: "source", tags: [], related: [],
-      sources: [{ kind: "document", botId: ns.botId, sourceId: source.id, version: source.version, hash: source.hash, title: source.title }],
+      sources: [source.provenance ?? { kind: "document", botId: source.botId ?? ns.botId, sourceId: source.id, version: source.version, hash: source.hash, title: source.title }],
       created: old?.created ?? now, updated: now, verification: "unverified" };
     const excerpts = [...new Set(claims.map(c => c.quote))].map(quote => `Source excerpt: ${JSON.stringify(quote)}`).join("\n\n");
     return { markdown: `---\n${stringify(metadata)}---\n# Source version ${source.version}\n\n${excerpts}\n`, expectedRevision: current?.revision ?? null };
@@ -174,11 +180,26 @@ export class WikiCompiler {
   private validateSources(ns: Namespace, inputs: { markdown: string }[]) {
     for (const input of inputs) {
       for (const source of parsePage(input.markdown).sources) {
-        if (!("kind" in source)) continue;
+        if (!("kind" in source)) {
+          const id = this.queue.sessionSource(namespaceKey(ns), source);
+          if (id && !this.queue.store.db.prepare("SELECT 1 FROM document_sources WHERE ns=? AND id=? AND deleted=0").get(namespaceKey(ns), id)) throw new Error("Revoked session provenance");
+          continue;
+        }
         const valid = this.queue.store.db.prepare("SELECT 1 FROM document_sources WHERE ns=? AND id=? AND version=? AND hash=? AND deleted=0")
           .get(namespaceKey(ns), source.sourceId, source.version, source.hash);
         if (!valid) throw new Error("Revoked provenance");
       }
     }
   }
+}
+
+function claimLabel(source: RawSource, claim: z.infer<typeof Claim>): string {
+  if (!source.provenance) return claim.certainty;
+  if (!source.evidence) return "user-stated / assistant-unverified";
+  const inUser = source.evidence.user.includes(claim.quote);
+  const inAssistant = source.evidence.assistants.some(text => text.includes(claim.quote));
+  const labels: string[] = [];
+  if (inUser) labels.push(source.evidence.confirmed ? "user-confirmed decision" : "user-stated request");
+  if (inAssistant) labels.push("assistant-unverified");
+  return labels.length ? labels.join(" / ") : "unverified";
 }

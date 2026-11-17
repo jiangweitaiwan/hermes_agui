@@ -38,13 +38,24 @@ const settings = registry ? Object.fromEntries(registry.bots.map((bot: Deploymen
 };
 const { loadWiki } = await import("./graph/provider");
 const wiki = loadWiki(registry?.graph);
+const { loadEvolution } = await import("./graph/evolution");
 const application = createApplication(registry ? settings : { hermes: settings }, {
   graph: registry?.graph?.enabled ? { provider: wiki, timeoutMs: registry.graph.timeoutMs, authorize: () => true } : undefined,
+  evolution: loadEvolution(wiki, registry?.graph?.evolution),
   management: loadManagement(registry?.management),
   delegation: registry?.delegation ? { ...registry.delegation,
     token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
 });
 await application.ready;
+// Local operational counters only; no prompts, identifiers, source text or credentials.
+const metricsTimer = application.evolution ? setInterval(() => {
+  const evolution = application.evolution!;
+  console.log(JSON.stringify({ graphMemory: { query: evolution.options.provider.metrics,
+    worker: evolution.metrics, jobs: evolution.queue.metrics(), sessions: evolution.sessions.metrics,
+    compiler: "metrics" in evolution.options.compiler ? evolution.options.compiler.metrics : undefined,
+    embeddings: evolution.options.provider.retrieval?.vectors?.metrics } }));
+}, 60000) : undefined;
+metricsTimer?.unref();
 const runtime = createCopilotNodeHandler(application.runtime);
 const management = application.management ? createCopilotNodeHandler(application.management.api) : undefined;
 const internal = application.delegation
@@ -100,9 +111,10 @@ const server = createServer((req, res) => {
 server.listen(port, "127.0.0.1", () => console.log(`Hermes chat: http://127.0.0.1:${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
+    clearInterval(metricsTimer);
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { application.close(); wiki?.close(); void Promise.resolve(vite?.close()).then(() => process.exit(0)); });
+    server.close(() => { void application.close().then(() => { wiki?.close(); return vite?.close(); }).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

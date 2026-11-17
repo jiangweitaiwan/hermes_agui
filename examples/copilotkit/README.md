@@ -336,3 +336,114 @@ Graph `write()` 仍 disabled，沒有提前加入 Part 3 自動 session 學習�
 歷史 revisions／raw sources 仍供稽核，這不是實體抹除 API；不會因 reindex 恢復已撤下頁面。
 備份／恢復須停止 Runtime 和 CLI worker，整個 DATA_ROOT（SQLite、journals 和 Markdown）一起處理。
 恢復後未完成 job 可於 lease 到期重取；降回舊版本前必須恢復升級前的完整備份，因舊 reader 不認識文件 provenance。
+
+### Graph Memory Part 3：自動學習與 hybrid retrieval
+
+先完成前述 Part 2 安裝、Hermes signing key 配置及 DATA_ROOT 備份。沿用 Node 22.13+、
+現有 example dependencies；本階段無新依賴、不改 Hermes agent loop。管理模式下不同 owner 在同一
+project 必須使用不同 principal，避免部署端把兩個 owner 配成同一個知識 namespace。
+
+在 `AGUI_BOTS_CONFIG` 的既有 `graph` 加入下列設定；API secrets 只放在所指的環境變數：
+
+```json
+{
+  "graph": {
+    "enabled": true,
+    "dataRoot": "./data/wiki",
+    "timeoutMs": 2000,
+    "retrieval": { "rrfK": 60, "seedLimit": 8, "neighbors": 3 },
+    "embedding": {
+      "baseUrl": "https://approved-provider.example/v1",
+      "model": "your-approved-embedding-model",
+      "dimension": 1536,
+      "version": "deployment-1",
+      "keyEnv": "WIKI_EMBEDDING_KEY",
+      "timeoutMs": 500,
+      "retries": 1
+    },
+    "evolution": {
+      "enabled": true,
+      "pollMs": 1000,
+      "compiler": {
+        "baseUrl": "https://approved-provider.example/v1",
+        "model": "your-approved-compiler-model",
+        "keyEnv": "WIKI_COMPILER_KEY",
+        "timeoutMs": 30000,
+        "maxTokens": 4096
+      }
+    }
+  }
+}
+```
+
+保留原本 `bots`、`management`、`delegation` 設定，以上僅示範 graph 區塊。
+依原流程啟動 Hermes Host，然後在 example 目錄執行 `npm run dev`；部署版執行
+`npm ci && npm run build && npm start`。先升級支援 Part 2 v2 bridge 的 Hermes，再啟動此 Runtime。
+
+一般 Run 只監聽真實 `next.run(prepared)` 的事件；delegation 使用同一 ingestion service。
+完整且成功的本輪原始 user／assistant 文字會先同步 durable enqueue，LLM 編譯由背景 worker 處理。
+不擷取 reasoning、tools、完整歷史、Runtime 注入 context；第一版 tool allowlist 為空。
+低品質／閒聊、常見明文 credential 模式會整筆跳過。這是保守規則，不能保證偵測所有敏感資料。
+User 明確確認的 decision 與 assistant 未驗證的 finding 分別保留標記，LLM 不能將其升為 verified。
+預設皆 private；重複 Run、相同 user/answer 的重複知識不再建立學習工作。
+
+Resume 因現有介面無法可靠取得完整本輪原始內容而跳過，增加 `resumeSkipped` counter；
+interrupt/error/cancel/disconnect 不入列。完成事件與 SQLite enqueue 前崩潰仍可能漏記，沒有
+completion journal／reconciliation API，因此不宣稱 exactly-once；入列後沿用 lease/fencing/retry 的恢復契約。
+
+Embedding 的 model/dimension/version 全部構成索引身份。背景批次每 namespace 最多 32 sections，
+查詢在已授權 private/shared namespaces 各最多掃描 4096 個有效向量；模型故障、維度或版本不符時回退
+keyword + graph。Embedding 查詢最多等待 750ms；外部 adapter 的單次 timeout 最大 1000ms。
+第一版適用有限規模，不是大型向量資料庫。RRF 合併 keyword/vector seeds 後只展開一階鄰居，
+保留 provenance、片段去重及原有 runtime budget。無 embedding 設定時沿用 keyword 路徑。
+
+沿用可信本地 OS 管理 CLI，沒有新增公開 HTTP endpoint 或管理 UI。`SERVER_CONFIG` 與 Part 2 相同，
+含 server-owned `namespace`、選配 `compiler`；若需向量重建，可額外加入上例 `embedding`。
+從 example 目錄操作：
+
+```bash
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG enqueue UPLOAD_JSON
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG jobs
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG status JOB_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG share SESSION_SOURCE_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG revoke SOURCE_ID
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG health
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG reindex
+node --import tsx server/graph/ingest-cli.ts DATA_ROOT SERVER_CONFIG vectors
+```
+
+`jobs` 列出該 namespace 最近 50 個工作（含 source ID，不含 lease token 或原文）；`status` 回傳 source ID；`share` 的 config namespace 必須是該來源的 private scope。
+分享只重編譯原始來源，不複製混有其他私有來源的 wiki 頁；重新檢查敏感資料並保留真實 session provenance。
+Shared compilation 不讀 private context。`revoke` 連同同 owner/project 的 session 分享副本一起撤銷；
+`delete` 保留 Part 2 僅撤銷指定 namespace/source 的語意。混合來源頁保守地整頁撤下，後續可 rebuild。
+`vectors` 清除該 namespace 各模型索引後重建全部批次；失敗時回傳 `partial`，可重跑或由 Runtime 續建。
+模型更換時同步更換 model/dimension/version 並執行此命令；`reindex` 修復 FTS/edges 並使舊 vectors 失效，
+背景 worker 隨後重建。`health` 回報 broken links、孤立頁、衝突、過期/無法追溯 provenance、索引漂移及 job lag/error，
+不自動刪除知識。Runtime 每分鐘只輸出 operational counters（latency、hits、job lag/states、compiler token usage），不輸出全文或憑證。
+
+Bot 刪除、project/principal 改變或部署端 policy/owner-access 撤銷，會在生命週期回呼、啟動、查詢前及
+worker tick 檢查來源所有權；取消工作、撤下衍生頁、FTS/edges/vectors。停用 Bot 暫停其 private worker，
+保留有效知識，刪除才永久撤銷。ACL 設定仍由部署端負責，沒有新增瀏覽器修改 project/owner 的 API。
+Part 2 歷史來源以 namespace metadata 和已發布 provenance 回填 owner；若歸屬有歧義，拒絕再編譯，
+需管理員確認後以新 source 重新匯入，避免錯認作者。
+
+SQLite schema 為 additive migration；immutable Markdown 與原始來源保留稽核，撤銷不代表實體抹除。
+備份/還原仍需停止 Runtime/CLI workers，整個 DATA_ROOT 一起備份；還原後 lease 到期續跑。
+停用 `evolution.enabled` 可停止自動收集/worker，仍可檢索已發布知識；移除 `embedding` 回退 keyword。
+`graph.enabled: false` 關閉整個 graph，保留原生 Hermes memory/skills/session 行為。
+程式版本 rollback 使用升級前完整備份，避免舊版忽略新增 ownership/revocation 契約。
+
+不需要付費 API 的雙 Bot smoke 與固定中英文 evaluation：
+
+```bash
+npm test -- --reporter=dot
+node --import tsx tests/fixtures/wiki-evaluate.ts
+# 位於 repository root，使用已由 Hermes PM 建立的 test interpreter：
+HERMES_PYTHON=/path/to/test/python scripts/run_tests.sh tests/hermes_agui/
+```
+
+`wiki-evolution-runtime.test.ts` 同時驗證 standard/delegation、A 新 thread、B 分享前後、C 跨 project 與撤銷；
+`test_graph_evolution.py` 驗證真實 Runtime → Hermes → fake model → 自動 queue/compiler → 新 Hermes thread，
+並檢查原生 SQLite 無注入 context。Evaluation 使用明確標示的 deterministic synonym fixture encoder，
+可重現 RRF/graph 的效果與噪音；數值不代表真實 embedding 模型品質或 production latency/cost。
+實際測試紀錄與限制見 `docs/graph-memory-part-3.md`。

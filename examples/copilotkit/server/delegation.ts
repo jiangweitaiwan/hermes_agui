@@ -1,3 +1,4 @@
+import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import type { RunAgentInput } from "@ag-ui/core";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import type { RuntimeSettings } from "./runtime";
@@ -34,7 +35,7 @@ export class DelegationCoordinator {
   private records = new Map<string, RecordEntry>();
   private timeout: number;
   constructor(private bots: Record<string, RuntimeSettings>, private settings: DelegationSettings,
-    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>) {
+    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>, private ingestion?: SessionIngestor) {
     this.timeout = settings.timeoutMs ?? 55_000;
     if (!settings.token || !Number.isFinite(this.timeout) || this.timeout <= 0 || this.timeout > 290_000 ||
       !Number.isInteger(settings.maxRecords ?? 1024) || (settings.maxRecords ?? 1024) < 1 ||
@@ -104,6 +105,7 @@ export class DelegationCoordinator {
     try {
       let input: RunAgentInput = { threadId: ids.threadId, runId: ids.runId, state: {}, tools: [], context: [],
         forwardedProps: {}, messages: [{ id: randomUUID(), role: "user", content: call.task }] };
+      const observer = this.ingestion ? new RunCompletionObserver(call.targetBotId, target, input, this.ingestion) : undefined;
       if (this.prepare) input = await this.prepare(call.targetBotId, input);
       if (this.bots[call.targetBotId] !== target) return { ...ids, status: "denied" };
       const response = await fetch(target.agentUrl, {
@@ -116,8 +118,9 @@ export class DelegationCoordinator {
         await response.body?.cancel();
         return { ...ids, status: [409, 503].includes(response.status) ? "busy" : "failed" };
       }
-      const outcome = await consumeResult(response, ids.threadId, ids.runId);
+      const outcome = await consumeResult(response, ids.threadId, ids.runId, observer);
       completed = outcome.status === "completed";
+      if (completed && !signal.aborted && this.bots[call.targetBotId] === target) observer?.complete();
       return { ...ids, ...outcome };
     } catch { return { ...ids, status: signal.reason === "timeout" ? "timeout" : signal.aborted ? "cancelled" : "failed" }; }
     finally {
@@ -131,7 +134,7 @@ export class DelegationCoordinator {
   }
 }
 
-async function consumeResult(response: Response, thread: string, run: string): Promise<DelegationResult> {
+async function consumeResult(response: Response, thread: string, run: string, observer?: RunCompletionObserver): Promise<DelegationResult> {
   if (!response.body || !response.headers.get("content-type")?.includes("text/event-stream")) return { status: "failed" };
   const reader = response.body.getReader(), decoder = new TextDecoder();
   let buffer = "", text = "", message = "", total = 0;
@@ -150,21 +153,26 @@ async function consumeResult(response: Response, thread: string, run: string): P
           .map(line => line.slice(5).trimStart()).join("\n");
         if (!data) continue;
         const event = JSON.parse(data);
+        observer?.event(event);
         if (event.type === "TEXT_MESSAGE_START" && event.role === "assistant") { message = event.messageId; text = ""; }
         if (event.type === "TEXT_MESSAGE_CONTENT" && event.messageId === message) {
           if (typeof event.delta !== "string") return { status: "failed" };
           text += event.delta;
           if (Buffer.byteLength(text) > 32768) return { status: "result_too_large" };
         }
-        if (event.type === "RUN_ERROR") return { status: "failed" };
-        if (event.type === "RUN_FINISHED") {
-          if (event.threadId !== thread || event.runId !== run) return { status: "failed" };
-          if (event.outcome?.type === "interrupt") return { status: "human_required" };
-          if (event.outcome && event.outcome.type !== "success") return { status: "failed" };
-          return { status: "completed", text };
-        }
+        const terminal = terminalResult(event, thread, run, text);
+        if (terminal) return terminal;
       }
       if (buffer.length > 131072) return { status: "result_too_large" };
     }
   } finally { await reader.cancel().catch(() => undefined); }
+}
+
+function terminalResult(event: any, thread: string, run: string, text: string): DelegationResult | undefined {
+  if (event.type === "RUN_ERROR") return { status: "failed" };
+  if (event.type !== "RUN_FINISHED") return undefined;
+  if (event.threadId !== thread || event.runId !== run) return { status: "failed" };
+  if (event.outcome?.type === "interrupt") return { status: "human_required" };
+  if (event.outcome && event.outcome.type !== "success") return { status: "failed" };
+  return { status: "completed", text };
 }

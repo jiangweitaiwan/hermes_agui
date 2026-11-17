@@ -47,6 +47,9 @@ export class WikiStore {
         path TEXT NOT NULL UNIQUE, hash TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS pages (ns TEXT NOT NULL, page TEXT NOT NULL, revision TEXT NOT NULL REFERENCES revisions(revision),
         PRIMARY KEY(ns,page));
+      CREATE TABLE IF NOT EXISTS embeddings (ns TEXT NOT NULL,page TEXT NOT NULL,ordinal INTEGER NOT NULL,
+        revision TEXT NOT NULL,model TEXT NOT NULL,vector TEXT NOT NULL,PRIMARY KEY(ns,page,ordinal,model));
+      CREATE TABLE IF NOT EXISTS page_owners (ns TEXT NOT NULL, page TEXT NOT NULL, bot TEXT NOT NULL, PRIMARY KEY(ns,page,bot));
       CREATE TABLE IF NOT EXISTS edges (ns TEXT NOT NULL, source TEXT NOT NULL, target TEXT NOT NULL,
         PRIMARY KEY(ns,source,target));
       CREATE VIRTUAL TABLE IF NOT EXISTS sections USING fts5(ns UNINDEXED, page UNINDEXED,
@@ -54,6 +57,13 @@ export class WikiStore {
     if (this.db.prepare("SELECT version FROM schema_version").get()?.version !== 1) {
       this.db.close();
       throw new Error("Unsupported wiki schema");
+    }
+  }
+  backfillOwners() {
+    for (const row of this.db.prepare(`SELECT r.* FROM pages p JOIN revisions r ON p.revision=r.revision
+      WHERE NOT EXISTS (SELECT 1 FROM page_owners o WHERE o.ns=p.ns AND o.page=p.page)`).all()) {
+      const page = this.read(row as unknown as RevisionRow);
+      for (const bot of new Set(page.sources.map(s => s.botId))) this.db.prepare("INSERT OR IGNORE INTO page_owners VALUES (?,?,?)").run(row.ns, row.page, bot);
     }
   }
   transaction<T>(action: () => T): T {
@@ -107,6 +117,9 @@ export class WikiStore {
     });
   }
   private index(ns: string, page: Page) {
+    this.db.prepare("DELETE FROM embeddings WHERE ns=? AND page=?").run(ns, page.id);
+    this.db.prepare("DELETE FROM page_owners WHERE ns=? AND page=?").run(ns, page.id);
+    for (const bot of new Set(page.sources.map(s => s.botId))) this.db.prepare("INSERT INTO page_owners VALUES (?,?,?)").run(ns, page.id, bot);
     this.db.prepare("DELETE FROM sections WHERE ns=? AND page=?").run(ns, page.id);
     this.db.prepare("DELETE FROM edges WHERE ns=? AND source=?").run(ns, page.id);
     page.sections.forEach((content, ordinal) => this.db.prepare("INSERT INTO sections VALUES (?,?,?,?,?)")
@@ -125,10 +138,15 @@ export class WikiStore {
     return this.db.prepare(`SELECT r.* FROM pages p JOIN revisions r ON r.revision=p.revision
       WHERE p.ns=? AND p.page=?`).get(ns, page) as unknown as RevisionRow | undefined;
   }
-  reindex() {
+  reindex(namespace?: Namespace) {
     this.transaction(() => {
-      const rows = this.db.prepare("SELECT r.* FROM pages p JOIN revisions r ON p.revision=r.revision ORDER BY r.ns,r.page").all();
-      this.db.exec("DELETE FROM sections; DELETE FROM edges;");
+      const key = namespace ? namespaceKey(namespace) : undefined;
+      const rows = this.db.prepare(`SELECT r.* FROM pages p JOIN revisions r ON p.revision=r.revision ${key ? "WHERE r.ns=?" : ""} ORDER BY r.ns,r.page`).all(...(key ? [key] : []));
+      if (key) {
+        this.db.prepare("DELETE FROM sections WHERE ns=?").run(key);
+        this.db.prepare("DELETE FROM edges WHERE ns=?").run(key);
+        this.db.prepare("DELETE FROM page_owners WHERE ns=?").run(key);
+      } else this.db.exec("DELETE FROM sections; DELETE FROM edges; DELETE FROM page_owners;");
       for (const row of rows) this.index(String(row.ns), this.read(row as unknown as RevisionRow));
     });
   }

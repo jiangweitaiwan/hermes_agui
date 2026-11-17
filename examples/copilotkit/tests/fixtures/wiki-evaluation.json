@@ -1,0 +1,25 @@
+{
+  "pages": [
+    {"id":"wal","body":"PostgreSQL write ahead logging ensures database durability.","related":["checkpoint"]},
+    {"id":"checkpoint","body":"Restore the latest saved checkpoint before replaying changes.","related":[]},
+    {"id":"redis","body":"Redis cache eviction uses least recently used replacement.","related":[]},
+    {"id":"python","body":"Python asyncio schedules cooperative tasks on an event loop.","related":[]},
+    {"id":"backup","body":"異地備份需要定期演練並驗證資料還原。","related":[]},
+    {"id":"authorization","body":"權限撤銷後必須停止查詢私有知識並取消待處理任務。","related":[]},
+    {"id":"noise","body":"The cafeteria menu changes every afternoon.","related":[]}
+  ],
+  "queries": [
+    {"text":"PostgreSQL logging","relevant":["wal"]},
+    {"text":"persist commits safely","relevant":["wal","checkpoint"]},
+    {"text":"資料庫崩潰後復原","relevant":["wal","checkpoint"]},
+    {"text":"Redis eviction","relevant":["redis"]},
+    {"text":"discard cold cached items","relevant":["redis"]},
+    {"text":"快取淘汰冷門項目","relevant":["redis"]},
+    {"text":"Python asyncio","relevant":["python"]},
+    {"text":"cooperative coroutine scheduling","relevant":["python"]},
+    {"text":"異地備份還原","relevant":["backup"]},
+    {"text":"remote disaster recovery drill","relevant":["backup"]},
+    {"text":"權限撤銷私有知識","relevant":["authorization"]},
+    {"text":"withdraw access to learned notes","relevant":["authorization"]}
+  ]
+}

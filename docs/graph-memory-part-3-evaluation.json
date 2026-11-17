@@ -1,0 +1,41 @@
+{
+  "environment": {
+    "node": "v22.18.0",
+    "corpusPages": 7,
+    "queries": 12,
+    "encoder": "evaluation-synonym-fixture",
+    "note": "in-process deterministic mock; no network, real-model quality or paid API cost claim"
+  },
+  "keyword": {
+    "recallAt3": 0.5,
+    "mrr": 0.5,
+    "noiseFraction": 0.14285714285714285,
+    "p50Ms": 5.182219999999916,
+    "p95Ms": 6.345743999999968
+  },
+  "hybrid": {
+    "recallAt3": 0.9166666666666666,
+    "mrr": 0.9583333333333334,
+    "noiseFraction": 0.07692307692307693,
+    "p50Ms": 9.173778999999968,
+    "p95Ms": 39.26026999999999
+  },
+  "hybridGraph": {
+    "recallAt3": 1,
+    "mrr": 0.9583333333333334,
+    "noiseFraction": 0.125,
+    "p50Ms": 6.248976999999968,
+    "p95Ms": 15.572425000000067
+  },
+  "queue": {
+    "lagMs": 28,
+    "state": "completed"
+  },
+  "compiler": {
+    "elapsedMs": 101.9100699999999,
+    "calls": 3,
+    "inputBytes": 1461,
+    "outputBytes": 403,
+    "billedCost": null
+  }
+}

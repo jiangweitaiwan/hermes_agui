@@ -22,4 +22,5 @@ export const ManifestSchema = z.object({
 export interface WikiOptions {
   enabled?: boolean; dataRoot?: string; timeoutMs?: number;
   maxPages?: number; maxPageBytes?: number;
+  embedding?: unknown; retrieval?: { rrfK?: number; seedLimit?: number; neighbors?: number };
 }

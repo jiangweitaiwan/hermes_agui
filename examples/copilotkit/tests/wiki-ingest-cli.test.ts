@@ -1,3 +1,6 @@
+import { WikiStore } from "../server/graph/wiki-store";
+import { DocumentIngestor } from "../server/graph/ingest-queue";
+import { SessionIngestor } from "../server/graph/session-ingestor";
 import { test, expect } from "vitest";
 import { mkdtempSync, realpathSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -36,9 +39,26 @@ test("trusted CLI ingests, compiles, reports, revokes and rebuilds with mock HTT
     await command("work");
     const completed = await command("status", accepted.jobId); expect(completed.state).toBe("completed");
     expect(seen).toHaveLength(3); expect(seen[0].messages[0].content).toContain("UNTRUSTED DATA");
+    expect(await command("jobs")).toEqual([expect.objectContaining({ id: accepted.jobId, sourceId: completed.sourceId })]);
+    expect(await command("health")).toMatchObject({ pages: 2, indexDrift: 0 });
+    await command("reindex");
     await command("delete", completed.sourceId);
     expect((await command("status", accepted.jobId)).state).toBe("cancelled");
     await command("rebuild"); expect((await command("work")).processedJobId).toBeNull();
+    const ns = { principal: "owner", projectId: "project", botId: "a", visibility: "bot_private" as const };
+    const store = new WikiStore(root), queue = new DocumentIngestor(store);
+    const session = new SessionIngestor(queue).ingest({ namespace: ns, threadId: "t", runId: "r", messageId: "u",
+      user: "Research database PostgreSQL", assistants: [{ id: "a", text: "Research finding: database PostgreSQL provides durable transaction recovery." }] })!;
+    const sourceId = queue.status(ns, session).source; store.close();
+    const shared = await command("share", sourceId);
+    writeFileSync(config, JSON.stringify({ namespace: { ...ns, visibility: "project_shared" },
+      compiler: { baseUrl: `http://127.0.0.1:${address.port}/v1`, model: "mock", keyEnv: "WIKI_CLI_TEST_KEY" } }));
+    await command("work"); expect((await command("status", shared.jobId)).state).toBe("completed");
+    writeFileSync(config, JSON.stringify({ namespace: ns }));
+    await command("revoke", sourceId);
+    writeFileSync(config, JSON.stringify({ namespace: { ...ns, visibility: "project_shared" } }));
+    expect((await command("health")).pages).toBe(0);
+    expect((await command("status", shared.jobId)).state).toBe("cancelled");
     await expect(command("status", "unknown")).rejects.toThrow("Graph ingest command failed");
   } finally {
     await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });

@@ -7,7 +7,7 @@ import { BotError, BotInputSchema, publicBot, type BotInput, type BotTemplate,
 
 export interface BotManagerOptions {
   registry: BotRegistry; host: HostPort; agentUrl: (id: string) => string;
-  templates: BotTemplate[]; maxBotsPerOwner?: number; maxRecords?: number;
+  templates: BotTemplate[]; maxBotsPerOwner?: number; maxRecords?: number; onChange?: () => void;
 }
 /** One Runtime writer serializes lifecycle operations, including upstream acknowledgements. */
 export class BotManager {
@@ -55,6 +55,7 @@ export class BotManager {
       this.bots[id] = { ...structuredClone(bot.runtime), ownerId: bot.record.ownerId };
       this.allow[id] = [...delegationTargets];
     } else { delete this.bots[id]; delete this.allow[id]; }
+    this.options.onChange?.();
   }
   private save(bot: StoredBot): void {
     bot.record.updatedAt = new Date().toISOString();
