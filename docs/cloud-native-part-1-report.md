@@ -403,3 +403,52 @@ node --import tsx server/storage/import-bot-registry.ts \
 | 整體重建與 GCS | NOT RUN。Docker daemon 未連線。Graph PostgreSQL/GCS adapter 與跨實例 job 尚未完成。 |
 
 第一階段整體驗收仍未通過。
+
+## Part 1 收尾候選紀錄
+
+起始及候選基準為 `7d74a8d9ba94559a6997424e98ad747f82a4c226`。候選包含下列未提交變更。開始時工作樹已有未追蹤的 [Part 1 收尾契約](CLOUD_NATIVE_PART_1_REMAINING.md)，原檔保留。依該契約採用原生 SQLite 一致性快照作為正式相容方案。舊資料遷移 scope 待 owner 確認，測試僅使用新建測試庫。
+
+| 變更 | 已交付行為 |
+| --- | --- |
+| `server/graph/objects.ts`、`package.json`、`package-lock.json` | Graph 物件介面、filesystem contract double，以及使用 ADC 的 GCS adapter。物件依 key、generation、SHA-256 和 size 驗證。 |
+| `server/storage/migrations/004_graph_wiki.sql`、`server/graph/postgres-wiki-store.ts`、`server/graph/wiki-store.ts` | Runtime schema 持久化 namespace、Wiki revision/active pointer、owner、edge、section 與 embedding。物件先寫入，SQL 使用同一 client 和 namespace lock，透過 expected revision CAS 發布。 |
+| `server/graph/retrieval-store.ts`、`server/graph/retriever.ts`、`server/graph/embedding.ts` | SQLite 與 PostgreSQL 共用檢索排序與 embedding 演算法。PG 用相同斷詞產生的 token 陣列及 GIN 索引，embedding 索引寫入檢查 active revision。 |
+| `server/graph/cli.ts`、`.env.example` | 可信任管理員可使用既有 manifest 匯入 Wiki Markdown 至 PostgreSQL/GCS。 |
+| `tests/wiki-postgres.test.ts`、`tests/fixtures/wiki-evaluate.ts` | 以真 PG 和獨立 filesystem object root 驗證 revision CAS、交易回滾、scope、重開連線讀取、過期 embedding 拒絕，以及既有繁中 fixture。 |
+
+### 設定與聚焦驗收
+
+先由 Runtime migration owner 對新建的 UTF-8 測試庫依序執行 `examples/copilotkit/server/storage/migrations/001_threads.sql` 至 `004_graph_wiki.sql`。Runtime 的 Graph adapter 使用有界連線池，上限為四。正式執行身分對 Runtime schema 需要 `USAGE`，對六張 Wiki metadata／索引表及 `graph_embeddings` 授予個別操作權限。可授予 `graph_namespaces`、`graph_revisions` 的 `SELECT, INSERT`，另需 `graph_namespaces` 的 `UPDATE` 權限以取得 row lock。 `graph_pages` 需 `SELECT, INSERT, UPDATE`。 `graph_page_owners`、`graph_edges`、`graph_sections` 需 `SELECT, INSERT, DELETE`。 `graph_embeddings` 需 `SELECT, INSERT, UPDATE, DELETE`。Host role 及 Host migrations 不需變更。GCS ADC 身分僅需在指定 bucket/prefix 建立及讀取物件。
+
+從 repository 根目錄執行，`PGURL` 指向獨立測試庫。測後移除測試庫。測試 double 的暫存根目錄由 harness 清理。
+
+```bash
+for migration in examples/copilotkit/server/storage/migrations/*.sql; do
+  psql "$PGURL" -X -v ON_ERROR_STOP=1 -f "$migration" || exit 1
+done
+export HERMES_AGUI_TEST_RUNTIME_DATABASE_URL="$PGURL"
+cd examples/copilotkit
+npm test -- tests/wiki-postgres.test.ts tests/wiki-graph.test.ts tests/wiki-hybrid.test.ts tests/wiki-ingest.test.ts tests/wiki-evolution.test.ts tests/wiki-runtime.test.ts tests/graph-memory.test.ts --reporter=dot
+node --import tsx tests/fixtures/wiki-evaluate.ts
+node --import tsx tests/fixtures/wiki-evaluate.ts --postgres
+npx tsc --noEmit
+```
+
+管理員可從 `examples/copilotkit` 執行 `AGUI_STORAGE_BACKEND=gcp node --import tsx server/graph/cli.ts import MANIFEST`。另由環境注入 `AGUI_RUNTIME_DATABASE_URL`、`AGUI_GCS_BUCKET` 和 ADC。此入口使用 PG Wiki manifest 與 `graph/wiki/` 物件路徑。物件先於 SQL 發布，交易回滾時可能留下未引用物件。現階段應保留物件，後續 GC 須有寬限期並確認所有 revision 引用。
+
+本輪 Graph 聚焦測試以 Node 22.18.0 和 PostgreSQL 18.6 執行，共 7 個測試檔、64 項通過。初次 sandbox 啟動 PostgreSQL 被拒絕建立 shared memory，允許本機執行後以 Unix socket 重跑通過。相同 fixture 的 PG hybrid + graph p95 約 23 ms，SQLite 約 6 ms，僅代表本機測試。
+
+### 驗收矩陣
+
+| Gate | 本候選狀態 |
+| --- | --- |
+| Legacy regression | **NOT RUN**。依工作包順序執行 Graph 聚焦測試，完整 Python、Runtime、瀏覽器及 delegation suites 尚未重跑。 |
+| Storage | **FAIL**。Wiki revision、checksum、回滾、CAS、embedding revision 和基本 scope 有真 PG 證據。來源內容、source/session provenance、撤銷及與 Runtime ACL 的一致性尚未接通。 |
+| Graph | **FAIL**。相同 fixture 在 SQLite 與 PG 的 recall@3 均為 keyword 0.50、hybrid 0.9167、hybrid + graph 1.00。此 fixture 的 MRR 與 noise fraction 也一致。Runtime PG+evolution、browser、context injection、來源撤銷及以權威 registry 重驗授權尚未經 PG 路徑執行。 |
+| Job | **FAIL**。尚缺 DB clock/fence 的 durable job、發布同交易完成、completion 入列後 ACK 與獨立 worker 驗收。 |
+| Provisioning | **FAIL**。尚缺 desired/applied revision、durable operation、ACK lost 及跨服務對帳。 |
+| Restart | **NOT RUN**。Docker daemon 無法連線，雙服務共享重建 scenario 尚未完成。 |
+| Migration | **NOT RUN**。尚無 owner 核准的 fresh 或 preserve-existing 路徑，既有 importer 兼容性尚未重驗。 |
+| Build | **NOT RUN（完整閘門）**。TypeScript 和 `git diff --check` 為本輪聚焦檢查。Vite、Python lint 與 container build/setup 尚未執行。 |
+
+Part 1 整體仍未通過。下一個工程缺口為 A 的來源、provenance、撤銷及讀取授權。完成 A 後才可用同一 SQL client 接續 B 的 job 發布交易。

@@ -43,3 +43,24 @@ GCP、Cloud Run、Vercel 正式部署教學須根據第二階段完成後的實�
 migration、環境變數與 smoke test 編寫。目前的靜態 Host 與 Runtime 設定可查
 [Part 1 實作報告](cloud-native-part-1-report.md)及[既有 AG-UI 部署文件](agui-deployment.md)。
 本輪未建立付費資源或部署服務，沒有部署 URL。
+
+## 依 Part 1 收尾契約重驗
+
+候選為 `7d74a8d9ba94559a6997424e98ad747f82a4c226` 加上本輪尚未提交的工作樹。具體檔案、
+設定、migration 順序及證據見 [Part 1 收尾候選紀錄](cloud-native-part-1-report.md#part-1-收尾候選紀錄)。
+
+**Part 2 前置閘門未通過。** PostgreSQL Wiki revision、物件 manifest、索引及檢索已通過底層聚焦驗證。SQLite 與 PostgreSQL 的同一繁中 fixture 三組召回結果一致。
+
+| Part 2 依賴 | 前置狀態 |
+| --- | --- |
+| Runtime Graph storage 與權威 ACL | **FAIL**。原始來源、撤銷、browser、Runtime context injection 與 PG+evolution 待接通。 |
+| Durable Graph job 與 Host completion | **FAIL**。欠缺真 PG 雙 worker、fenced publication、重送及 outbox ACK 後收斂證據。 |
+| Desired/applied provisioning | **FAIL**。欠缺 operation ID、desired revision、Host applied status 與 ACK loss 對帳。 |
+| 持久化與重建 | **NOT RUN**。Docker daemon 無法連線，尚無雙服務可寫層清除後的共享 E2E。 |
+| 歷史遷移 | **NOT RUN**。owner 尚未核准遷移 scope。 |
+| 完整回歸與 build | **NOT RUN**。本輪停留在 A 的聚焦驗證。 |
+| 真 GCS generation/IAM 與 Part 2 實雲驗證 | **NOT RUN**。本輪以外部 filesystem object contract double 驗證。 |
+
+目前可重用 `PostgresWikiStore.import` 的同 client 發布交易、`GraphObjects` 與
+`wiki-evaluate.ts --postgres`。Runtime durable job worker 和 provisioning reconcile
+尚未達到可供 Part 2 接線的狀態。

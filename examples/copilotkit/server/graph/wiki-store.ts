@@ -20,6 +20,13 @@ export const namespaceKey = (value: Namespace) => {
   return digest(JSON.stringify([ns.principal, ns.projectId, ns.visibility,
     ns.visibility === "bot_private" ? ns.botId : ""]));
 };
+export function wikiLimits(options: WikiOptions) {
+  const maxPages = options.maxPages ?? 1000;
+  const maxPageBytes = options.maxPageBytes ?? 262144;
+  if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 10000 ||
+    !Number.isInteger(maxPageBytes) || maxPageBytes < 1 || maxPageBytes > 1048576) throw new Error("Invalid namespace limits");
+  return { maxPages, maxPageBytes };
+}
 export interface RevisionRow { ns: string; page: string; revision: string; path: string; hash: string }
 
 /** Markdown revisions are immutable; SQLite's committed manifest is the publication boundary. */
@@ -30,10 +37,7 @@ export class WikiStore {
   readonly maxPageBytes: number;
   constructor(root: string, options: WikiOptions = {}) {
     this.root = safePath(root);
-    this.maxPages = options.maxPages ?? 1000;
-    this.maxPageBytes = options.maxPageBytes ?? 262144;
-    if (!Number.isInteger(this.maxPages) || this.maxPages < 1 || this.maxPages > 10000 ||
-      !Number.isInteger(this.maxPageBytes) || this.maxPageBytes < 1 || this.maxPageBytes > 1048576) throw new Error("Invalid namespace limits");
+    ({ maxPages: this.maxPages, maxPageBytes: this.maxPageBytes } = wikiLimits(options));
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
     const filename = safePath(join(this.root, "wiki.sqlite"));
     for (const suffix of ["-wal", "-shm", "-journal"]) safePath(filename + suffix);

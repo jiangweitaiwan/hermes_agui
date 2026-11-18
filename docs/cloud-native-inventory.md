@@ -16,3 +16,16 @@
 Hermes 以 profile ContextVar 綁定設定與 turn 資料，也會快取 agent、SessionDB 和工具註冊。工具可能啟動 subprocess，或留下跨 turn 的工作。每次在乾淨目錄 hydration 時，必須先證明程序與工具已停止寫入，再擷取 profile 與資料庫。工具副作用及 run 中途失敗的語意需獨立處理。
 
 既有測試使用 `scripts/run_tests.sh tests/hermes_agui`、`examples/copilotkit` 下的 `npm test` 與 Playwright。首次 sandbox 執行 Node 基線已遇 loopback `listen EPERM`。允許 loopback 後，既有 Python AG-UI 82 項通過，Vitest 99 項通過。其餘實際結果見 [實作報告](cloud-native-part-1-report.md)。
+
+## 收尾候選增量
+
+基準 `7d74a8d9ba94559a6997424e98ad747f82a4c226`。Runtime migration 004 增加
+`graph_namespaces`、`graph_revisions`、`graph_pages`、`graph_page_owners`、
+`graph_edges`、`graph_sections`、`graph_embeddings`。PG Wiki 以 immutable object
+持有 Markdown，SQL 持有 active pointer、generation、checksum、size 與衍生 token 索引。
+以 UTF-8、C collation 的 page ID 和相同繁中 token 陣列維持排序與召回。PG 頁面介面與本機
+adapter 共用 retriever、encoder 及向量計分。
+
+Runtime 應用仍以 SQLite 處理來源、provenance、撤銷、Graph browser、health、evolution
+和 queue。現行 PG registry 加 evolution 的 fail-fast 閘門仍有效。只有可信管理員 Wiki
+manifest 入口可選用 PG/GCS。舊資料與匯入工具保留，歷史搬遷 scope 待 owner 核准。

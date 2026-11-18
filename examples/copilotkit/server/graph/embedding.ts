@@ -46,18 +46,54 @@ export class OpenAIEncoder implements Encoder {
     return data.map((v: any) => v.embedding);
   }
 }
-export interface VectorSection { ns: string; page: string; ordinal: number; content: string; score: number }
+export interface VectorSection { ns: string; page: string; ordinal: number; content: string; revision: string; score: number }
+export interface EmbeddingSection { ns: string; page: string; ordinal: number; content: string; revision: string }
+export interface EmbeddingStore {
+  unindexedSections(ns: string, model: string): Promise<EmbeddingSection[]>;
+  indexEmbeddings(model: string, sections: EmbeddingSection[], vectors: number[][]): Promise<number>;
+  indexedEmbeddings(ns: string, model: string): Promise<(EmbeddingSection & { vector: string })[]>;
+  clearEmbeddings(ns: string): Promise<void> | void;
+}
+
+class LocalEmbeddingStore implements EmbeddingStore {
+  constructor(readonly store: WikiStore) {}
+  async unindexedSections(ns: string, model: string) {
+    return this.store.db.prepare(`SELECT s.ns,s.page,s.ordinal,s.content,p.revision FROM sections s
+      JOIN pages p ON p.ns=s.ns AND p.page=s.page LEFT JOIN embeddings e ON e.ns=s.ns AND e.page=s.page
+      AND e.ordinal=CAST(s.ordinal AS INTEGER) AND e.model=? AND e.revision=p.revision
+      WHERE s.ns=? AND e.revision IS NULL ORDER BY s.page,CAST(s.ordinal AS INTEGER) LIMIT 32`).all(model, ns) as unknown as EmbeddingSection[];
+  }
+  async indexEmbeddings(model: string, sections: EmbeddingSection[], vectors: number[][]) {
+    return this.store.transaction(() => {
+      let indexed = 0;
+      sections.forEach((row, i) => {
+        if (this.store.active(row.ns, row.page)?.revision !== row.revision) return;
+        this.store.db.prepare("INSERT OR REPLACE INTO embeddings VALUES (?,?,?,?,?,?)")
+          .run(row.ns, row.page, Number(row.ordinal), row.revision, model, JSON.stringify(vectors[i]));
+        indexed++;
+      });
+      return indexed;
+    });
+  }
+  async indexedEmbeddings(ns: string, model: string) {
+    return this.store.db.prepare(`SELECT e.*,s.content FROM embeddings e
+      JOIN pages p ON p.ns=e.ns AND p.page=e.page AND p.revision=e.revision
+      JOIN sections s ON s.ns=e.ns AND s.page=e.page AND CAST(s.ordinal AS INTEGER)=e.ordinal
+      WHERE e.ns=? AND e.model=? ORDER BY e.page,e.ordinal LIMIT 4096`).all(ns, model) as unknown as
+      (EmbeddingSection & { vector: string })[];
+  }
+  clearEmbeddings(ns: string) { this.store.db.prepare("DELETE FROM embeddings WHERE ns=?").run(ns); }
+}
 export class VectorIndex {
   readonly key: string;
   readonly metrics = { indexed: 0, failures: 0, queries: 0 };
-  constructor(readonly store: WikiStore, readonly encoder: Encoder, readonly retries = 1) {
+  readonly storage: EmbeddingStore;
+  constructor(store: WikiStore | EmbeddingStore, readonly encoder: Encoder, readonly retries = 1) {
+    this.storage = store instanceof WikiStore ? new LocalEmbeddingStore(store) : store;
     this.key = JSON.stringify([encoder.model, encoder.dimension, encoder.version]);
   }
   async update(ns: Namespace, signal: AbortSignal) {
-    const rows = this.store.db.prepare(`SELECT s.ns,s.page,s.ordinal,s.content,p.revision FROM sections s
-      JOIN pages p ON p.ns=s.ns AND p.page=s.page LEFT JOIN embeddings e ON e.ns=s.ns AND e.page=s.page
-      AND e.ordinal=CAST(s.ordinal AS INTEGER) AND e.model=? AND e.revision=p.revision
-      WHERE s.ns=? AND e.revision IS NULL ORDER BY s.page,CAST(s.ordinal AS INTEGER) LIMIT 32`).all(this.key, namespaceKey(ns));
+    const rows = await this.storage.unindexedSections(namespaceKey(ns), this.key);
     if (!rows.length) return;
     let vectors: number[][] | undefined;
     for (let attempt = 0; attempt <= this.retries; attempt++) {
@@ -65,32 +101,24 @@ export class VectorIndex {
       catch { signal.throwIfAborted(); this.metrics.failures++; }
     }
     if (!vectors || vectors.length !== rows.length || vectors.some(v => !validVector(v, this.encoder.dimension))) return;
-    this.store.transaction(() => {
-      rows.forEach((r, i) => {
-        // Publication or revocation while awaiting the encoder cannot resurrect an old revision.
-        if (this.store.active(String(r.ns), String(r.page))?.revision !== r.revision) return;
-        this.store.db.prepare("INSERT OR REPLACE INTO embeddings VALUES (?,?,?,?,?,?)")
-          .run(r.ns, r.page, Number(r.ordinal), r.revision, this.key, JSON.stringify(vectors![i]));
-        this.metrics.indexed++;
-      });
-    });
+    this.metrics.indexed += await this.storage.indexEmbeddings(this.key, rows, vectors);
   }
   async search(namespaces: string[], text: string, signal: AbortSignal): Promise<VectorSection[]> {
     this.metrics.queries++;
     try {
       const vectors = await boundedEmbedding(this.encoder, [text], signal);
       if (vectors.length !== 1 || !validVector(vectors[0], this.encoder.dimension)) return [];
-      return namespaces.flatMap(ns => this.store.db.prepare(`SELECT e.*,s.content FROM embeddings e
-        JOIN pages p ON p.ns=e.ns AND p.page=e.page AND p.revision=e.revision
-        JOIN sections s ON s.ns=e.ns AND s.page=e.page AND CAST(s.ordinal AS INTEGER)=e.ordinal
-        WHERE e.ns=? AND e.model=? ORDER BY e.page,e.ordinal LIMIT 4096`).all(ns, this.key).flatMap(r => {
-        const vector = JSON.parse(String(r.vector)); if (!validVector(vector, this.encoder.dimension)) return [];
+      const rows = (await Promise.all(namespaces.map(ns => this.storage.indexedEmbeddings(ns, this.key)))).flat();
+      return rows.flatMap(row => {
+        const vector = JSON.parse(row.vector);
+        if (!validVector(vector, this.encoder.dimension)) return [];
         const score = cosine(vectors[0], vector);
-        return score > 0 ? [{ ns, page: String(r.page), ordinal: Number(r.ordinal), content: String(r.content), score }] : [];
-      })).sort((a, b) => b.score - a.score || a.page.localeCompare(b.page));
+        const { ns, page, ordinal, content, revision } = row;
+        return score > 0 ? [{ ns, page, ordinal: Number(ordinal), content, revision, score }] : [];
+      }).sort((a, b) => b.score - a.score || a.page.localeCompare(b.page));
     } catch { this.metrics.failures++; return []; }
   }
-  rebuild(ns: Namespace) { this.store.db.prepare("DELETE FROM embeddings WHERE ns=?").run(namespaceKey(ns)); }
+  rebuild(ns: Namespace) { return this.storage.clearEmbeddings(namespaceKey(ns)); }
 }
 function cosine(a: number[], b: number[]) {
   let dot = 0, left = 0, right = 0;
