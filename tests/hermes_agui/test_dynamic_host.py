@@ -204,3 +204,77 @@ def test_postgres_managed_host_rebuilds_and_observes_remote_disable(tmp_path, na
             stored, = conn.execute("SELECT spec FROM hermes_agui_host.managed_bots WHERE project=%s",
                                    (project,)).fetchone()
         assert "token" not in stored and "memoryKey" not in stored
+
+
+def test_postgres_management_operations_fence_delayed_writes_and_scope(tmp_path, native_config, monkeypatch):
+    import hashlib
+    import json
+    import os
+    from urllib.parse import urlencode
+    from uuid import uuid4
+
+    import pytest
+
+    from hermes_agui.storage.host_settings import HostStorage
+    from hermes_agui.storage.objects import FilesystemObjects
+    from hermes_agui.storage.profile import ProfileObjects
+
+    socket = os.environ.get("HERMES_AGUI_TEST_DB_SOCKET")
+    if not socket:
+        pytest.skip("Requires disposable PostgreSQL with Host migrations")
+    pool_type = pytest.importorskip("psycopg_pool").ConnectionPool
+    url = "postgresql://hermes@localhost/postgres?" + urlencode({"host": socket})
+    monkeypatch.setenv("AGUI_BOT_CREDENTIAL_SEED", "93" * 32)
+    project = str(uuid4())
+    bot = {key: value for key, value in spec(projectId=project, ownerId="owner").items()
+           if key not in {"token", "memoryKey"}}
+
+    def operation(revision, state="active", **changes):
+        data = {**bot, **changes}
+        fingerprint = hashlib.sha256(json.dumps([state, data], ensure_ascii=False, sort_keys=True,
+                                                separators=(",", ":")).encode()).hexdigest()
+        return {"operationId": str(uuid4()), "desiredRevision": str(revision), "state": state,
+                "specHash": fingerprint, "spec": data}
+
+    with FakeLLMServer([]) as provider:
+        config = settings(tmp_path, native_config, provider)
+        objects = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
+        storage = HostStorage(pool_type(url, min_size=1, max_size=4, open=False), objects, project, None, {})
+        app = create_host([], management=config, storage=storage)
+        path = f"/internal/bots/{bot['id']}/operation"
+        with TestClient(app) as client:
+            def apply(value):
+                return client.put(path, headers=ADMIN, json=value)
+
+            first = operation(1)
+            ack = apply(first)
+            assert ack.status_code == 200, ack.text
+            assert apply(first).json() == ack.json()
+            assert apply(operation(1, name="changed")).status_code == 409
+            disabled = operation(2, "disabled")
+            from hermes_agui.storage.profile import BotScope
+            scope = BotScope(project, bot["principal"], bot["id"])
+            with storage.runs.pool.connection() as conn:
+                revision = conn.execute("SELECT revision FROM hermes_agui_host.managed_bots WHERE project=%s AND bot=%s",
+                                        (project, bot["id"])).fetchone()[0]
+            held = storage.runs.begin(scope, "busy-thread", "busy-run", uuid4(), 90, managed_revision=revision)
+            assert held is not None
+            assert apply(disabled).status_code == 409
+            assert storage.runs.finish(held, "failed", "fixture release")
+            assert apply(disabled).status_code == 200
+            assert apply(operation(1)).status_code == 409
+            assert apply(operation(3, principal="other")).status_code == 409
+            assert apply(operation(3, projectId="other")).status_code == 422
+            query = {"principal": bot["principal"], "projectId": project, "ownerId": bot["ownerId"]}
+            assert client.get(path, headers=ADMIN, params=query).json()["desiredRevision"] == "2"
+            assert client.get(path, headers=ADMIN, params={**query, "ownerId": "other"}).status_code == 404
+            assert client.get(path, params=query).status_code == 401
+            # A retained older ACK is evidence only; redelivery cannot re-enable the Bot.
+            assert apply(first).status_code == 200
+            assert client.get(path, headers=ADMIN, params=query).json()["state"] == "disabled"
+            assert client.put(path.removesuffix("/operation"), headers=ADMIN,
+                              json={**bot, **app.state.management._credentials(bot)}).status_code == 409
+            assert apply(operation(3)).status_code == 200
+            assert apply(operation(4, "deleted")).status_code == 200
+            assert apply(operation(5)).status_code == 409
+            assert client.get(path, headers=ADMIN, params=query).json()["state"] == "deleted"

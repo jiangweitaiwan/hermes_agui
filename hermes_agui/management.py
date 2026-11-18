@@ -1,4 +1,5 @@
 """Protected Host management and durable restoration of managed services."""
+from asyncio import Lock
 from dataclasses import dataclass, field
 from pathlib import Path
 import secrets
@@ -34,6 +35,9 @@ class HostManagement:
         self.db.execute("CREATE TABLE IF NOT EXISTS bots (id TEXT PRIMARY KEY, spec TEXT NOT NULL, status TEXT NOT NULL)")
         self.db.execute("CREATE TABLE IF NOT EXISTS installed (id TEXT PRIMARY KEY, spec TEXT NOT NULL)")
         self.db.commit()
+        from hermes_agui.storage.local_management_operations import initialize
+        initialize(self)
+        self.operation_lock = Lock()
         self.specs = {row[0]: (BotSpec.model_validate_json(row[1]), row[2])
                       for row in self.db.execute("SELECT id, spec, status FROM bots")}
         self.installed = {row[0]: BotSpec.model_validate_json(row[1])
@@ -50,6 +54,8 @@ class HostManagement:
         self.specs[spec.id] = (spec, status)
 
     def restore(self):
+        from hermes_agui.storage.local_management_operations import restore_intents
+        restore_intents(self)
         for spec, status in list(self.specs.values()):
             if status == "active":
                 try:
@@ -58,6 +64,11 @@ class HostManagement:
                     self._save(spec, "failed")
 
     def register(self, spec):
+        from hermes_agui.storage.local_management_operations import require_legacy
+        require_legacy(self, spec.id)
+        self._register(spec)
+
+    def _register(self, spec):
         previous = self.specs.get(spec.id)
         if previous and previous[1] == "deleted":
             raise AdmissionError(409, "Bot was deleted")
@@ -88,6 +99,11 @@ class HostManagement:
             raise
 
     async def deactivate(self, bot_id, *, delete=False):
+        from hermes_agui.storage.local_management_operations import require_legacy
+        require_legacy(self, bot_id)
+        await self._deactivate(bot_id, delete=delete)
+
+    async def _deactivate(self, bot_id, *, delete=False):
         previous = self.specs.get(bot_id)
         if previous is None:
             raise AdmissionError(404, "Unknown managed Bot")
@@ -126,6 +142,36 @@ def mount_management(app, config):
         if status is None:
             raise HTTPException(404, "Unknown managed Bot")
         return {"id": bot_id, "status": status}
+
+    from hermes_agui.storage.managed_operations import ManagementOperation
+
+    @app.put("/internal/bots/{bot_id}/operation")
+    async def apply_operation(bot_id: str, operation: ManagementOperation, manager=Depends(authenticate)):
+        from hermes_agui.storage.managed_bots import DurableHostManagement
+        from hermes_agui.storage.managed_operations import apply
+
+        try:
+            if not isinstance(manager, DurableHostManagement):
+                from hermes_agui.storage.local_management_operations import apply as apply_local
+                return await apply_local(manager, bot_id, operation)
+            return apply(manager, bot_id, operation)
+        except AdmissionError as exc:
+            raise HTTPException(exc.status, exc.detail) from None
+        except (ValueError, KeyError):
+            raise HTTPException(422, "Invalid management operation") from None
+
+    @app.get("/internal/bots/{bot_id}/operation")
+    async def operation_status(bot_id: str, principal: str, projectId: str, ownerId: str, manager=Depends(authenticate)):
+        from hermes_agui.storage.managed_bots import DurableHostManagement
+        from hermes_agui.storage.managed_operations import status
+
+        try:
+            if not isinstance(manager, DurableHostManagement):
+                from hermes_agui.storage.local_management_operations import status as status_local
+                return status_local(manager, bot_id, principal, projectId, ownerId)
+            return status(manager, bot_id, principal, projectId, ownerId)
+        except AdmissionError as exc:
+            raise HTTPException(exc.status, exc.detail) from None
 
     @app.put("/internal/bots/{bot_id}")
     async def register_bot(bot_id: str, spec: BotSpec, manager=Depends(authenticate)):

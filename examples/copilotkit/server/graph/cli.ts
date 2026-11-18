@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { ManifestSchema } from "./types";
+import { ManifestSchema, NamespaceSchema } from "./types";
 import { diagnoseWiki } from "./diagnostics";
 import { WikiStore, safePath } from "./wiki-store";
 
@@ -18,14 +18,21 @@ function readManifest(filename: string | undefined) {
 }
 
 if (backend === "gcp") {
-  if (command !== "import" || !target || localManifest) throw new Error("Usage: tsx server/graph/cli.ts import MANIFEST");
+  if (!["import", "reindex", "diagnose"].includes(command) || (command !== "diagnose" && !target) || localManifest) throw new Error("Usage: tsx server/graph/cli.ts import MANIFEST | reindex NAMESPACE_CONFIG | diagnose");
   const { GcsGraphObjects } = await import("./objects");
   const { PostgresWikiStore } = await import("./postgres-wiki-store");
-  const { namespace, pages } = readManifest(target);
   const store = new PostgresWikiStore(process.env.AGUI_RUNTIME_DATABASE_URL ?? "", new GcsGraphObjects(process.env.AGUI_GCS_BUCKET ?? ""));
   try {
+    await (store.objects as InstanceType<typeof GcsGraphObjects>).ready();
     await store.ready();
-    console.log(JSON.stringify({ revisions: await store.import(namespace, pages) }));
+    if (command === "import") {
+      const { namespace, pages } = readManifest(target);
+      console.log(JSON.stringify({ revisions: await store.import(namespace, pages) }));
+    } else if (command === "reindex") {
+      const config = JSON.parse(readFileSync(safePath(target), "utf8"));
+      await store.reindex(NamespaceSchema.parse(config.namespace));
+      console.log(JSON.stringify({ status: "ok" }));
+    } else console.log(JSON.stringify(await store.diagnostics()));
   } finally { await store.close(); }
 } else if (backend === "local") {
   if (!target || !["import", "reindex", "diagnose", "cleanup"].includes(command)) {

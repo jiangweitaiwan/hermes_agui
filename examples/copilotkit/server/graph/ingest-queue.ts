@@ -1,10 +1,12 @@
+import type { IngestStore, Publication } from "./ingest-store";
+import { parsePage, terms } from "./markdown";
 import { SessionSourceSchema, type Provenance } from "./provenance";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { WikiStore, namespaceKey, digest } from "./wiki-store";
 import { NamespaceSchema, type Namespace } from "./types";
 
-const UploadSchema = z.object({
+export const UploadSchema = z.object({
   sourceId: z.string().uuid().optional(), title: z.string().trim().min(1).max(512).refine(value => Buffer.byteLength(value) <= 512),
   mime: z.enum(["text/plain", "text/markdown"]), content: z.string().min(1),
   idempotencyKey: z.string().min(1).max(200),
@@ -16,7 +18,7 @@ export interface Job {
 export interface RawSource { id: string; ns: string; version: number; hash: string; title: string; content: string; deleted: number; botId?: string; provenance?: Provenance; classification?: string; evidence?: { user: string; confirmed: boolean; assistants: string[] } }
 
 /** Only server-resolved namespaces enter this service. No browser/LLM scope is accepted. */
-export class DocumentIngestor {
+export class DocumentIngestor implements IngestStore {
   constructor(readonly store: WikiStore) {
     store.db.exec(`CREATE TABLE IF NOT EXISTS document_sources (
       id TEXT NOT NULL, ns TEXT NOT NULL, version INTEGER NOT NULL, hash TEXT NOT NULL,
@@ -88,6 +90,36 @@ export class DocumentIngestor {
       return job;
     });
   }
+  current(ns: Namespace, page: string) {
+    const row = this.store.active(namespaceKey(ns), page);
+    return row ? { page: this.store.read(row), revision: row.revision } : undefined;
+  }
+  candidates(ns: Namespace, query: string) {
+    const tokens = terms(query).slice(0, 32);
+    if (!tokens.length) return [];
+    return this.store.db.prepare(`SELECT DISTINCT page FROM sections WHERE ns=? AND sections MATCH ? ORDER BY page LIMIT 8`)
+      .all(namespaceKey(ns), tokens.map(t => `"${t}"`).join(" OR ")).map(row => {
+        const page = this.current(ns, String(row.page))!.page;
+        return { id: page.id, title: page.title, body: page.body.slice(0, 4000) };
+      });
+  }
+  publish(ns: Namespace, job: Job, inputs: Publication[], check: () => void) {
+    const complete = () => {
+      check();
+      for (const input of inputs) for (const source of parsePage(input.markdown).sources) {
+        if (!this.store.sourceValid(namespaceKey(ns), source)) throw new Error("Revoked provenance");
+      }
+      this.complete(job);
+    };
+    if (inputs.length) this.store.import(ns, inputs, complete);
+    else this.store.transaction(complete);
+  }
+  latestSource(ns: Namespace, id: string) {
+    const row = this.store.db.prepare("SELECT * FROM document_sources WHERE ns=? AND id=? AND deleted=0 ORDER BY version DESC LIMIT 1")
+      .get(namespaceKey(ns), id);
+    if (!row) throw new Error("Source unavailable");
+    return this.source({ ns: namespaceKey(ns), source: id, version: Number(row.version) } as Job);
+  }
   status(ns: Namespace, id: string): Job {
     const row = this.store.db.prepare("SELECT * FROM ingest_jobs WHERE ns=? AND id=?").get(namespaceKey(ns), id);
     if (!row) throw new Error("Unknown job in namespace");
@@ -134,8 +166,8 @@ export class DocumentIngestor {
     if (!result.changes) throw new Error("Lost job lease");
   }
   fail(job: Job) {
-    this.store.db.prepare("UPDATE ingest_jobs SET state=?,error='compile_failed',token=NULL,available=? WHERE id=? AND token=? AND state='running'")
-      .run(job.attempt >= 3 ? "failed" : "pending", Date.now() + 1000 * 2 ** job.attempt, job.id, job.token);
+    this.store.db.prepare("UPDATE ingest_jobs SET state=?,error='compile_failed',token=NULL,available=? WHERE id=? AND token=? AND state='running' AND lease>?")
+      .run(job.attempt >= 3 ? "failed" : "pending", Date.now() + 1000 * 2 ** job.attempt, job.id, job.token, Date.now());
   }
   cancelClaim(job: Job) {
     this.store.db.prepare(`UPDATE ingest_jobs SET state='cancelled',token=NULL

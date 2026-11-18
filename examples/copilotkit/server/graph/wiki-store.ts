@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomUUID } from "node:crypto";
-import { chmodSync, lstatSync, openSync, closeSync, fsyncSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { statSync, chmodSync, lstatSync, openSync, closeSync, fsyncSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, parse, resolve } from "node:path";
 import { NamespaceSchema, type Namespace, type Page, type WikiOptions } from "./types";
 import { parsePage, terms } from "./markdown";
@@ -171,6 +171,59 @@ export class WikiStore {
         }
       }
     });
+  }
+  validateRead(namespace: Namespace, revision: string) {
+    return this.transaction(() => {
+      const ns = namespaceKey(namespace);
+      const row = this.db.prepare("SELECT r.* FROM pages p JOIN revisions r ON r.revision=p.revision WHERE p.ns=? AND p.revision=?").get(ns, revision) as unknown as RevisionRow | undefined;
+      return !!row && this.read(row).sources.every(source => this.sourceValid(ns, source));
+    });
+  }
+  hasRevision(ns: string, revision: string) {
+    return !!this.db.prepare("SELECT 1 FROM pages WHERE ns=? AND revision=?").get(ns, revision);
+  }
+  pageBytes(row: RevisionRow) { return statSync(safePath(join(this.root, row.path))).size; }
+  sourceValid(ns: string, source: Page["sources"][number]): boolean {
+    const exists = (table: string) => !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table);
+    if ("kind" in source) return exists("document_sources") && !!this.db.prepare(
+      "SELECT 1 FROM document_sources WHERE ns=? AND id=? AND version=? AND hash=? AND deleted=0")
+      .get(ns, source.sourceId, source.version, source.hash);
+    if (!exists("session_origins")) return true;
+    const origin = this.db.prepare("SELECT source FROM session_origins WHERE ns=? AND provenance=?").get(ns, JSON.stringify(source));
+    return !origin || !!this.db.prepare("SELECT 1 FROM document_sources WHERE ns=? AND id=? AND deleted=0").get(ns, origin.source);
+  }
+  matchesTokens(ns: string, page: string, tokens: string[]) {
+    if (!tokens.length) return false;
+    const match = tokens.map(t => `"${t.replaceAll('"', '""')}"`).join(" OR ");
+    return !!this.db.prepare("SELECT 1 FROM sections WHERE sections MATCH ? AND ns=? AND page=? LIMIT 1").get(match, ns, page);
+  }
+  pageIds(ns: string, prefix: string, after: string, tokens: string[], limit: number) {
+    const match = tokens.map(t => `"${t.replaceAll('"', '""')}"`).join(" OR ");
+    return this.db.prepare(`SELECT page FROM pages WHERE ns=? AND (? || page)>?
+      ${tokens.length ? "AND page IN (SELECT page FROM sections WHERE sections MATCH ? AND ns=?)" : ""}
+      ORDER BY page LIMIT ?`).all(ns, prefix, after, ...(tokens.length ? [match, ns] : []), limit).map(r => String(r.page));
+  }
+  edgeCount(ns: string, pages: string[]) {
+    if (!pages.length) return 0;
+    const placeholders = pages.map(() => "?").join(",");
+    return Number(this.db.prepare(`SELECT count(*) AS n FROM edges WHERE ns=?
+      AND source IN (${placeholders}) AND target IN (${placeholders})`).get(ns, ...pages, ...pages)?.n ?? 0);
+  }
+  linkedPages(ns: string, page: string, incoming: boolean, limit: number) {
+    return this.db.prepare(`SELECT target AS page FROM edges WHERE ns=? AND source=?
+      ${incoming ? "UNION SELECT source AS page FROM edges WHERE ns=? AND target=?" : ""}
+      ORDER BY page LIMIT ?`).all(ns, page, ...(incoming ? [ns, page] : []), limit).map(r => String(r.page));
+  }
+  sectionIndex(ns: string, page: string) {
+    return this.db.prepare("SELECT content,tokens FROM sections WHERE ns=? AND page=? ORDER BY CAST(ordinal AS INTEGER) LIMIT 129")
+      .all(ns, page).map(row => ({ content: String(row.content), tokens: String(row.tokens) }));
+  }
+  browserJobs(ns: string) {
+    return this.db.prepare(`SELECT j.id,j.state,t.created,j.source,j.ns FROM ingest_jobs j
+      LEFT JOIN completion_times t ON t.job=j.id AND t.ns=j.ns WHERE j.ns=? ORDER BY COALESCE(t.created,0) DESC,j.id DESC LIMIT 50`)
+      .all(ns).map(row => ({ id: String(row.id), state: String(row.state), created: row.created == null ? null : Number(row.created),
+        source: String(row.source), ns, owners: this.db.prepare("SELECT bot FROM source_owners WHERE ns=? AND source=?")
+          .all(ns, row.source).map(owner => String(owner.bot)) }));
   }
   close() { this.db.close(); }
 }

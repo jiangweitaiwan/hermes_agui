@@ -1,3 +1,4 @@
+import { matchesAck, type ManagementOperation, type DesiredState } from "./operations";
 import { randomBytes, randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import type { RuntimeSettings } from "../runtime";
@@ -81,10 +82,34 @@ export class BotManager {
     await this.options.registry.put(bot);
     this.publish(bot);
   }
+  private async deliverOperation(operation: ManagementOperation) {
+    const { registry, host } = this.options;
+    if (!host.applyOperation || !registry.acknowledge || !registry.operationFailure) throw new Error("Durable provisioning contract unavailable");
+    await registry.operationAttempt?.(operation);
+    try {
+      const ack = await host.applyOperation(operation);
+      if (!matchesAck(operation, ack)) throw new BotError(422, "Host operation acknowledgement conflicts with desired state");
+      await registry.acknowledge(operation, ack);
+      const current = registry.get(operation.spec.id);
+      if (current) this.publish(current);
+    } catch (error) {
+      await registry.operationFailure(operation, error instanceof BotError && [400, 422].includes(error.status));
+      throw error instanceof BotError ? error : new BotError(503, "Host operation result unknown; reconciliation is available");
+    }
+  }
+  private async desire(bot: StoredBot, state: DesiredState) {
+    bot.record.status = state === "active" ? "provisioning" : "disabled";
+    bot.record.updatedAt = new Date().toISOString();
+    const operation = await this.options.registry.beginOperation!(bot, state);
+    this.publish(bot);
+    await this.deliverOperation(operation);
+    return publicBot(this.options.registry.get(bot.record.id)!);
+  }
   private async provision(bot: StoredBot): Promise<BotRecord> {
     if (!bot.runtime.agentUrl || !bot.runtime.token || (bot.record.harness === "hermes" && !bot.spec)) {
       throw new BotError(503, "Bot deployment references unavailable");
     }
+    if (this.options.registry.beginOperation && bot.spec) return this.desire(bot, "active");
     bot.record.status = "provisioning";
     await this.save(bot);
     try {
@@ -130,11 +155,14 @@ export class BotManager {
       next.record = { ...next.record, ...input, model: template.model, provider: template.provider };
       if (next.spec) next.spec = { ...next.spec, name: input.name, description: input.description, templateId: input.templateId, skills: input.skills, toolsets: input.toolsets };
       else next.runtime = structuredClone(template.remote!);
-      if (previous.record.status === "disabled") { next.record.status = "disabled"; await this.save(next); return publicBot(next); }
+      if (previous.record.status === "disabled") {
+        if (this.options.registry.beginOperation && next.spec) return this.desire(next, "disabled");
+        next.record.status = "disabled"; await this.save(next); return publicBot(next);
+      }
       try { return await this.provision(next); }
       catch (error) {
         // A definite busy response means the Host did not mutate anything.
-        if (error instanceof BotError && error.status === 409) await this.save(previous);
+        if (!this.options.registry.beginOperation && error instanceof BotError && error.status === 409) await this.save(previous);
         throw error;
       }
     });
@@ -156,11 +184,14 @@ export class BotManager {
       const bot = structuredClone(previous);
       bot.record.status = "disabled";
       if (deleted) bot.record.deletedAt = new Date().toISOString();
+      if (this.options.registry.beginOperation && bot.spec) {
+        await this.desire(bot, deleted ? "deleted" : "disabled"); return;
+      }
       await this.save(bot);
       try {
         if (bot.spec) await (deleted ? this.options.host.delete(id) : this.options.host.disable(id));
       } catch (error) {
-        if (error instanceof BotError && error.status === 409) await this.save(previous);
+        if (!this.options.registry.beginOperation && error instanceof BotError && error.status === 409) await this.save(previous);
         throw error;
       }
     });
@@ -171,7 +202,12 @@ export class BotManager {
       await this.reconcile();
     });
   }
+  reconcileNow(): Promise<void> { return this.serial(() => this.reconcile()); }
   private async reconcile(): Promise<void> {
+    if (this.options.registry.operations) {
+      await this.reconcileOperations();
+      return;
+    }
     for (const bot of this.options.registry.all()) {
       if (bot.record.deletedAt || bot.record.status === "disabled") {
         if (bot.spec) {
@@ -190,4 +226,36 @@ export class BotManager {
       } else this.publish(bot);
     }
   }
+  private async reconcileOperations() {
+    const { registry, host } = this.options;
+    if (!registry.operations || !host.operationStatus) throw new Error("Durable reconciliation contract unavailable");
+    const operations = new Map((await registry.operations()).map(operation => [operation.spec.id, operation]));
+    for (const bot of registry.all()) {
+      if (!bot.spec) {
+        if (bot.record.harness === "remote_ag_ui") this.publish(bot);
+        continue;
+      }
+      let operation = operations.get(bot.record.id);
+      if (!operation) {
+        const state = bot.record.deletedAt ? "deleted" : bot.record.status === "disabled" ? "disabled" : "active";
+        bot.record.status = state === "active" ? "provisioning" : "disabled";
+        operation = await registry.beginOperation!(bot, state);
+      }
+      this.publish(bot);
+      try {
+        const applied = await host.operationStatus(operation);
+        if (applied && matchesAck(operation, applied)) await registry.acknowledge!(operation, applied);
+        else if (applied && BigInt(applied.desiredRevision) >= BigInt(operation.desiredRevision)) {
+          await registry.operationFailure!(operation, true);
+          const conflicted = registry.get(bot.record.id); if (conflicted) this.publish(conflicted);
+          continue;
+        } else await this.deliverOperation(operation);
+        const current = registry.get(bot.record.id); if (current) this.publish(current);
+      } catch (error) {
+        if (!(error instanceof BotError)) throw error;
+        await registry.operationFailure!(operation, [400, 422].includes(error.status));
+      }
+    }
+  }
+
 }

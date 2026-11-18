@@ -1,6 +1,6 @@
 """Scripted, recording loopback LLM provider for end-to-end tests.
 
-One real HTTP server on 127.0.0.1 that speaks the OpenAI Chat Completions
+One real HTTP server (loopback by default) that speaks the OpenAI Chat Completions
 wire format (JSON and SSE streaming). Every request body is recorded so a test
 can assert on exactly what Hermes sent (history integrity, prompt-cache prefix
 stability, routing/credential isolation), and every response is scripted so a
@@ -131,6 +131,7 @@ class FakeLLMServer:
         api_key: str | list[str] | tuple[str, ...] | frozenset[str] | None = None,
         record_get: bool = False,
         prompt_tokens_fn: Callable[[dict[str, Any]], int] | None = None,
+        listen_host: str = "127.0.0.1",
     ) -> None:
         self._script: list[Response] = list(script) if isinstance(script, list) else []
         self._responder: Responder | None = script if callable(script) else None
@@ -142,6 +143,7 @@ class FakeLLMServer:
             None if api_key is None else frozenset([api_key] if isinstance(api_key, str) else api_key))
         # Opt-in so existing ``requests`` counts stay main/aux POSTs only.
         self.record_get = record_get
+        self.listen_host = listen_host
         # Optional: derive reported ``usage.prompt_tokens`` from each request body (so token-driven
         # logic such as compaction triggers sees a realistic, growing count instead of a constant).
         self.prompt_tokens_fn = prompt_tokens_fn
@@ -161,7 +163,7 @@ class FakeLLMServer:
         self.stop()
 
     def start(self) -> None:
-        server = ThreadingHTTPServer(("127.0.0.1", 0), _handler_for(self))
+        server = ThreadingHTTPServer((self.listen_host, 0), _handler_for(self))
         server.daemon_threads = True
         self._server = server
         self._thread = threading.Thread(target=server.serve_forever, name="fake-llm", daemon=True)

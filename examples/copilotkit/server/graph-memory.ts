@@ -72,6 +72,7 @@ export function createGraphMemory(options: GraphMemoryOptions) {
       }
       if (!options.provider) return { status: "disabled" };
       const result = await invoke(signal => options.provider!.query(scope, { text: request.text, limit: request.limit }, signal));
+      if (!allowed(scope, "query")) return { status: "rejected", reason: "unauthorized" };
       if (!result || typeof result !== "object") return { status: "unavailable" };
       if (result.status !== "ok") return normalizeFailure(result);
       if (!Array.isArray(result.hits) || result.hits.length > request.limit || result.hits.some(hit =>

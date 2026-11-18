@@ -6,8 +6,6 @@ process.env.DO_NOT_TRACK = "1";
 
 const { createServer } = await import("node:http");
 const { createCopilotNodeHandler } = await import("@copilotkit/runtime/v2/node");
-const { createApplication } = await import("./application");
-const { loadManagement } = await import("./bots/deployment");
 const { Hono } = await import("hono");
 const { serveStatic } = await import("@hono/node-server/serve-static");
 const { getRequestListener } = await import("@hono/node-server");
@@ -17,60 +15,13 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invali
 const registry = process.env.AGUI_BOTS_CONFIG
   ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
   : undefined;
-if (registry && (!Array.isArray(registry.bots) || (!registry.management && registry.bots.length === 0) ||
-  new Set(registry.bots.map((bot: { id: string }) => bot.id)).size !== registry.bots.length)) {
-  throw new Error("Configure unique Bot IDs");
-}
-interface DeploymentBot {
-  id: string;
-  agentUrl: string;
-  tokenEnv: string;
-  threadScope?: { principal: string; projectId: string };
-  memory?: { keyEnv: string; principal: string; projectId: string };
-}
-const settings = registry ? Object.fromEntries(registry.bots.map((bot: DeploymentBot) =>
-  [bot.id, {
-    agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "", threadScope: bot.threadScope,
-    memory: bot.memory ? { key: process.env[bot.memory.keyEnv] ?? "",
-      principal: bot.memory.principal, projectId: bot.memory.projectId } : undefined,
-  }])) : {
-  agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent",
-  token: process.env.AGUI_API_KEY ?? "",
-};
-const { loadWiki } = await import("./graph/provider");
-const wiki = loadWiki(registry?.graph);
-const { loadEvolution } = await import("./graph/evolution");
-const threadBackend = registry?.storage?.threadMappings ?? "local";
-if (threadBackend !== "local" && threadBackend !== "postgres") throw new Error("Invalid Runtime thread mapping backend");
-const threadMappings = threadBackend === "postgres"
-  ? new (await import("./storage/thread-mappings")).PostgresThreadMappings(process.env.AGUI_RUNTIME_DATABASE_URL ?? "")
-  : undefined;
-await threadMappings?.ready(!!registry?.delegation);
-const graphCompletions = registry?.storage?.graphCompletions ?? false;
-if (typeof graphCompletions !== "boolean") throw new Error("Invalid Runtime Graph completion mode");
-const botRegistry = registry?.storage?.botRegistry ?? "local";
-if (botRegistry !== "local" && botRegistry !== "postgres") throw new Error("Invalid Runtime Bot registry backend");
-const managementSettings = loadManagement(registry?.management);
-if (botRegistry === "postgres") {
-  if (!managementSettings) throw new Error("PostgreSQL Bot registry requires Bot management");
-  managementSettings.postgres = { url: process.env.AGUI_RUNTIME_DATABASE_URL ?? "",
-    credentialSeed: process.env.AGUI_BOT_CREDENTIAL_SEED ?? "" };
-}
-const application = createApplication(registry ? settings : { hermes: settings }, {
-  threadMappings,
-  graphCompletionToken: graphCompletions ? process.env.AGUI_GRAPH_COMPLETION_TOKEN ?? "" : undefined,
-  graph: registry?.graph?.enabled ? { provider: wiki, timeoutMs: registry.graph.timeoutMs, authorize: () => true } : undefined,
-  evolution: loadEvolution(wiki, registry?.graph?.evolution),
-  management: managementSettings,
-  delegation: registry?.delegation ? { ...registry.delegation,
-    token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
-});
-await application.ready;
+const { bootstrap } = await import("./bootstrap");
+const { application, wiki, threadMappings, settings } = await bootstrap(registry);
 // Local operational counters only; no prompts, identifiers, source text or credentials.
-const metricsTimer = application.evolution ? setInterval(() => {
+const metricsTimer = application.evolution ? setInterval(async () => {
   const evolution = application.evolution!;
   console.log(JSON.stringify({ graphMemory: { query: evolution.options.provider.metrics,
-    worker: evolution.metrics, jobs: evolution.queue.metrics(), sessions: evolution.sessions.metrics,
+    worker: evolution.metrics, jobs: await evolution.queue.metrics(), sessions: evolution.sessions.metrics,
     compiler: "metrics" in evolution.options.compiler ? evolution.options.compiler.metrics : undefined,
     embeddings: evolution.options.provider.retrieval?.vectors?.metrics } }));
 }, 60000) : undefined;
@@ -131,7 +82,7 @@ const server = createServer((req, res) => {
     return;
   }
   if (path === "/api/bots") {
-    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(Object.keys(registry ? settings : { hermes: settings })));
+    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(Object.keys(settings)));
     return;
   }
   if (path === "/api/copilotkit" || path.startsWith("/api/copilotkit/")) {
@@ -151,7 +102,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     clearInterval(metricsTimer);
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); wiki?.close(); await vite?.close(); }).then(() => process.exit(0)); });
+    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); await wiki?.close(); await vite?.close(); }).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

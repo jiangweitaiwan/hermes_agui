@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import type { IngestStore } from "./ingest-store";
 import type { SessionIngestor } from "./session-ingestor";
 import { NamespaceSchema } from "./types";
 
@@ -11,7 +12,7 @@ const completion = z.object({
   assistants: z.tuple([z.object({ id: z.literal("final"), text: bounded(65536) }).strict()]),
 }).strict();
 
-export function createCompletionApi(ingestor: SessionIngestor, token: string) {
+export function createCompletionApi(ingestor: SessionIngestor<IngestStore>, token: string) {
   if (!/^[\x21-\x7e]{32,}$/.test(token)) throw new Error("Invalid Graph completion token");
   const expected = Buffer.from(`Bearer ${token}`);
   return async (request: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ export function createCompletionApi(ingestor: SessionIngestor, token: string) {
     if (!value.success) return new Response(null, { status: 400 });
     if (!ingestor.authorized(value.data.namespace)) return new Response(null, { status: 403 });
     // Let store failures escape so the Host leaves the event eligible for redelivery.
-    ingestor.enqueue(value.data);
+    await ingestor.enqueue(value.data);
     return new Response(null, { status: 204 });
   };
 }

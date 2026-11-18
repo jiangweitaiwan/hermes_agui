@@ -1,5 +1,6 @@
-import { createHmac } from "node:crypto";
+import { randomUUID, createHmac } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
+import { matchesAck, operationHash, type ManagementAck, type ManagementOperation, type DesiredState } from "../bots/operations";
 import type { Registry } from "../bots/registry";
 import type { BotRecord, BotTemplate, Identity, StoredBot } from "../bots/types";
 
@@ -57,6 +58,77 @@ export class PostgresBotRegistry implements Registry {
         AND b.record->>'projectId'=excluded.record->>'projectId'`, [bot.record.id, principal, bot.record]);
     if (result.rowCount !== 1) throw new Error("Bot scope cannot change");
     this.records.set(bot.record.id, this.materialize(bot.record, principal));
+  }
+
+  async beginOperation(bot: StoredBot, state: DesiredState): Promise<ManagementOperation> {
+    if (!this.writer || !bot.spec) throw new Error("Operation requires a lifecycle lock and native spec");
+    const { token: _token, memoryKey: _memoryKey, ...spec } = bot.spec;
+    const operation = { operationId: randomUUID(), desiredRevision: "", state, specHash: operationHash(state, spec), spec };
+    await this.writer.query("BEGIN");
+    try {
+      await this.put(bot);
+      const { rows: prior } = await this.writer.query<ManagementOperation>(`SELECT o.operation_id AS "operationId",
+        o.desired_revision::text AS "desiredRevision",o.desired_state AS state,o.spec_hash AS "specHash",o.spec
+        FROM hermes_agui_runtime.bot_operations o JOIN hermes_agui_runtime.bot_registry b
+          ON b.id=o.bot AND b.desired_revision=o.desired_revision WHERE b.id=$1`, [spec.id]);
+      if (prior[0]?.state === state && prior[0].specHash === operation.specHash) {
+        await this.writer.query("COMMIT"); return prior[0];
+      }
+      const { rows } = await this.writer.query<{ desired_revision: string }>(
+        "UPDATE hermes_agui_runtime.bot_registry SET desired_revision=desired_revision+1 WHERE id=$1 RETURNING desired_revision", [spec.id]);
+      operation.desiredRevision = rows[0].desired_revision;
+      await this.writer.query(`INSERT INTO hermes_agui_runtime.bot_operations
+        (operation_id,bot,principal,project,owner_id,desired_revision,desired_state,spec_hash,spec,status)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')`,
+      [operation.operationId, spec.id, spec.principal, spec.projectId, spec.ownerId, operation.desiredRevision, state, operation.specHash, spec]);
+      await this.writer.query("COMMIT");
+      return operation;
+    } catch (error) { await this.writer.query("ROLLBACK"); await this.refresh(); throw error; }
+  }
+  async provisioningStatus() {
+    const { rows } = await (this.writer ?? this.pool).query<{ id: string; desiredRevision: string; status: string; attempt: number; error: string | null }>(`
+      SELECT o.bot AS id,o.desired_revision::text AS "desiredRevision",o.status,o.attempt,o.error
+      FROM hermes_agui_runtime.bot_operations o JOIN hermes_agui_runtime.bot_registry b
+        ON b.id=o.bot AND b.desired_revision=o.desired_revision ORDER BY o.bot`);
+    return rows;
+  }
+  async operations() {
+    const { rows } = await (this.writer ?? this.pool).query<ManagementOperation>(`SELECT o.operation_id AS "operationId",
+      o.desired_revision::text AS "desiredRevision",o.desired_state AS state,o.spec_hash AS "specHash",o.spec
+      FROM hermes_agui_runtime.bot_operations o JOIN hermes_agui_runtime.bot_registry b
+        ON b.id=o.bot AND b.desired_revision=o.desired_revision ORDER BY o.bot`);
+    return rows;
+  }
+  async acknowledge(operation: ManagementOperation, ack: ManagementAck) {
+    if (!this.writer || !matchesAck(operation, ack)) throw new Error("Host acknowledgement does not match desired operation");
+    await this.writer.query("BEGIN");
+    try {
+      await this.writer.query(`UPDATE hermes_agui_runtime.bot_operations SET status='applied',error=NULL,updated_at=clock_timestamp()
+        WHERE operation_id=$1 AND bot=$2 AND desired_revision=$3 AND spec_hash=$4`,
+      [operation.operationId, operation.spec.id, operation.desiredRevision, operation.specHash]);
+      await this.writer.query(`UPDATE hermes_agui_runtime.bot_registry SET record=jsonb_set(record,'{status}',to_jsonb($3::text))
+        WHERE id=$1 AND desired_revision=$2`, [operation.spec.id, operation.desiredRevision, operation.state === "active" ? "active" : "disabled"]);
+      await this.writer.query("COMMIT");
+      await this.refresh();
+    } catch (error) { await this.writer.query("ROLLBACK"); throw error; }
+  }
+  async operationAttempt(operation: ManagementOperation) {
+    await (this.writer ?? this.pool).query(`UPDATE hermes_agui_runtime.bot_operations SET attempt=attempt+1,updated_at=clock_timestamp()
+      WHERE operation_id=$1`, [operation.operationId]);
+  }
+  async operationFailure(operation: ManagementOperation, conflict: boolean) {
+    const client = this.writer ?? await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(`UPDATE hermes_agui_runtime.bot_operations SET status=$2,
+      error=$3,updated_at=clock_timestamp() WHERE operation_id=$1 AND (status<>'applied' OR $2='conflict')`,
+    [operation.operationId, conflict ? "conflict" : "unknown", conflict ? "operation_conflict" : "result_unknown"]);
+      if (conflict) await client.query(`UPDATE hermes_agui_runtime.bot_registry SET record=jsonb_set(record,'{status}','"failed"')
+        WHERE id=$1 AND desired_revision=$2 AND record->>'status'<>'disabled'`, [operation.spec.id, operation.desiredRevision]);
+      await client.query("COMMIT");
+      await this.refresh();
+    } catch (error) { await client.query("ROLLBACK"); throw error; }
+    finally { if (!this.writer) client.release(); }
   }
 
   async write<T>(work: () => Promise<T>): Promise<T> {

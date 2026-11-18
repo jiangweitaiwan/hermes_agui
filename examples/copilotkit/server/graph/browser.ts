@@ -1,8 +1,7 @@
-import { statSync } from "node:fs";
-import { join } from "node:path";
 import type { Visibility } from "../graph-memory";
 import type { Namespace, Page } from "./types";
-import { namespaceKey, safePath, type WikiStore } from "./wiki-store";
+import { namespaceKey } from "./wiki-store";
+import type { BrowserStore, BrowserRevision } from "./browser-store";
 import { terms } from "./markdown";
 import type { BrowserQuery } from "./browser-query";
 import { pagination } from "./browser-query";
@@ -11,56 +10,50 @@ import type { PageSummary, PageDetail, NetworkResult, StatsResult, HealthResult,
 
 interface VisiblePage { ns: Namespace; key: string; revision: string; page: Page; summary: PageSummary }
 const MAX_SCAN = 300, MAX_BYTES = 8 * 1024 * 1024;
-/** All methods run synchronously inside the caller's SQLite snapshot. No model/encoder calls. */
-export class GraphBrowser {
+/** Bounded immutable reads; revalidate pointers, provenance and ACL after every asynchronous assembly. */
+export class GraphBrowser<R extends BrowserRevision> {
   private bytes = 0;
   private parsed = 0;
   private jobsPartial = false;
   private cache = new Map<string, VisiblePage | undefined>();
   private owners = new Map<string, { ns: Namespace; bot: string }>();
   readonly namespaces: Namespace[];
-  readonly hasSources: boolean;
-  readonly hasOrigins: boolean;
-  constructor(readonly store: WikiStore, namespace: Omit<Namespace, "visibility">, readonly query: BrowserQuery,
+  constructor(readonly store: BrowserStore<R>, namespace: Omit<Namespace, "visibility">, readonly query: BrowserQuery,
     readonly retained: (ns: Namespace, bot: string) => boolean) {
     this.namespaces = (["bot_private", "project_shared"] as Visibility[])
       .filter(v => query.scope === "all" || query.scope === v).map(visibility => ({ ...namespace, visibility }));
-    this.hasSources = !!store.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='document_sources'").get();
-    this.hasOrigins = !!store.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='session_origins'").get();
   }
   private ownerAllowed(ns: Namespace, bot: string) {
     if (!this.retained(ns, bot)) return false;
     this.owners.set(`${namespaceKey(ns)}:${bot}`, { ns, bot });
     return true;
   }
-  revalidate() {
+  async revalidate() {
     for (const { ns, bot } of this.owners.values()) {
       if (!this.retained(ns, bot)) throw new BotError(404, "Memory access changed");
     }
+    for (const row of this.cache.values()) {
+      if (!row) continue;
+      if (!await this.store.validateRead(row.ns, row.revision)) throw new BotError(503, "Memory revision or authorization changed");
+    }
   }
-  private sourceAllowed(ns: Namespace, source: Page["sources"][number]) {
-    if ((ns.visibility === "bot_private" && source.botId !== ns.botId) || !this.ownerAllowed(ns, source.botId)) return false;
-    const key = namespaceKey(ns);
-    if ("kind" in source) return this.hasSources && !!this.store.db.prepare(`SELECT 1 FROM document_sources
-      WHERE ns=? AND id=? AND version=? AND hash=? AND deleted=0`).get(key, source.sourceId, source.version, source.hash);
-    if (!this.hasOrigins) return true; // Legacy session provenance is administrator-attested, as in WikiStore imports.
-    const origin = this.store.db.prepare("SELECT source FROM session_origins WHERE ns=? AND provenance=?").get(key, JSON.stringify(source));
-    return !origin || (this.hasSources && !!this.store.db.prepare("SELECT 1 FROM document_sources WHERE ns=? AND id=? AND deleted=0")
-      .get(key, origin.source));
+  private async sourceAllowed(ns: Namespace, source: Page["sources"][number]) {
+    return (ns.visibility !== "bot_private" || source.botId === ns.botId) && this.ownerAllowed(ns, source.botId) &&
+      await this.store.sourceValid(namespaceKey(ns), source);
   }
-  private read(ns: Namespace, id: string): VisiblePage | undefined {
+  private async read(ns: Namespace, id: string): Promise<VisiblePage | undefined> {
     const cacheKey = `${ns.visibility}:${id}`;
     if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
-    const key = namespaceKey(ns), revision = this.store.active(key, id);
+    const key = namespaceKey(ns), revision = await this.store.active(key, id);
     if (!revision) return;
     // Test the immutable artifact size before parsing, including deployments with larger page limits.
     if (!/^[a-f0-9-]{36}$/.test(revision.revision)) throw new BotError(503, "Invalid active revision");
-    const size = statSync(safePath(join(this.store.root, key, `${revision.revision}.md`))).size;
+    const size = await this.store.pageBytes(revision);
     if (this.parsed >= MAX_SCAN * 2 + 50 || this.bytes + size > MAX_BYTES) throw new BotError(503, "Browser work budget exceeded");
-    const page = this.store.read(revision);
+    const page = await this.store.read(revision);
     this.bytes += Buffer.byteLength(JSON.stringify(page)); this.parsed++;
     if (this.bytes > MAX_BYTES) throw new BotError(503, "Browser work budget exceeded");
-    if (!page.sources.every(source => this.sourceAllowed(ns, source))) { this.cache.set(cacheKey, undefined); return; }
+    if (!(await Promise.all(page.sources.map(source => this.sourceAllowed(ns, source)))).every(Boolean)) { this.cache.set(cacheKey, undefined); return; }
     const result: VisiblePage = { ns, key, revision: revision.revision, page, summary: {
       id: `${ns.visibility}:${page.id}`, pageId: page.id, title: page.title, type: page.type,
       visibility: ns.visibility, verification: page.verification ?? "unverified",
@@ -68,36 +61,32 @@ export class GraphBrowser {
     this.cache.set(cacheKey, result);
     return result;
   }
-  private matches(row: VisiblePage) {
+  private async matches(row: VisiblePage) {
     const q = this.query;
     if (q.q) {
-      const match = terms(q.q).map(t => `"${t.replaceAll('"', '""')}"`).join(" OR ");
-      if (!match || !this.store.db.prepare("SELECT 1 FROM sections WHERE sections MATCH ? AND ns=? AND page=? LIMIT 1")
-        .get(match, row.key, row.page.id)) return false;
+      const tokens = terms(q.q);
+      if (!tokens.length || !await this.store.matchesTokens(row.key, row.page.id, tokens)) return false;
     }
     return (!q.type || row.page.type === q.type) && (!q.verification || row.summary.verification === q.verification);
   }
-  private candidates(after: string) {
-    const q = this.query, tokens = q.q ? terms(q.q) : [];
-    if (q.q && !tokens.length) return [];
-    const match = tokens.map(t => `"${t.replaceAll('"', '""')}"`).join(" OR ");
-    return this.namespaces.flatMap(ns => {
-      const key = namespaceKey(ns), prefix = `${ns.visibility}:`;
-      const sql = `SELECT p.page FROM pages p WHERE p.ns=? AND (? || p.page)>?
-        ${q.q ? "AND p.page IN (SELECT page FROM sections WHERE sections MATCH ? AND ns=?)" : ""}
-        ORDER BY p.page LIMIT ?`;
-      return this.store.db.prepare(sql).all(key, prefix, after, ...(q.q ? [match, key] : []), MAX_SCAN + 1)
-        .map(r => ({ ns, id: String(r.page), sort: prefix + r.page }));
-    }).sort((a, b) => Buffer.compare(Buffer.from(a.sort), Buffer.from(b.sort))).slice(0, MAX_SCAN + 1);
+  private async candidates(after: string) {
+    const tokens = this.query.q ? terms(this.query.q) : [];
+    if (this.query.q && !tokens.length) return [];
+    const rows = await Promise.all(this.namespaces.map(async ns => {
+      const prefix = `${ns.visibility}:`;
+      return (await this.store.pageIds(namespaceKey(ns), prefix, after, tokens, MAX_SCAN + 1))
+        .map(id => ({ ns, id, sort: prefix + id }));
+    }));
+    return rows.flat().sort((a, b) => Buffer.compare(Buffer.from(a.sort), Buffer.from(b.sort))).slice(0, MAX_SCAN + 1);
   }
-  list(binding: string, search = false) {
-    const cursor = pagination(this.query, binding), candidates = this.candidates(cursor.after);
+  async list(binding: string, search = false) {
+    const cursor = pagination(this.query, binding), candidates = await this.candidates(cursor.after);
     const pages: (PageSummary & { snippet?: string })[] = [];
     let last = cursor.after, processed = 0;
     for (const candidate of candidates.slice(0, MAX_SCAN)) {
-      const row = this.read(candidate.ns, candidate.id);
+      const row = await this.read(candidate.ns, candidate.id);
       last = candidate.sort; processed++;
-      if (!row || !this.matches(row)) continue;
+      if (!row || !await this.matches(row)) continue;
       const snippet = search ? this.snippet(row.page) : undefined;
       pages.push({ ...row.summary, ...(snippet === undefined ? {} : { snippet }) });
       if (pages.length >= this.query.limit) break;
@@ -110,79 +99,70 @@ export class GraphBrowser {
     const text = page.sections.find(s => terms(s).some(t => tokens.includes(t))) ?? page.body;
     return [...text].slice(0, 320).join("");
   }
-  detail(visibility: Visibility, id: string): PageDetail {
+  async detail(visibility: Visibility, id: string): Promise<PageDetail> {
     const ns = this.namespaces.find(n => n.visibility === visibility);
-    const row = ns && this.read(ns, id);
+    const row = ns && await this.read(ns, id);
     if (!row) throw new BotError(404, "Unknown page");
-    const related = row.page.links.map(target => this.read(ns!, target)).filter((r): r is VisiblePage => !!r).map(r => r.summary);
+    const related = (await Promise.all(row.page.links.map(target => this.read(ns!, target)))).filter((r): r is VisiblePage => !!r).map(r => r.summary);
     return { ...row.summary, revisionId: row.revision, tags: row.page.tags, body: row.page.body,
       related, provenance: row.page.sources };
   }
-  private corpus() {
-    const candidates = this.candidates("");
-    const rows = candidates.slice(0, MAX_SCAN).map(c => this.read(c.ns, c.id)).filter((r): r is VisiblePage => !!r);
+  private async readCandidates(candidates: { ns: Namespace; id: string }[]) {
+    const rows = [];
+    for (const c of candidates) rows.push(await this.read(c.ns, c.id));
+    return rows;
+  }
+  private async corpus() {
+    const candidates = await this.candidates("");
+    const rows = (await this.readCandidates(candidates.slice(0, MAX_SCAN))).filter((r): r is VisiblePage => !!r);
     return { rows, partial: candidates.length > MAX_SCAN };
   }
-  private edges(rows: VisiblePage[]) {
+  private async edges(rows: VisiblePage[]) {
     const ids = new Set(rows.map(r => r.summary.id));
     const edges: { source: string; target: string }[] = [];
     for (const row of rows) {
-      const localIds = rows.filter(r => r.key === row.key).map(r => r.page.id);
-      const targets = this.store.db.prepare(`SELECT target FROM edges WHERE ns=? AND source=?
-        AND target IN (${localIds.map(() => "?").join(",")}) ORDER BY target LIMIT 1501`)
-        .all(row.key, row.page.id, ...localIds);
-      for (const target of targets) {
-        const edge = { source: row.summary.id, target: `${row.ns.visibility}:${target.target}` };
+      for (const target of await this.store.linkedPages(row.key, row.page.id, false, 1501)) {
+        const edge = { source: row.summary.id, target: `${row.ns.visibility}:${target}` };
         if (ids.has(edge.target)) edges.push(edge);
         if (edges.length > 1500) return edges;
       }
     }
     return edges;
   }
-  private edgeCount(rows: VisiblePage[]) {
-    return this.namespaces.reduce((count, ns) => {
-      const ids = rows.filter(r => r.ns.visibility === ns.visibility).map(r => r.page.id);
-      if (!ids.length) return count;
-      const placeholders = ids.map(() => "?").join(",");
-      return count + Number(this.store.db.prepare(`SELECT count(*) AS n FROM edges WHERE ns=?
-        AND source IN (${placeholders}) AND target IN (${placeholders})`).get(namespaceKey(ns), ...ids, ...ids)?.n ?? 0);
-    }, 0);
-  }
-
-  stats(): StatsResult {
-    const { rows, partial } = this.corpus();
-    return { pages: rows.length, edges: this.edgeCount(rows),
+  async stats(): Promise<StatsResult> {
+    const { rows, partial } = await this.corpus();
+    return { pages: rows.length, edges: (await Promise.all(this.namespaces.map(ns => this.store.edgeCount(namespaceKey(ns),
+      rows.filter(row => row.ns.visibility === ns.visibility).map(row => row.page.id))))).reduce((a, b) => a + b, 0),
       private: rows.filter(r => r.ns.visibility === "bot_private").length,
       shared: rows.filter(r => r.ns.visibility === "project_shared").length, partial };
   }
-  network(binding: string): NetworkResult {
+  async network(binding: string): Promise<NetworkResult> {
     const cursor = pagination(this.query, binding);
-    const focused = this.query.pageId ? this.focus() : undefined;
+    const focused = this.query.pageId ? await this.focus() : undefined;
     const candidates = focused ? focused.filter(c => Buffer.compare(Buffer.from(c.sort), Buffer.from(cursor.after)) > 0)
-      : this.candidates(cursor.after);
+      : await this.candidates(cursor.after);
     const rows: VisiblePage[] = [];
     let last = cursor.after, processed = 0;
     for (const c of candidates.slice(0, MAX_SCAN)) {
-      const row = this.read(c.ns, c.id); processed++; last = c.sort;
-      if (row && this.matches(row)) rows.push(row);
+      const row = await this.read(c.ns, c.id); processed++; last = c.sort;
+      if (row && await this.matches(row)) rows.push(row);
       if (rows.length === this.query.limit) break;
     }
-    const edges = this.edges(rows), more = processed < candidates.length;
+    const edges = await this.edges(rows), more = processed < candidates.length;
     return { nodes: rows.map(r => r.summary), edges: edges.slice(0, 1500),
       nextCursor: more ? cursor.encode(last) : null, truncated: more || (!!focused && focused.length > MAX_SCAN) || edges.length > 1500 };
   }
-  private focus() {
+  private async focus() {
     const ns = this.namespaces.find(n => n.visibility === this.query.visibility)!;
     const key = namespaceKey(ns), ids = new Set([this.query.pageId!]);
     let frontier = [...ids];
     for (let depth = 0; depth < this.query.depth; depth++) {
       const next: string[] = [];
       for (const id of frontier) {
-        if (!this.read(ns, id)) continue;
-        const edges = this.store.db.prepare(`SELECT target AS page FROM edges WHERE ns=? AND source=?
-          UNION SELECT source AS page FROM edges WHERE ns=? AND target=? ORDER BY page LIMIT 301`).all(key, id, key, id);
-        for (const edge of edges) {
-          if (!ids.has(String(edge.page))) { ids.add(String(edge.page)); next.push(String(edge.page)); }
+        if (!await this.read(ns, id)) continue;
+        const edges = await this.store.linkedPages(key, id, true, MAX_SCAN + 1);
+        for (const page of edges) {
+          if (!ids.has(page)) { ids.add(page); next.push(page); }
           if (ids.size >= MAX_SCAN + 1) break;
         }
         if (ids.size >= MAX_SCAN + 1) break;
@@ -192,36 +172,30 @@ export class GraphBrowser {
     }
     return [...ids].map(id => ({ ns, id, sort: `${ns.visibility}:${id}` })).sort((a, b) => Buffer.compare(Buffer.from(a.sort), Buffer.from(b.sort)));
   }
-  private indexDrift(row: VisiblePage) {
-    const sections = this.store.db.prepare("SELECT content,tokens FROM sections WHERE ns=? AND page=? ORDER BY CAST(ordinal AS INTEGER) LIMIT 129")
-      .all(row.key, row.page.id);
+  private async indexDrift(row: VisiblePage) {
+    const sections = await this.store.sectionIndex(row.key, row.page.id);
     return sections.length !== row.page.sections.length || sections.some((s, i) => s.content !== row.page.sections[i] ||
       s.tokens !== terms(`${row.page.title} ${row.page.tags.join(" ")} ${row.page.sections[i]}`).join(" "));
   }
-  health(): HealthResult {
-    const corpus = this.corpus(), rows = corpus.rows, edges = this.edges(rows);
-    const jobs = this.jobs().jobs;
+  async health(): Promise<HealthResult> {
+    const corpus = await this.corpus(), rows = corpus.rows, edges = await this.edges(rows);
+    const jobs = (await this.jobs()).jobs;
     const partial = corpus.partial || edges.length > 1500 || this.jobsPartial;
     const ids = new Set(rows.map(r => r.summary.id));
     return { status: "ok", pages: rows.length, partial,
       brokenLinks: partial ? null : rows.reduce((n, r) => n + r.page.links.filter(t => !ids.has(`${r.ns.visibility}:${t}`)).length, 0),
       isolated: partial ? null : rows.filter(r => !edges.some(e => e.source === r.summary.id || e.target === r.summary.id)).length,
-      conflicts: rows.filter(r => r.page.verification === "disputed").length, staleProvenance: 0, indexDrift: rows.filter(r => this.indexDrift(r)).length,
+      conflicts: rows.filter(r => r.page.verification === "disputed").length, staleProvenance: 0, indexDrift: (await Promise.all(rows.map(r => this.indexDrift(r)))).filter(Boolean).length,
       pending: jobs.filter(j => j.state === "pending").length, failed: jobs.filter(j => j.state === "failed").length,
       lagMs: Math.max(0, ...jobs.filter(j => ["pending", "running"].includes(j.state) && j.createdAt != null)
         .map(j => Date.now() - j.createdAt!)) };
   }
-  jobs(): JobsResult {
-    const rows = this.namespaces.flatMap(ns => {
-      const candidates = this.store.db.prepare(`SELECT j.id,j.state,t.created,j.source,j.ns FROM ingest_jobs j
-      LEFT JOIN completion_times t ON t.job=j.id AND t.ns=j.ns WHERE j.ns=? ORDER BY COALESCE(t.created,0) DESC,j.id DESC LIMIT 50`)
-      .all(namespaceKey(ns));
+  async jobs(): Promise<JobsResult> {
+    const rows = (await Promise.all(this.namespaces.map(async ns => {
+      const candidates = await this.store.browserJobs(namespaceKey(ns));
       if (candidates.length === 50) this.jobsPartial = true;
-      return candidates.filter(job => {
-        const owners = this.store.db.prepare("SELECT bot FROM source_owners WHERE ns=? AND source=?").all(job.ns, job.source);
-        return owners.length > 0 && owners.every(owner => this.ownerAllowed(ns, String(owner.bot)));
-      });
-    });
+      return candidates.filter(job => job.owners.length > 0 && job.owners.every(bot => this.ownerAllowed(ns, bot)));
+    }))).flat();
     const states = new Set(["pending", "running", "completed", "failed", "cancelled"]);
     return { status: "ok", jobs: rows.filter(r => states.has(String(r.state)))
       .sort((a, b) => Number(b.created ?? 0) - Number(a.created ?? 0) || String(b.id).localeCompare(String(a.id)))

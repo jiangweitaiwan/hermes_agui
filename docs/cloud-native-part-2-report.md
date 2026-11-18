@@ -1,5 +1,7 @@
 # Cloud-native Part 2 前置驗收報告
 
+> 最新狀態（2026-11-18）：依 owner 指示停止測試；Part 1／Part 2 前置尚未通過。詳本文末段最新紀錄。
+
 查核基準為 `ab24d4adac6c39b7d3074c2d90fad49388775533`，開始時工作樹乾淨。
 依 [Part 1 計畫](CLOUD_NATIVE_PART_1.md)、[Part 1 實作報告](cloud-native-part-1-report.md)、
 [儲存盤點](cloud-native-inventory.md)及 [Part 2 計畫](CLOUD_NATIVE_PART_2.md)查核現行程式碼。
@@ -64,3 +66,32 @@ migration、環境變數與 smoke test 編寫。目前的靜態 Host 與 Runtime
 目前可重用 `PostgresWikiStore.import` 的同 client 發布交易、`GraphObjects` 與
 `wiki-evaluate.ts --postgres`。Runtime durable job worker 和 provisioning reconcile
 尚未達到可供 Part 2 接線的狀態。
+
+
+## 2026-11-18 最新前置驗收（依 owner 指示停止測試）
+
+**Part 2 前置條件仍未通過，不進入 Part 2。** 起始／目前 HEAD 為
+`ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`，候選是尚未提交的工作樹。
+本輪已接通 A/B/C 的主要實作並建立 D 的共享 runner；完整證據、失敗歷史與尚未跑的增量測試見
+[Part 1 最新紀錄](cloud-native-part-1-report.md#2026-11-18-收尾進度依-owner-要求停止測試)、
+[驗收操作](cloud-native-part1-validation.md)及[驗收快照](cloud-native-part1-status.json)。
+
+| 前置項目 | 目前判定 |
+| --- | --- |
+| PG/GCS Graph backend 與 current ACL | 已實作並有聚焦證據；**最終完整閘門 NOT RUN**。保留 CJK/embedding 演算法、private/shared/source provenance；沒有 SQLite fallback。 |
+| Durable Graph job／completion | 已實作 DB clock、claim token、同交易 publication/completion、await enqueue 後 ACK、雙 process takeover 及外部 caller 入口；聚焦有 PASS，**最終候選整體重驗未完成**。 |
+| Desired/applied provisioning | 已實作 operation/revision/status/CAS/reconcile，主要 focused tests 通過；**最終完整閘門 NOT RUN**，後增 busy-run 斷言未重驗。 |
+| 雙服務 restart | **FAIL**。已有刪除重建兩容器後部分資料復原證據，但完整 scenario 未過；最新 run 為 PG readiness timeout。沒有核准容器延期例外。 |
+| Legacy regression | **FAIL**。Runtime 115 passed、2 timeout，另有 worker RPC error；完整 Python/probe 未在本輪整體回歸完成。Browser 預設 6、Graph 3、dynamic 2 passed，multi-Bot 未完成。 |
+| Migration scope／importer | **NOT RUN／未核准**。Owner 未明確核准 fresh 或 preserve-existing；新增 importer 相容性 tests 尚未跑。歷史全量匯入不能標 N/A。 |
+| Build/check | Host/Runtime images、TypeScript/Vite 有 PASS；repository-wide check 因 HEAD 缺 helper/root manifest 等失敗，**Build 總體未通過**。 |
+| 真 GCS/IAM、Cloud Tasks、實雲還原 | **NOT RUN，留 Part 2**；local object double 不作實雲 PASS。 |
+
+Part 2 可檢視但尚不能視為已驗收契約的交接入口：
+
+- `server/graph/worker-cli.ts process JOB_ID | tick | reconcile`：共用 bootstrap、MemoryEvolution、原 WikiCompiler，指定 job 從 DB 取 scope，不啟動 timer。
+- `server/bots/reconcile-cli.ts`：protected Host status、同 operation 重送與 desired revision CAS。
+- `python -m hermes_agui.storage.completion_delivery --once`：Host durable outbox 補送；Part 2 需定期喚醒。
+- Host migrations 001–005、Runtime 001–007；`agui-cloud` extra、既有 PG/GCS/seed/completion 環境變數、fixture grants 與共享容器 scenario。
+
+停止時沒有新增 Cloud Tasks/Scheduler、Firebase、正式 IAM service identity、SSE replay、跨 instance cancel 或 GCP/Vercel 部署。先補完 Part 1 尚未通過的項目，才開始 Part 2。

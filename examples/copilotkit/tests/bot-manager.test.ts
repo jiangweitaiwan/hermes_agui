@@ -1,3 +1,5 @@
+import { randomUUID, createHmac } from "node:crypto";
+import type { ManagementOperation, ManagementAck } from "../server/bots/operations";
 import { afterEach, expect, test } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,7 +24,19 @@ function fixture(maxBotsPerOwner = 32) {
   const bots: Record<string, RuntimeSettings> = {}, allow: Record<string, string[]> = {};
   const calls: HostSpec[] = [];
   let failure = false, busy = false;
+  const applied = new Map<string, ManagementAck>();
   const host = {
+    async applyOperation(operation: ManagementOperation): Promise<ManagementAck> {
+      const { spec, state } = operation;
+      const derive = (purpose: string) => createHmac("sha256", Buffer.from("56".repeat(32), "hex"))
+        .update(JSON.stringify([purpose, spec.ownerId, spec.projectId, spec.principal, spec.id])).digest("hex");
+      if (state === "active") await this.register({ ...spec, token: derive("host-token"), memoryKey: derive("memory-key") });
+      else if (state === "disabled") await this.disable(); else await this.delete();
+      const ack: ManagementAck = { id: spec.id, principal: spec.principal, projectId: spec.projectId, ownerId: spec.ownerId!,
+        operationId: operation.operationId, desiredRevision: operation.desiredRevision, specHash: operation.specHash, state };
+      applied.set(spec.id, ack); return ack;
+    },
+    async operationStatus(operation: ManagementOperation) { return applied.get(operation.spec.id); },
     async register(spec: HostSpec) { if (failure) throw new BotError(503, "offline"); calls.push(spec); },
     async disable() { if (failure) throw new BotError(503, "offline"); if (busy) throw new BotError(409, "busy"); },
     async delete() { if (busy) throw new BotError(409, "busy"); },
@@ -117,6 +131,7 @@ const databaseUrl = process.env.HERMES_AGUI_TEST_RUNTIME_DATABASE_URL;
 test.skipIf(!databaseUrl)("PostgreSQL registry persists Bot metadata, serializes quota, and restores credentials", async () => {
   const { PostgresBotRegistry } = await import("../server/storage/bot-registry");
   const { Pool } = await import("pg");
+  const identity = { ownerId: randomUUID(), principal: randomUUID(), projectId: "alpha" };
   const f = fixture(1);
   const pool = new Pool({ connectionString: databaseUrl });
   const seed = "56".repeat(32);

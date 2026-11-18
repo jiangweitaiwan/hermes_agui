@@ -1,5 +1,7 @@
 # Cloud-native Part 1 實作與驗收報告
 
+> 最新狀態（2026-11-18）：依 owner 指示停止測試；Part 1／Part 2 前置尚未通過。詳本文末段最新紀錄。
+
 **狀態：部分完成，第一階段上線閘門尚未通過。** 起始 commit 為
 `b433a7873a5250e925bb0c3e2bf17cdca4a49d2f`。變更留在工作樹，保留既有 docs 刪除及兩份
 Cloud Native 計畫。現有部署繼續使用 SQLite / filesystem。
@@ -452,3 +454,88 @@ npx tsc --noEmit
 | Build | **NOT RUN（完整閘門）**。TypeScript 和 `git diff --check` 為本輪聚焦檢查。Vite、Python lint 與 container build/setup 尚未執行。 |
 
 Part 1 整體仍未通過。下一個工程缺口為 A 的來源、provenance、撤銷及讀取授權。完成 A 後才可用同一 SQL client 接續 B 的 job 發布交易。
+
+
+## 2026-11-18 收尾進度／依 owner 要求停止測試
+
+**Part 1 尚未通過整體驗收，Part 2 前置條件未滿足。** Owner 最新指示為「先測試到這裡，輸出目前的驗收報告」，因此停止追加測試與修復，不將中止、跳過或尚未執行的項目列為 PASS。
+
+本輪起始 HEAD：`ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`，起始工作樹乾淨。
+候選仍是同一 HEAD 加目前未提交工作樹，沒有建立候選 commit。先前章節的歷史結果保留；不作為本輪候選通過證據。
+設定、migration/grants、實際入口與重跑命令見 [收尾驗收操作](cloud-native-part1-validation.md)。完整變更清單與停止時證據索引見 [驗收快照](cloud-native-part1-status.json)。
+
+### 本輪已實作
+
+| 工作包 | 程式碼與實際行為 |
+| --- | --- |
+| A | 延用既有 `PostgresWikiStore`／`GraphObjects`，新增 `BrowserStore`、`IngestStore`、source contract 與 `PostgresSourceStore`。Graph Browser/API 改為 await typed I/O，保留 bounded scan、keyset pagination、CJK tokens、原 compiler/retriever/embedding 演算法。來源內容與 wiki immutable objects 在外部儲存；source versions/owners、session provenance/evidence、revision provenance 與索引在 Runtime schema。撤銷與 publication 共享 namespace lock；讀取驗 active pointer、來源與當前 Bot ownership。PG 模式沒有 SQLite fallback。 |
+| B | 新增 `PostgresDocumentIngestor`，延用同一 `WikiCompiler`。DB clock、claim token、有限 attempt/backoff、過期接管；publication 與完成 job 使用同 client/transaction。Heartbeat 非重疊且可等待；shutdown 保持可恢復，明確取消保留原語意。completion API 等 durable 入列後 ACK，durable Host 模式關閉重複 stream ingestion。新增 deployment-aware `worker-cli.ts process/tick/reconcile`，一次性 caller 不啟動 timer。 |
+| C | Runtime migration 007：Bot desired revision 與 durable operation；Host migration 005：applied revision、operation 與 ACK。同一 desired payload 重用 operation；Host 原子拒絕低版本、scope/spec 衝突及 tombstone 復活；保留原 run admission UUID/fence。Runtime ACK 以 desired revision CAS 更新，timeout/503 記 unknown，可 protected status/reconcile。新增 `bots/reconcile-cli.ts`。本機 Host 亦有 versioned-operation 相容路徑，保留既有 PG Runtime + local Host 組合。 |
+| D | 新增共享雙容器 scenario、分離 PG roles/grants、外部 filesystem object double、fake LLM、read-only application roots 與全新 tmpfs；包含 outbox ACK loss、原 native session ID/tool-result、memory/allowlisted skill、Graph 與 scope 驗證。新增驗收 runner、just recipe、Host/Runtime Docker artifacts、`agui-cloud` extra，已透過 Hermes PM 更新 `uv.lock`。整體驗收尚未完成。 |
+
+未重寫 Hermes Agent Core、Graph Memory 演算法或前端；既有 Host profile snapshot、run lease、outbox 與 PostgreSQL registries 保留。
+
+### Schema、角色與入口
+
+- Host 依序套用 `hermes_agui/storage/migrations/001_host.sql` 至 `005_management_operations.sql`。
+- Runtime 依序套用 `examples/copilotkit/server/storage/migrations/001_threads.sql` 至 `007_bot_operations.sql`。
+- 應用不執行 DDL；migration owner 與服務角色分離。可執行的 fixture grants：`tests/hermes_agui/cloud_native_grants.sql`。容器 scenario 已執行兩角色不可跨 schema 查詢的檢查；整個 scenario 仍未通過。
+- 沿用 `AGUI_STORAGE_BACKEND`、`AGUI_HOST_DATABASE_URL`、`AGUI_RUNTIME_DATABASE_URL`、`AGUI_GCS_BUCKET`、`AGUI_BOT_CREDENTIAL_SEED`、`AGUI_GRAPH_COMPLETION_TOKEN/URL`。憑證 seed 不存進 operation/spec metadata。GCS 用 ADC；Runtime loader 已增加 credentials readiness，真 GCS 未驗收。
+- `examples/copilotkit/server/bootstrap.ts` 供 HTTP Runtime 與 `server/graph/worker-cli.ts` 共用；`MemoryEvolution.processJob` 從 SQL 解析 job namespace。
+- Host 補送仍是 `python -m hermes_agui.storage.completion_delivery --once`。Part 2 才以排程／私有 worker 定期喚醒 outbox、job tick 與 provisioning reconcile。
+
+### 實際測試紀錄
+
+下列測試在實作過程不同候選上執行，**尚無最終工作樹所有必要 suites 一致通過的紀錄**。
+
+| 命令／範圍 | 結果與證據 |
+| --- | --- |
+| A/B 聚焦 suites | PASS：6 檔、46 項；涵蓋 PG Runtime evolution/browser/context injection、獨立 worker lease takeover、舊 worker 發布拒絕、local 相容性。 |
+| 最後一輪故障注入聚焦 | PASS：`wiki-postgres-sources`、`graph-browser`、`bot-operations`，3 檔、20 項。含不同 job 同頁 CAS 後重新 merge、編譯中撤銷、upload failure、completion SQL failure rollback、ACK loss。記錄：`/private/tmp/hermes-part1-fault-check.log`。之後仍有增量修正與測試新增，不能取代最終回歸。 |
+| C Python 聚焦 | PASS：dynamic Host/Runtime，2 檔、7 項，使用真 PG；包含既有 PG Runtime + local Host 的跨語言相容性。後加的 versioned busy-run 斷言尚未重驗。 |
+| C Runtime 聚焦 | PASS：bot manager/operations，2 檔、7 項；涵蓋兩 Runtime、ACK loss、重啟 reconcile、重複 update、舊 ACK 不覆蓋 disable。 |
+| 同一繁中 fixture | PASS：local 與 PG 的 recall@3 均為 keyword 0.50、hybrid 0.9167、hybrid+graph 1.00，採同一 deterministic encoder。非真模型品質／實雲效能保證。 |
+| 完整 Runtime Vitest | **FAIL**：19 檔，115 passed、2 failed，另 1 worker RPC timeout。`graph-browser` work-bounds 測試超過 30 秒；`wiki-ingest-cli` 超過 60 秒。當時與 Docker／browser 回歸重疊，有資源競爭跡象；原因尚未以安靜環境重驗確認，不能直接歸為環境假失敗。記錄：`/private/tmp/hermes-part1-regression.log`。 |
+| 完整 Python AG-UI／真 PG probe | **NOT RUN（本輪最終整體回歸）**：統一 runner 在 Vitest 失敗後停止，未進入這兩步。舊章節通過紀錄不升級為本輪 PASS。 |
+| Playwright 預設模式 | PASS：6 passed、4 條件 skipped。 |
+| Playwright Graph 模式 | PASS：3 passed。 |
+| Playwright dynamic Bot 模式 | PASS：2 passed。 |
+| Playwright multi-Bot 模式 | **NOT RUN／中止**：未完成，停止時 log 為 webServer exited early；不將停止期間的退出當作已定位的產品 bug。記錄：`/private/tmp/hermes-part1-browser.log`。 |
+| Host Docker build | PASS：含 `agui-cloud`，build 中成功匯入 psycopg/pool/GCS；image `e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69`。 |
+| Runtime Docker build | PASS：TypeScript 與 Vite build；最新 image `fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59`。Vite 有既有 chunk 大小警告。新增 importer test files 未由這個 image build 覆核。 |
+| Python lint／diff | 已執行的變更檔 Ruff 檢查通過；曾發現 UTC alias lint 並修正。停止前 `git diff --check` 通過。尚未在所有最後新增測試上統一重驗。 |
+| Repository-wide `scripts/check --base HEAD` | **FAIL**：HEAD 缺多個 `scripts/ci/check_*.py`；no-tmp 命中原 `CLOUD_NATIVE_PART_1.md`；加入 Node PATH 後 health 仍因根目錄缺 `package.json` 失敗。未新增假 helper、降低規則或關閉檢查。使用既有 TS metrics engine 對實際 example TypeScript 執行額外量測，新／重構函式 CC ≤20；既有 delegation/local enqueue 超標單元維持原值。這不代表整個 check 已通過。 |
+| 新增 importer 相容性 tests | **NOT RUN**：`test_profile_import_compatibility.py`、`bot-import-compatibility.test.ts` 已加入，尚未執行；不能宣稱新 schema 下 importer 相容性已驗收。 |
+
+### Docker restart 失敗歷史與已達步驟
+
+1. 最初自訂 opt-in env 被 hermetic runner 清除，整個測試 skipped；不計 PASS。已改成既有 `-m integration` 入口。
+2. 第一個有效 run 在 outbox 交付失敗。fixture 使用 Docker hostname 的 HTTP，與既有 dispatcher 的 HTTPS／loopback HTTP 限制不相容。未移除限制，改為 fixture TLS 與明確受信任 CA。
+3. TLS／分離 PG roles 版本已做到：建立不同 owner Bot、原生 memory/skill 寫入並提交 manifest、Host completion 入列及 Graph publication、刪除重建兩應用容器、重送未 ACK outbox、Bot list／原 thread mapping／native session IDs／tool-result／snapshot revision 恢復，以及 Graph browser/private scope 檢查。之後測試要求原 thread system prompt 即刻重載 memory 而失敗；此要求與 per-conversation prompt cache 契約衝突。已改為原 thread 驗歷史與 skill，另開新 thread 驗持久化 memory，沒有改 Core 或取消 memory 驗證。
+4. 最新重跑在 PostgreSQL 容器 readiness 40 秒超時，**整體 FAIL**；因此修正後的 memory、續聊 skill、共享 injection、停用拒絕等 scenario 後半段尚未全部通過。當時與其他重回歸競爭資源；尚無依序重跑後的結論。記錄：`/private/tmp/hermes-part1-container-final.log`。
+
+這些是部分步驟的證據，**不能等同 Restart gate PASS**。Docker 現已可用，沒有把容器 gate 延至 Part 2 或視為環境例外。
+
+### 停止時的驗收矩陣
+
+| Gate | 狀態 | 尚未通過／缺口 |
+| --- | --- | --- |
+| Legacy regression | **FAIL** | Vitest 兩項 timeout／RPC error；完整 Python/probe 尚未跑完；multi-Bot browser 未完成。 |
+| Storage | **NOT RUN（最終完整閘門）** | 已有 PG/object double/rollback/CAS/roles 部分證據；最新版本統一重驗與 importer 相容性未完成。 |
+| Graph | **NOT RUN（最終完整閘門）** | PG+evolution、CJK、browser/injection/撤銷有聚焦證據，但整體候選與 restart 後半段未全過。 |
+| Job | **NOT RUN（最終完整閘門）** | PG 雙 process fence、重送及故障注入有通過紀錄；最後增量仍需同候選版本重驗。 |
+| Provisioning | **NOT RUN（最終完整閘門）** | 主要 focused tests 通過；後增 busy-run 與最終跨服務整體確認未完成。 |
+| Restart | **FAIL** | 尚無完整雙容器、可寫層清除後 scenario PASS。 |
+| Migration | **NOT RUN／未核准** | Owner 尚未選擇 fresh_deployment 或 preserve_existing。僅使用全新資料庫做非破壞性測試；不得將歷史匯入標 N/A。 |
+| Build | **FAIL（總體）** | Docker/TS/Vite 已有 PASS；repository-wide check FAIL；最終一致候選覆核未完成。 |
+| 真 GCS／IAM／PITR | **NOT RUN（Part 2）** | 外部 filesystem double 不能證明實雲 generation/IAM、備份還原與成本。 |
+
+### 下一個最小工作範圍
+
+- 先在沒有重回歸重疊的條件下聚焦重驗兩個 timeout，再依序跑完整必要 suites；目前 runner 已提供單 file worker 的 Vitest 方式，未增加 timeout 或降低功能斷言。
+- 用已修正 prompt-cache 契約的共享 scenario 完成雙容器 Restart gate，確認後半段 memory/skill/shared injection/disable 全部通過。
+- 執行新 importer compatibility tests 及後增 versioned busy-run 斷言，記錄最新候選證據。
+- 由 owner 明確決定 migration scope；preserve_existing 仍缺完整 Graph／歷史 thread 遷移與對帳，不可直接切換既有使用者。
+- 查清 repository-wide check 在此 HEAD 缺少的 CI helpers/root manifest，保留 FAIL 直到修復或有明確的驗收範圍處置。
+
+既有相容方案限制仍有效：只提交成功 turn；未提交 memory/skill 可能遺失；沒有工具級 checkpoint、exactly-once 外部副作用或任意 Agent 中斷續跑。快照容量／allowlist／seed 遺失與輪替限制見操作文件。未引用 objects 目前保留，沒有自動 GC；PG/GCS CLI 沒有與 local `cleanup` 對等的刪除實作。已記錄至少七天寬限及全歷史引用對帳要求，未宣稱 GC 已完成。未建立 GCP 付費資源、未部署 Part 2。

@@ -1,5 +1,7 @@
 # Cloud-native Part 1 儲存盤點
 
+> 最新狀態（2026-11-18）：依 owner 指示停止測試；Part 1／Part 2 前置尚未通過。詳本文末段最新紀錄。
+
 起始 commit `b433a7873a5250e925bb0c3e2bf17cdca4a49d2f`。工作樹已有七項 docs 刪除及兩份未追蹤 Cloud Native 計畫。過往 Graph Memory 與 Frontend Workspace 報告從 HEAD 讀取。Runtime Memory 與 Bot Manager 報告從歷史 commit `00b72ae` 讀取。既有部署與協定見 `docs/agui-deployment.md`、`agui-server.md`、`agui-native-capabilities.md` 與 example README。
 
 | Owner | 入口與目前 schema | 一致性、隔離、遷移注意事項 |
@@ -29,3 +31,21 @@ adapter 共用 retriever、encoder 及向量計分。
 Runtime 應用仍以 SQLite 處理來源、provenance、撤銷、Graph browser、health、evolution
 和 queue。現行 PG registry 加 evolution 的 fail-fast 閘門仍有效。只有可信管理員 Wiki
 manifest 入口可選用 PG/GCS。舊資料與匯入工具保留，歷史搬遷 scope 待 owner 核准。
+
+
+## 2026-11-18 工作樹增量（驗收尚未完成）
+
+基準 `ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`。舊章節是歷史狀態；最新完整矩陣見 Part 1 report 的停止紀錄。
+
+| Owner／元件 | 本輪增加的儲存及契約 |
+| --- | --- |
+| Runtime Graph source | Migration 005：`graph_sources`（逐版本 object key/generation/hash/size/bot/deleted）、`graph_source_owners`、`graph_session_origins`（provenance/classification/evidence）、`graph_revision_provenance`。source 原文與 wiki revision 在外部 immutable object；SQL metadata/索引由 Runtime 擁有。 |
+| Runtime Graph queue | Migration 006：`graph_jobs`、`graph_ingest_keys`、`graph_session_knowledge`。completion time 在 job.created；每次 claim 唯一 token，DB clock lease，最多三次自動 attempt，與 wiki publication 同交易完成。 |
+| Runtime desired state | Migration 007：`bot_registry.desired_revision` 與 `bot_operations`；spec 不含 token/memoryKey。意圖與 operation 同交易，HTTP 不包在長 SQL transaction；舊 ACK 以 desired revision CAS 隔離。 |
+| Host applied state | Host migration 005：`managed_bots.applied_revision/applied_operation/applied_spec_hash`、`management_operations`。沿用既有 admission UUID/fence、profile manifest 與 outbox；不讀寫 Runtime schema。 |
+| Local compatibility | 原 WikiStore／SQLite queue 保留；Browser/API 透過 typed await 邊界。local Host 另存 versioned operations，既有 legacy 路徑仍可用；PG Runtime 對 local Host 的 versioned 操作需同一秘密 seed。 |
+| Composition／caller | `application-config.ts`、`graph/access.ts` 分離配置與權威讀寫檢查；`bootstrap.ts` 共用 Runtime/一次性 worker。背景 reconciliation 只處理本部署 principal/project。 |
+| Build／test | `agui-cloud` extra + `uv.lock`；Host/Runtime Dockerfiles；不同 PG roles、外部 object volume 與雙容器可寫層清除 scenario。真 GCS、完整 restart 與最後回歸仍未全過。 |
+
+不把原生 Hermes SQLite DB 改寫成 PostgreSQL；只沿用已核准的 backup/immutable revision 過渡方案。
+未引用物件保留，尚無自動 GC。Graph／thread 的完整 preserve-existing 遷移仍缺；fresh scope 未獲 owner 明確核准。

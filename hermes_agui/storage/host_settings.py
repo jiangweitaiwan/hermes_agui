@@ -43,7 +43,7 @@ def open_host_pool(pool):
     pool.open(wait=True, timeout=10)
     with pool.connection() as connection:
         row = connection.execute("SELECT max(version) FROM hermes_agui_host.schema_version").fetchone()
-        if row not in {(3,), (4,)}:
+        if row not in {(3,), (4,), (5,)}:
             raise RuntimeError("Apply the Host storage migrations before starting")
 
 

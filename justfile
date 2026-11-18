@@ -202,3 +202,9 @@ ruff +files:
 [positional-arguments]
 eslint +files:
     pnpm exec eslint "$@"
+
+# Cloud-native Part 1 acceptance against disposable storage (migrate/regression/browser/container)
+[group('test')]
+[positional-arguments]
+cloud-native-part1 mode='regression':
+    scripts/cloud_native_part1_check.sh "{{mode}}"

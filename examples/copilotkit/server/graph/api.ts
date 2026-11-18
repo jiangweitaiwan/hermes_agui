@@ -2,6 +2,7 @@ import { BotError } from "../bots/types";
 import { sameOrigin } from "../bots/api";
 import type { createBotManagement } from "../bots/application";
 import { WikiGraphProvider } from "./provider";
+import type { BrowserStore, BrowserRevision } from "./browser-store";
 import type { Namespace } from "./types";
 import { GraphBrowser } from "./browser";
 import { pageId, parseQuery } from "./browser-query";
@@ -32,7 +33,7 @@ function resolveRoute(request: Request) {
 }
 /** Read-only surface, independent of GraphMemoryPort and agent run/thread scopes. */
 export function createGraphApi(options: BrowserOptions) {
-  return (request: Request): Response => {
+  return async (request: Request): Promise<Response> => {
     try {
       const management = options.management;
       if (!management) return json({ status: "unavailable", error: "Managed authentication required" }, 503);
@@ -43,6 +44,7 @@ export function createGraphApi(options: BrowserOptions) {
         status: 405, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", Allow: "GET" },
       });
       const { botId, route, visibility, id, endpoint, query } = resolveRoute(request);
+      await management.manager.sync();
       const bot = management.manager.owned(botId, identity), memory = bot.runtime.memory;
       if (!memory || memory.principal !== identity.principal || memory.projectId !== identity.projectId) throw new BotError(404, "Unknown Bot");
       const namespace = { principal: memory.principal, projectId: memory.projectId, botId };
@@ -50,24 +52,23 @@ export function createGraphApi(options: BrowserOptions) {
       if (!options.provider) return json({ status: "disabled", error: "Graph disabled" }, 503);
       if (!(options.provider instanceof WikiGraphProvider)) return json({ status: "unavailable", error: "Graph unavailable" }, 503);
       if (["health", "jobs"].includes(route) && !options.evolution) return json({ status: "unavailable", error: "Evolution disabled" }, 503);
-      options.evolution?.reconcile();
+      await options.evolution?.reconcile();
       const store = options.provider.store;
-      // A short, bounded writer snapshot serializes with publication/revocation in other processes.
-      return store.transaction(() => {
-        const browser = new GraphBrowser(store, namespace, query, options.retained);
+      {
+        const browser = new GraphBrowser(store as BrowserStore<BrowserRevision>, namespace, query, options.retained);
         const binding = JSON.stringify([identity.ownerId, namespace, endpoint]);
         const actions: Record<string, () => unknown> = {
           stats: () => browser.stats(), network: () => browser.network(binding), pages: () => browser.list(binding),
           search: () => browser.list(binding, true), detail: () => browser.detail(visibility as "bot_private" | "project_shared", id!),
           health: () => browser.health(), jobs: () => browser.jobs(),
         };
-        const value = actions[endpoint]();
-        // Synchronous assembly has no await boundary; still re-read the registry before serialization.
+        const value = await actions[endpoint]();
+        await management.manager.sync();
         management.manager.owned(botId, identity);
         if (!options.retained({ ...namespace, visibility: "bot_private" }, botId)) throw new BotError(404, "Unknown Bot");
-        browser.revalidate();
+        await browser.revalidate();
         return json(value);
-      });
+      }
     } catch (error) {
       const status = error instanceof BotError ? error.status : 503;
       return json({ ...(status === 503 ? { status: "unavailable" } : {}),

@@ -69,9 +69,9 @@ RUN touch README.md
 RUN python3 -c 'from pm import ensure; ensure("python", explicit=True); ensure("ripgrep", explicit=True)'
 RUN python3 -c 'from pathlib import Path; from pm import installed_package, stage_manager_runtime; from scripts.bundles.payload import seal_pm_runtime; root = Path.cwd(); python = installed_package("python").binary.resolve(); stage_manager_runtime(python=python, destination=root / "pm-runtime", project=root / "pm"); seal_pm_runtime(root, python); Path("/usr/local/bin/hermes-build-python").symlink_to(python)'
 RUN hermes-build-python -m pm.build_env --source /opt/hermes \
-    --out /opt/hermes/.venv --extra agui --no-install-project --sealed
+    --out /opt/hermes/.venv --extra agui --extra agui-cloud --no-install-project --sealed
 # Fail the image build if the selected dependency set cannot load native execution.
-RUN .venv/bin/python -c 'from run_agent import AIAgent; from hermes_agui.server import create_app; from tools.terminal_tool import terminal_tool'
+RUN .venv/bin/python -c 'from run_agent import AIAgent; from hermes_agui.server import create_app; import psycopg, psycopg_pool, google.cloud.storage; from tools.terminal_tool import terminal_tool'
 
 FROM debian:trixie-20261020@sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308
 RUN apt-get update && apt-get install -y --no-install-recommends \

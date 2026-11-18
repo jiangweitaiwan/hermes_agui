@@ -31,6 +31,8 @@ class DurableHostManagement:
         if len(seed) != 64 or len(self.seed) != 32:
             raise ValueError("Managed durable Host requires a 32-byte hex Bot credential seed")
         with self.pool.connection() as conn:
+            conn.execute("SELECT applied_revision,applied_operation,applied_spec_hash FROM hermes_agui_host.managed_bots LIMIT 0")
+            conn.execute("SELECT operation_id FROM hermes_agui_host.management_operations LIMIT 0")
             collision = conn.execute("""SELECT bot FROM hermes_agui_host.managed_bots
                 WHERE project=%s AND bot=ANY(%s) LIMIT 1""", (self.project, list(self.static_bots))).fetchone()
         if collision:
@@ -84,7 +86,7 @@ class DurableHostManagement:
         if row and row[0]:
             raise AdmissionError(409, "Bot has active runs")
 
-    def register(self, spec):
+    def _validate_spec(self, spec):
         if spec.id in self.static_bots:
             raise AdmissionError(409, "Bot ID belongs to deployment configuration")
         if spec.projectId != self.project or not spec.ownerId:
@@ -97,7 +99,12 @@ class DurableHostManagement:
         if (template is None or set(spec.skills) - template.skills.keys()
                 or set(spec.toolsets) - set(template.toolsets) or set(spec.toolsets) - {"memory", "skills"}):
             raise AdmissionError(422, "Unknown durable Bot template or capability")
+        return data
+
+    def register(self, spec):
+        data = self._validate_spec(spec)
         with self._write(spec.id) as (conn, previous):
+            self._require_legacy(conn, spec.id)
             if previous:
                 _, status, old, _identity = previous
                 if status == "deleted" or (old["principal"], old["ownerId"]) != (spec.principal, spec.ownerId):
@@ -117,8 +124,15 @@ class DurableHostManagement:
                 SET revision=excluded.revision,status=excluded.status,spec=excluded.spec""",
                 (self.project, spec.principal, spec.id, uuid4(), json.dumps(data)))
 
+    def _require_legacy(self, conn, bot_id):
+        row = conn.execute("""SELECT applied_revision FROM hermes_agui_host.managed_bots
+            WHERE project=%s AND bot=%s""", (self.project, bot_id)).fetchone()
+        if row and row[0]:
+            raise AdmissionError(409, "Versioned management operation required")
+
     async def deactivate(self, bot_id, *, delete=False):
         with self._write(bot_id) as (conn, previous):
+            self._require_legacy(conn, bot_id)
             if previous is None:
                 raise AdmissionError(404, "Unknown managed Bot")
             _, status, data, _identity = previous

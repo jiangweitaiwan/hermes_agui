@@ -230,6 +230,11 @@ agui = [
   "uvicorn==0.54.0",
   "starlette==1.9.0",
 ]
+agui-cloud = [
+  "psycopg[pool]>=3.3.0,<4",
+  "psycopg-binary>=3.3.0,<4; platform_python_implementation == 'CPython' and sys_platform != 'android'",
+  "google-cloud-storage>=3.0,<4",
+]
 # High-performance event loop — uvloop replaces the stdlib asyncio loop with
 # a libuv-backed implementation for ~2-4x throughput on uvicorn.  Gated as an
 # optional extra because libuv's ./configure does not run on Android/Termux

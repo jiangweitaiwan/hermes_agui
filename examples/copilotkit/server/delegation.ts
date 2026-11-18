@@ -1,3 +1,4 @@
+import type { IngestStore } from "./graph/ingest-store";
 import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import type { RunAgentInput } from "@ag-ui/core";
 import { randomUUID, timingSafeEqual } from "node:crypto";
@@ -37,7 +38,7 @@ export class DelegationCoordinator {
   private records = new Map<string, RecordEntry>();
   private timeout: number;
   constructor(private bots: Record<string, RuntimeSettings>, private settings: DelegationSettings,
-    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>, private ingestion?: SessionIngestor,
+    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>, private ingestion?: SessionIngestor<IngestStore>,
     private threads?: RuntimeThreads) {
     this.timeout = settings.timeoutMs ?? 55_000;
     if (!settings.token || !Number.isFinite(this.timeout) || this.timeout <= 0 || this.timeout > 290_000 ||

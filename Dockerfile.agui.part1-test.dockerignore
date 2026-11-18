@@ -1,0 +1,5 @@
+**
+!tests/
+!tests/__init__.py
+!tests/hermes_agui/
+!tests/hermes_agui/cloud_native_host.py

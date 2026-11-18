@@ -74,6 +74,9 @@ export class GcsGraphObjects implements GraphObjects {
     if (!/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(bucket)) throw new Error("Invalid Graph bucket");
     validateKey(prefix);
   }
+  async ready() {
+    await this.auth.getClient().catch(() => { throw new Error("Graph object credentials unavailable"); });
+  }
   async create(key: string, content: Buffer) {
     validateKey(key);
     validateSize(content.length);

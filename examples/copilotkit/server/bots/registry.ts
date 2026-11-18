@@ -1,9 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, chmodSync, lstatSync } from "node:fs";
 import { dirname } from "node:path";
+import type { ManagementAck, ManagementOperation, DesiredState } from "./operations";
 import type { Identity, StoredBot } from "./types";
 
 export interface Registry {
+  beginOperation?(bot: StoredBot, state: DesiredState): Promise<ManagementOperation>;
+  operations?(): Promise<ManagementOperation[]>;
+  acknowledge?(operation: ManagementOperation, ack: ManagementAck): Promise<void>;
+  operationAttempt?(operation: ManagementOperation): Promise<void>;
+  operationFailure?(operation: ManagementOperation, conflict: boolean): Promise<void>;
   all(): StoredBot[];
   get(id: string): StoredBot | undefined;
   put(bot: StoredBot): void | Promise<void>;

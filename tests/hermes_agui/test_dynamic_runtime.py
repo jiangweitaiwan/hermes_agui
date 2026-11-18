@@ -59,6 +59,7 @@ def test_managed_runtime_native_delegation_and_persistent_lifecycle(native_confi
                 "agent_options": {"skip_background_review": True, "max_iterations": 5}}}},
             "delegation": {"url": f"http://127.0.0.1:{port}/internal/delegations", "token_env": "TEST_DELEGATION_KEY"}}))
         with patch.dict(os.environ, {"TEST_HOST_MANAGEMENT_KEY": "host-manager-secret",
+                                    "AGUI_BOT_CREDENTIAL_SEED": "93" * 32,
                                     "TEST_NATIVE_KEY": "sk-fake-e2e", "TEST_DELEGATION_KEY": "delegation-secret"}):
             with runtime(cfg.home, cfg.cwd, tmp_path, bots_config=deployment) as url:
                 completed = subprocess.run([node, "node_modules/tsx/dist/cli.mjs", "tests/fixtures/dynamic-bot-probe.ts",

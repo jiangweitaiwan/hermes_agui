@@ -1,0 +1,13 @@
+**
+!package.json
+!package-lock.json
+!server/
+!server/**
+!frontend/
+!frontend/**
+!tsconfig.json
+!vite.config.ts
+!index.html
+!tests/
+!tests/fixtures/
+!tests/fixtures/cloud-native-runtime.ts

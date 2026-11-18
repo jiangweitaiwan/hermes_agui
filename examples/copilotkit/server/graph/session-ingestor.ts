@@ -1,5 +1,7 @@
 import type { RunAgentInput } from "@ag-ui/core";
 import type { RuntimeSettings } from "../runtime";
+import type { IngestStore } from "./ingest-store";
+import type { RawSource } from "./ingest-queue";
 import { DocumentIngestor } from "./ingest-queue";
 import { digest, namespaceKey } from "./wiki-store";
 import type { Namespace } from "./types";
@@ -12,14 +14,18 @@ export interface Completion {
   namespace: Namespace; threadId: string; runId: string; messageId: string;
   user: string; assistants: { id: string; text: string }[];
 }
-export class SessionIngestor {
+export class SessionIngestor<Q extends IngestStore = DocumentIngestor> {
   readonly metrics = { accepted: 0, skipped: 0, errors: 0, resumeSkipped: 0 };
-  constructor(readonly queue: DocumentIngestor, readonly authorized: (ns: Namespace) => boolean = () => true) {}
-  ingest(value: Completion): string | undefined {
-    try { return this.enqueue(value); }
+  constructor(readonly queue: Q, readonly authorized: (ns: Namespace) => boolean = () => true) {}
+  ingest(value: Completion): ReturnType<Q["enqueue"]> | undefined {
+    try {
+      const result = this.enqueue(value);
+      if (result instanceof Promise) return result.catch(() => { this.metrics.errors++; return undefined; }) as ReturnType<Q["enqueue"]>;
+      return result;
+    }
     catch { this.metrics.errors++; return undefined; }
   }
-  enqueue(value: Completion): string | undefined {
+  enqueue(value: Completion): ReturnType<Q["enqueue"]> | undefined {
     const { namespace: ns, user, assistants } = value;
     if (ns.visibility !== "bot_private" || !this.authorized(ns)) return this.skip();
     const answer = assistants.map(a => a.text).join("\n\n");
@@ -32,22 +38,22 @@ export class SessionIngestor {
     const key = `session:${digest(JSON.stringify(provenance))}`;
     const id = this.queue.enqueue(ns, { title: `Session ${digest(key).slice(0, 24)}`, content, mime: "text/plain", idempotencyKey: key },
         { provenance, classification: "user-stated / assistant-unverified", knowledgeHash: digest(JSON.stringify([user.trim(), answer.trim()])), evidence: { user, confirmed, assistants: assistants.map(a => a.text) } });
-    this.metrics.accepted++; return id;
+    this.metrics.accepted++; return id as ReturnType<Q["enqueue"]>;
   }
   private skip(): undefined { this.metrics.skipped++; return undefined; }
   /** Trusted local administrator operation: copy only the original source, never a mixed private wiki page. */
-  share(ns: Namespace, sourceId: string): string {
+  share(ns: Namespace, sourceId: string): ReturnType<Q["enqueue"]> {
     if (ns.visibility !== "bot_private" || !this.authorized(ns)) throw new Error("Share denied");
-    const row = this.queue.store.db.prepare("SELECT * FROM document_sources WHERE ns=? AND id=? AND deleted=0 ORDER BY version DESC LIMIT 1")
-      .get(namespaceKey(ns), sourceId);
-    if (!row || sensitive(String(row.content))) throw new Error("Source unavailable or sensitive");
-    const provenance = this.queue.store.db.prepare("SELECT * FROM session_origins WHERE ns=? AND source=?").get(namespaceKey(ns), sourceId);
-    if (!provenance) throw new Error("Not a session source");
-    const evidence = this.queue.store.db.prepare("SELECT content FROM session_evidence WHERE ns=? AND source=?").get(namespaceKey(ns), sourceId);
-    return this.queue.enqueue({ ...ns, visibility: "project_shared" }, {
-      title: row.title, content: row.content, mime: "text/plain", idempotencyKey: `share:${sourceId}:${row.version}`,
-    }, { provenance: JSON.parse(String(provenance.provenance)), classification: String(provenance.classification), ...(evidence ? { evidence: JSON.parse(String(evidence.content)) } : {}) });
+    const share = (source: RawSource) => {
+      if (!source.provenance || sensitive(source.content)) throw new Error("Source unavailable or sensitive");
+      return this.queue.enqueue({ ...ns, visibility: "project_shared" }, {
+        title: source.title, content: source.content, mime: "text/plain", idempotencyKey: `share:${sourceId}:${source.version}`,
+      }, { provenance: source.provenance, classification: source.classification!, ...(source.evidence ? { evidence: source.evidence } : {}) });
+    };
+    const source = this.queue.latestSource(ns, sourceId);
+    return (source instanceof Promise ? source.then(share) : share(source)) as ReturnType<Q["enqueue"]>;
   }
+
 }
 
 /** One observer per real invocation; replay/connect never construct this object. Tools/reasoning are excluded. */
@@ -58,7 +64,7 @@ export class RunCompletionObserver {
   private messages = new Map<string, { id: string; text: string; ended: boolean }>();
   private bytes = 0;
   private readonly completion?: Completion;
-  constructor(botId: string, settings: RuntimeSettings, input: RunAgentInput, readonly service: SessionIngestor) {
+  constructor(botId: string, settings: RuntimeSettings, input: RunAgentInput, readonly service: SessionIngestor<IngestStore>) {
     if (input.resume?.length) { service.metrics.resumeSkipped++; return; }
     const last = input.messages.at(-1);
     if (!settings.memory || last?.role !== "user" || typeof last.content !== "string" || Buffer.byteLength(last.content) > 16384) return;

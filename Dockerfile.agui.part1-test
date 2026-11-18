@@ -1,0 +1,5 @@
+# Build Dockerfile.agui as hermes-agui:part1 first. Only adds the shared fixture entrypoint.
+FROM hermes-agui:part1
+COPY tests/__init__.py /opt/hermes/tests/__init__.py
+COPY tests/hermes_agui/cloud_native_host.py /opt/hermes/tests/hermes_agui/
+ENTRYPOINT ["/usr/bin/tini", "-g", "--", "python", "-m", "tests.hermes_agui.cloud_native_host"]

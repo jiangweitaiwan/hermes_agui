@@ -75,19 +75,19 @@ test.each(["standard", "delegation"])("%s run → durable queue → compiler →
     const source = store.db.prepare("SELECT * FROM ingest_jobs").get()!;
     expect(source.state).toBe("pending"); // completion did not await the LLM
     await app.evolution!.tick();
-    expect(app.evolution!.queue.status(ns, String(source.id)).state).toBe("completed");
+    expect((await app.evolution!.queue.status(ns, String(source.id))).state).toBe("completed");
     const original = await run("a");
     expect(context().records.some((r: any) => r.content.includes(finding))).toBe(true);
     expect(received.at(-1).messages).toEqual(original.messages);
     await run("b"); expect(context().records).toEqual([]);
-    const shareJob = app.evolution!.sessions.share(ns, String(source.source));
+    const shareJob = await app.evolution!.sessions.share(ns, String(source.source));
     const shared = { ...ns, visibility: "project_shared" as const };
     await new WikiCompiler(app.evolution!.queue, app.evolution!.options.compiler).runNext(shared);
-    expect(app.evolution!.queue.status(shared, shareJob).state).toBe("completed");
+    expect((await app.evolution!.queue.status(shared, shareJob)).state).toBe("completed");
     await run("b"); expect(context().records.some((r: any) => r.content.includes(finding))).toBe(true);
     await run("c"); expect(context().records).toEqual([]);
     expect(store.read(store.active(namespaceKey(shared), "recovery")!).sources[0]).toMatchObject({ botId: "a" });
-    app.evolution!.revoke(ns, String(source.source));
+    await app.evolution!.revoke(ns, String(source.source));
     await run("b"); expect(context().records).toEqual([]);
   } finally {
     await app.close(); store.close();

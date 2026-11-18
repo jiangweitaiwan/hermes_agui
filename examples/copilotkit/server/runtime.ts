@@ -1,3 +1,4 @@
+import type { IngestStore } from "./graph/ingest-store";
 import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import { defer, map, switchMap, tap } from "rxjs";
 import { prepareRunInput } from "./memory/pipeline";
@@ -22,7 +23,7 @@ export interface RuntimeThreads {
 }
 
 function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?: RuntimeMemoryMiddleware,
-  ingestion?: SessionIngestor, threads?: RuntimeThreads) {
+  ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
   const { agentUrl, token } = settings;
   const agent = new HttpAgent({ url: agentUrl, headers: { Authorization: `Bearer ${token}` } });
   agent.use((input, next) => defer(async () => {
@@ -47,7 +48,7 @@ function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?
 }
 
 function singleHandler(settings: Record<string, RuntimeSettings>, botId = "info", middleware?: RuntimeMemoryMiddleware,
-  runner = new BotRunner(botId), ingestion?: SessionIngestor, threads?: RuntimeThreads) {
+  runner = new BotRunner(botId), ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
   for (const { agentUrl, token, memory } of Object.values(settings)) {
     if (memory && (!memory.key || memory.key === token || !memory.principal || !memory.projectId)) {
       throw new Error("Memory requires a separate Runtime signing key and trusted scope");
@@ -70,7 +71,7 @@ export interface RuntimeAccess {
   allowed: (request: Request, botId: string) => boolean;
 }
 export function createRuntimeHandler(settings: RuntimeSettings | Record<string, RuntimeSettings>,
-  middleware?: RuntimeMemoryMiddleware, access?: RuntimeAccess, ingestion?: SessionIngestor, threads?: RuntimeThreads) {
+  middleware?: RuntimeMemoryMiddleware, access?: RuntimeAccess, ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
   const bots: Record<string, RuntimeSettings> = "agentUrl" in settings && typeof settings.agentUrl === "string"
     ? { hermes: settings as RuntimeSettings } : settings as Record<string, RuntimeSettings>;
   if (Object.keys(bots).some(id => !/^[a-z][a-z0-9_-]{0,63}$/.test(id))) throw new Error("Invalid Bot registry");

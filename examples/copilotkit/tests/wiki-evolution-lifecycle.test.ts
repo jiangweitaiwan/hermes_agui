@@ -28,13 +28,13 @@ test.each(["delete", "project", "policy", "owner-access"])("%s revokes learned s
   try {
     await app.ready;
     const evolution = app.evolution!, queue = evolution.queue;
-    const session = evolution.sessions.ingest({ namespace: ns, threadId: "t", runId: "r", messageId: "u", user: "I confirm database recovery needs regular backups", assistants: [{ id: "a", text: finding }] })!;
+    const session = (await evolution.sessions.ingest({ namespace: ns, threadId: "t", runId: "r", messageId: "u", user: "I confirm database recovery needs regular backups", assistants: [{ id: "a", text: finding }] }))!;
     await evolution.tick();
-    const source = queue.status(ns, session).source;
-    evolution.sessions.share(ns, source); await evolution.tick();
-    const document = queue.enqueue(ns, { title: "document", mime: "text/plain", content: finding, idempotencyKey: "doc" });
+    const source = (await queue.status(ns, session)).source;
+    await evolution.sessions.share(ns, source); await evolution.tick();
+    const document = await queue.enqueue(ns, { title: "document", mime: "text/plain", content: finding, idempotencyKey: "doc" });
     await evolution.tick();
-    const pending = queue.enqueue(ns, { title: "pending", mime: "text/plain", content: finding, idempotencyKey: "pending" });
+    const pending = await queue.enqueue(ns, { title: "pending", mime: "text/plain", content: finding, idempotencyKey: "pending" });
     expect(store.diagnostics().pages).toBeGreaterThan(0);
     if (mode === "delete") await app.management!.manager.deactivate("a", user, true);
     if (mode === "project") {
@@ -44,13 +44,13 @@ test.each(["delete", "project", "policy", "owner-access"])("%s revokes learned s
     }
     if (mode === "policy") allowed = false;
     if (mode === "owner-access") user.projectId = "revoked";
-    evolution.reconcile();
-    expect(queue.status(ns, pending).state).toBe("cancelled");
-    expect(queue.status(ns, document).state).toBe("cancelled");
+    await evolution.reconcile();
+    expect((await queue.status(ns, pending)).state).toBe("cancelled");
+    expect((await queue.status(ns, document)).state).toBe("cancelled");
     const result = await provider.query({ principal: "owner", projectId: "project", botId: "b", threadId: "q", runId: "q" }, { text: "recovery", limit: 10 }, new AbortController().signal);
     expect(result).toEqual({ status: "ok", hits: [] });
     store.reindex(); expect(store.diagnostics().pages).toBe(0);
-    queue.rebuild(ns); await new WikiCompiler(queue, compiler).runNext(ns);
+    await queue.rebuild(ns); await new WikiCompiler(queue, compiler).runNext(ns);
     expect(store.diagnostics().pages).toBe(0);
   } finally { await app.close(); store.close(); rmSync(root, { recursive: true, force: true }); }
 });
