@@ -12,19 +12,22 @@ from hermes_agui.storage.isolated_service import IsolatedAgentService
 
 
 class DurableHostRuns:
-    def __init__(self, runs, profiles, scope, bot, *, scratch, approved, graph_completions=False):
+    def __init__(self, runs, profiles, scope, bot, *, scratch, approved, graph_completions=False,
+                 managed_revision=None, template_skills=frozenset()):
         self.runs, self.profiles, self.scope = runs, profiles, scope
         self.bot = bot
         self.graph_completions = graph_completions
         self.scratch, self.approved = scratch, approved
+        self.managed_revision = managed_revision
+        self.template_skills = template_skills
 
     async def execute(self, run, execute_native):
         if run.stop.is_set():
             return {"interrupted": True}
         turn = run.turn
-        lease = await asyncio.to_thread(
-            self.runs.begin, self.scope, turn.thread_id, turn.run_id, uuid4(), 90,
-        )
+        options = {"managed_revision": self.managed_revision} if self.managed_revision else {}
+        lease = await asyncio.to_thread(self.runs.begin, self.scope, turn.thread_id, turn.run_id, uuid4(), 90,
+                                        **options)
         if lease is None:
             return {"failed": True}
         lost = asyncio.Event()
@@ -59,6 +62,9 @@ class DurableHostRuns:
             if manifest is not None:
                 await asyncio.to_thread(self.profiles.hydrate, self.scope, manifest, home,
                                         approved=self.approved)
+            if manifest is None or self.managed_revision:
+                await asyncio.to_thread(self.profiles.seed_template, self.bot.agent.home, home,
+                                        approved=self.approved | self.template_skills, replace=manifest is not None)
             config = await asyncio.to_thread(self._configure, home)
             if run.stop.is_set():
                 result = {"interrupted": True}

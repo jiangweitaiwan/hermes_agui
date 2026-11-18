@@ -11,7 +11,7 @@ from hermes_agui.storage.runs import PostgresRunStore
 
 class HostStorage:
     def __init__(self, pool, profiles, project, scratch, approved, *, graph_completions=False):
-        self.runs = PostgresRunStore(pool, publish_completions=True)
+        self.runs = PostgresRunStore(pool, publish_completions=graph_completions)
         self.profiles, self.project, self.scratch = profiles, project, scratch
         self.approved = approved
         self.graph_completions = graph_completions
@@ -22,7 +22,7 @@ class HostStorage:
     def close(self):
         self.runs.pool.close()
 
-    def for_bot(self, bot):
+    def for_bot(self, bot, managed_revision=None, template_skills=frozenset(), managed_skill_names=frozenset()):
         tools = bot.agent.enabled_toolsets
         if tools is None or not set(tools) <= {"memory", "skills"}:
             raise ValueError("Durable Bots require an explicit memory/skills toolset allowlist")
@@ -32,16 +32,18 @@ class HostStorage:
             raise ValueError("Durable Host and Runtime Graph projects must match")
         # Provisioning supplies this row. Do not create it from run input.
         self.runs.profile(scope)
-        return DurableHostRuns(self.runs, self.profiles, scope, bot,
-                               scratch=self.scratch, approved=self.approved.get(bot.bot_id, frozenset()),
-                               graph_completions=self.graph_completions)
+        approved = frozenset(path for path in self.approved.get(bot.bot_id, ())
+                             if not (path.startswith("skills/") and path.split("/")[1] in managed_skill_names))
+        return DurableHostRuns(self.runs, self.profiles, scope, bot, scratch=self.scratch,
+                               approved=approved, graph_completions=self.graph_completions,
+                               managed_revision=managed_revision, template_skills=template_skills)
 
 
 def open_host_pool(pool):
     pool.open(wait=True, timeout=10)
     with pool.connection() as connection:
         row = connection.execute("SELECT max(version) FROM hermes_agui_host.schema_version").fetchone()
-        if row != (3,):
+        if row not in {(3,), (4,)}:
             raise RuntimeError("Apply the Host storage migrations before starting")
 
 

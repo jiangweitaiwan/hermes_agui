@@ -37,8 +37,17 @@ class PostgresRunStore:
         self.pool = pool
         self.publish_completions = publish_completions
 
-    def begin(self, scope: BotScope, thread_id: str, run_id: str, attempt: UUID, seconds: int) -> RunLease | None:
+    def begin(self, scope: BotScope, thread_id: str, run_id: str, attempt: UUID, seconds: int,
+              *, managed_revision: UUID | None = None) -> RunLease | None:
         with self.pool.connection() as conn:
+            if managed_revision is not None:
+                key = (scope.project, scope.principal, scope.bot)
+                conn.execute("""SELECT 1 FROM hermes_agui_host.bot_state
+                    WHERE (project,principal,bot)=(%s,%s,%s) FOR UPDATE""", key)
+                if conn.execute("""SELECT 1 FROM hermes_agui_host.managed_bots
+                    WHERE (project,principal,bot)=(%s,%s,%s) AND revision=%s AND status='active'""",
+                    (*key, managed_revision)).fetchone() is None:
+                    return None
             row = conn.execute("SELECT hermes_agui_host.begin_run(%s,%s,%s,%s,%s,%s,%s)",
                                (scope.project, scope.principal, scope.bot, thread_id, run_id, attempt, seconds)).fetchone()
         return None if row[0] is None else RunLease(scope, run_id, attempt, row[0])

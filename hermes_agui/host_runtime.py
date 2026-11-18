@@ -16,14 +16,14 @@ class HostRuntime:
         self.max_active_runs = max_active_runs
         self.storage = storage
 
-    def register_bot(self, bot):
+    def register_bot(self, bot, *, managed_revision=None, template_skills=frozenset(), managed_skill_names=frozenset()):
         if bot.bot_id in self.registry and bot.bot_id in self.adapters:
             raise AdmissionError(409, "Bot already registered")
         validate_bots([b for key, b in self.registry.items() if key != bot.bot_id] + [bot], None,
                       self.max_active_runs)
         bot = self._with_delegation(bot)
         try:
-            adapter = self._create_adapter(bot)
+            adapter = self._create_adapter(bot, managed_revision, template_skills, managed_skill_names)
         except Exception:
             self._remove_tool(bot)
             raise
@@ -31,13 +31,14 @@ class HostRuntime:
         self.adapters[bot.bot_id] = adapter
         self.disabled.discard(bot.bot_id)
 
-    def _create_adapter(self, bot):
+    def _create_adapter(self, bot, managed_revision, template_skills, managed_skill_names):
         def capacity():
             return sum(len(a.active) for a in self.adapters.values()) < self.max_active_runs
 
         if self.storage is not None:
             return AgentAdapter(None, bot.server, bot_id=bot.bot_id, host_has_capacity=capacity,
-                                delegation=self.delegation, durable_runs=self.storage.for_bot(bot))
+                                delegation=self.delegation, durable_runs=self.storage.for_bot(
+                                    bot, managed_revision, template_skills, managed_skill_names))
         receipts = ReceiptStore(bot.agent.home, bot.agent.principal, bot.server.max_receipts)
         options = {"authorize": bot.authorize} if bot.authorize else {}
         service = self.service_factory(bot.agent, max_workers=bot.server.max_active_runs,

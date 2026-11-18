@@ -37,7 +37,7 @@ export class PostgresBotRegistry implements Registry {
     const { principal, projectId } = owner;
     const { token, memoryKey } = this.credentials(id, owner);
     return { principal: storedPrincipal, record, runtime: { agentUrl: this.agentUrl(id), token, memory: { key: memoryKey, principal, projectId } },
-      spec: { id, name, description, templateId, skills, toolsets, principal, projectId, token, memoryKey } };
+      spec: { id, name, description, templateId, skills, toolsets, principal, projectId, ownerId: owner.ownerId, token, memoryKey } };
   }
   async refresh() {
     const { rows } = await (this.writer ?? this.pool).query<{ record: BotRecord; principal: string }>(

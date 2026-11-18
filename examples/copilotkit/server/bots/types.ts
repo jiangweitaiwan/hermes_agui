@@ -21,6 +21,7 @@ export interface BotRecord extends BotInput {
 export interface HostSpec {
   id: string; name: string; description: string; templateId: string; principal: string; projectId: string;
   token: string; memoryKey: string; skills: string[]; toolsets: string[];
+  ownerId?: string;
 }
 export interface StoredBot { record: BotRecord; runtime: RuntimeSettings; spec?: HostSpec; principal?: string }
 export interface BotTemplate {

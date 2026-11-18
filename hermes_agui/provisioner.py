@@ -18,6 +18,7 @@ class BotSpec(BaseModel):
     templateId: str = Field(min_length=1, max_length=64)
     principal: str = Field(min_length=1, max_length=512)
     projectId: str = Field(min_length=1, max_length=512)
+    ownerId: str | None = Field(default=None, min_length=1, max_length=512)
     token: str = Field(min_length=16, max_length=512, repr=False)
     memoryKey: str = Field(min_length=16, max_length=512, repr=False)
     skills: list[str] = Field(default_factory=list, max_length=32)

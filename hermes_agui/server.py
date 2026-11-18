@@ -61,8 +61,7 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
     if not registry and (management is None or default_bot is not None):
         raise ValueError("Configure Bots or managed provisioning")
     configured_bots = list(registry.values())
-    if storage is not None and management is not None:
-        raise ValueError("Durable Host requires static Bots")
+    configured_ids = frozenset(registry)
     host = HostRuntime(registry, service_factory, delegation, max_active_runs, storage)
 
     @asynccontextmanager
@@ -77,10 +76,15 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
             for bot in configured_bots:
                 host.register_bot(bot)
             if management:
-                from hermes_agui.management import HostManagement
+                if storage is None:
+                    from hermes_agui.management import HostManagement
 
-                app.state.management = HostManagement(management, host)
-                app.state.management.restore()
+                    app.state.management = HostManagement(management, host)
+                    app.state.management.restore()
+                else:
+                    from hermes_agui.storage.managed_bots import DurableHostManagement
+
+                    app.state.management = DurableHostManagement(management, host)
             if default_bot:
                 app.state.adapter = host.adapters[default_bot]
             yield
@@ -101,6 +105,11 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
 
     async def authenticate(request: Request, authorization: str | None = Header(default=None)):
         bot_id = request.path_params.get("bot_id", default_bot)
+        if management and storage is not None and bot_id is not None and bot_id not in configured_ids:
+            try:
+                return await app.state.management.resolve(bot_id, authorization)
+            except AdmissionError as exc:
+                raise HTTPException(exc.status, exc.detail) from None
         bot = registry.get(bot_id)
         if bot is None:
             raise HTTPException(404, "Unknown Bot")

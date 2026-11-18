@@ -101,6 +101,27 @@ class ProfileObjects:
     def _key(self, scope: BotScope, revision: str, path: str) -> str:
         return f"{self.prefix}/{scope.object_namespace()}/{revision}/{path}"
 
+    def seed_template(self, source: Path, root: Path, *, approved: frozenset[str], replace=False) -> None:
+        """Initialize an unpublished profile from the deployment's SOUL and approved skills."""
+        if len(_PROFILE_FILES | {"state.db"} | approved) > _MAX_FILES:
+            raise ValueError("Too many profile paths")
+        names = {"SOUL.md", *(name for name in approved if name.startswith("skills/"))}
+        remaining = _MAX_BYTES
+        for name in sorted(names):
+            path = _regular_file(source, _allowed_path(name, approved))
+            if path is None:
+                continue
+            with path.open("rb") as stream:
+                data = stream.read(remaining + 1)
+            remaining -= len(data)
+            if remaining < 0:
+                raise ValueError("Profile template exceeds byte quota")
+            target = root / name
+            target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with target.open("wb" if replace else "xb") as stream:
+                target.chmod(0o600)
+                stream.write(data)
+
     def stage(self, scope: BotScope, root: Path, *, approved: frozenset[str] = frozenset()) -> ProfileRevision:
         """Upload from a quiescent private directory and return an unpublished manifest."""
         root = root.absolute()

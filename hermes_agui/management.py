@@ -99,6 +99,13 @@ class HostManagement:
     def close(self):
         self.db.close()
 
+    def list_bots(self):
+        return [{"id": key, "status": value[1]} for key, value in self.specs.items()]
+
+    def status(self, bot_id):
+        previous = self.specs.get(bot_id)
+        return previous[1] if previous else None
+
 
 def mount_management(app, config):
     async def authenticate(request: Request):
@@ -111,14 +118,14 @@ def mount_management(app, config):
 
     @app.get("/internal/bots")
     async def list_bots(manager=Depends(authenticate)):
-        return [{"id": key, "status": value[1]} for key, value in manager.specs.items()]
+        return manager.list_bots()
 
     @app.get("/internal/bots/{bot_id}")
     async def get_bot(bot_id: str, manager=Depends(authenticate)):
-        previous = manager.specs.get(bot_id)
-        if previous is None:
+        status = manager.status(bot_id)
+        if status is None:
             raise HTTPException(404, "Unknown managed Bot")
-        return {"id": bot_id, "status": previous[1]}
+        return {"id": bot_id, "status": status}
 
     @app.put("/internal/bots/{bot_id}")
     async def register_bot(bot_id: str, spec: BotSpec, manager=Depends(authenticate)):

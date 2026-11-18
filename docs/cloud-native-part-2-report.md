@@ -1,23 +1,45 @@
 # Cloud-native Part 2 前置驗收報告
 
-**結論：Part 1 未通過服務端驗收，Part 2 尚未開始。** 查核基準為 `e9408177d4d23adfca1a3d4bc780350da87c4b84`，開始時工作樹乾淨。已完整核對 [Part 1 計畫](CLOUD_NATIVE_PART_1.md)、[Part 1 實作與驗收報告](cloud-native-part-1-report.md)、[Part 2 計畫](CLOUD_NATIVE_PART_2.md)及 [儲存盤點](cloud-native-inventory.md)。本次變更僅包含此報告。
+查核基準為 `ab24d4adac6c39b7d3074c2d90fad49388775533`，開始時工作樹乾淨。
+依 [Part 1 計畫](CLOUD_NATIVE_PART_1.md)、[Part 1 實作報告](cloud-native-part-1-report.md)、
+[儲存盤點](cloud-native-inventory.md)及 [Part 2 計畫](CLOUD_NATIVE_PART_2.md)查核現行程式碼。
 
-| 第一階段閘門 | 目前程式碼與驗收證據 | 結果 |
-| --- | --- | --- |
-| 原生 session、profile 與 run lease | `ProfileObjects` 已有 native SQLite 快照與 hydration，`PostgresRunStore` 已有 fenced lease 與 manifest CAS。現有引用限於測試。正式 Host 執行路徑仍在 `hermes_agui/host_runtime.py` 建立本機 `ReceiptStore`，終止事件前的 profile checkpoint 尚未接線。 | 未通過 |
-| Registry 與資料遷移 | `hermes_agui/management.py` 仍使用 `registry.sqlite3`，`examples/copilotkit/server/bots/registry.ts` 仍使用 `node:sqlite`。現有 PostgreSQL migration 只建立 Host run 與 bot state，缺少 Runtime registry、credential reference、雙 registry 對帳及離線遷移 CLI。 | 未通過 |
-| Graph 儲存及 durable job/outbox | `examples/copilotkit/server/graph/wiki-store.ts` 仍使用同步 SQLite transaction。缺少 PostgreSQL metadata 與繁中搜尋、GCS graph revision 發布，以及 Part 2 Cloud Tasks 所需的 durable job/outbox 與共用 job 執行入口。 | 未通過 |
-| 跨服務重建、隔離及故障恢復 | 先前的快照測試在新目錄驗證原生續聊、memory 和 skill。仍缺少兩服務移除 writable layer 後的端到端重建，以及正式持久化路徑上的跨 scope、終止前中斷及 job 重試驗收。 | 未執行 |
+**Part 1 整體閘門未通過。** 目前已有靜態 Host 持久化和 Runtime PostgreSQL registry，
+但動態 Bot 和 Graph Memory 還不能一併從外部儲存重建。Part 2 實作及最終驗收須等這項前置條件達成。
 
-後續修補應沿用 `hermes_agui/storage/{objects,profile,runs}.py`、`hermes_agui/storage/migrations/001_host.sql`、`tests/hermes_agui/test_profile_objects.py`、`tests/hermes_agui/postgres_storage_probe.py` 與 `examples/copilotkit/tests/fixtures/wiki-evaluate.ts`。保留原生 SQLite snapshot 契約和其已記載的 crash window，先接通服務端持久化與隔離，再重跑第一階段驗收。兩階段計畫以這項驗收作為開始 Part 2 的條件。
+## 第一階段閘門
 
-## 本次重跑
-
-| 命令 | 結果 |
+| 項目 | 判定與證據 |
 | --- | --- |
-| `scripts/run_tests.sh tests/hermes_agui` | PM 初始化嘗試寫入使用者的 Hermes home，被 sandbox 拒絕。 |
-| `HERMES_PYTHON="$PWD/.venv/bin/python" scripts/run_tests.sh tests/hermes_agui` | 在 sandbox 內有 23 個測試檔因 `PermissionError` 無法啟動。允許本機程序與 loopback 後，20 項通過（含 3 項 profile 快照測試）、0 項 assertion 失敗，15 個檔案因缺少 `ag_ui` 在收集時出錯。整體 exit code 為 1。 |
-| 在 `examples/copilotkit` 執行 `npm test -- --reporter=dot` | 目前環境找不到 `npm`，Vitest 未執行。 |
-| `python -m tests.hermes_agui.postgres_storage_probe` | 未執行。本機測試環境缺少 `psycopg` 和 PostgreSQL CLI，先前 adapter probe 的通過紀錄見 Part 1 報告。 |
+| 靜態 Host 與原生 session | `hermes_agui/host_runtime.py` 已接上 durable run 路徑。`ProfileObjects` 沿用原生 SQLite 一致性快照；`PostgresRunStore` 在成功回合終止前提交 manifest 與 completion outbox。工具副作用至回合提交之間仍有快照未更新的窗口。 |
+| 動態 provisioning | **部分覆蓋。** Runtime 和 opt-in 動態 Host 均有 PostgreSQL registry，使用相同秘密 seed 派生憑證。Host 在 run admission 核對 Bot revision。跨服務 operation ID 和全量對帳仍待完成。 |
+| Graph 持久化與 job | **未通過。** Host outbox 已可交付 `SessionIngestor`，`compiler.ts` 已有 scoped `processJob`，但 `wiki-store.ts` 與 `ingest-queue.ts` 仍依賴本機 SQLite 與檔案。目前 `application.ts` 會拒絕同時啟用 PostgreSQL Bot registry 和 Graph evolution。缺少 Graph PostgreSQL/GCS 發布、索引與可跨實例接管的 job store。 |
+| 完整遷移與對帳 | **未通過。** 已有 Host managed profile／registry 與 Runtime metadata 的離線匯入命令。完整 thread 歷史、Graph 資料及跨服務全量對帳仍待完成。 |
+| 雙服務重建與隔離 | **部分覆蓋。** 既有測試以真 PostgreSQL 和 filesystem object adapter 驗證靜態 Host 委派、提交後回放 Graph ingestion 與同 thread 續聊。該情境保留 Graph store，尚無清除兩服務容器可寫層後復原動態 Bot、原生記憶／技能及 Graph 的驗收紀錄。 |
 
-Part 2 的最終驗收、GCP／Cloud Run／Vercel 部署教學與部署均待前置條件達成。雲端案例均為 NOT RUN，沒有部署 URL，也未建立付費資源。
+接續 Part 1 應沿用 `hermes_agui/storage/` 的 object/profile/run/outbox adapters、
+Runtime 的 PostgreSQL registry 與 mappings、Graph compiler 的 `processJob`，
+以及 `test_profile_objects.py`、`test_delegation.py`、`test_dynamic_runtime.py`、
+`postgres_storage_probe.py` 和繁中 `wiki-evaluate.ts` fixture。
+
+## 本輪重驗
+
+使用既有 Hermes PM 測試直譯器、Node 22.18.0 和一次性本機 PostgreSQL Unix socket，
+沿用 Host 與 Runtime migration 001–003。初次啟動 PostgreSQL 時 sandbox 拒絕建立共享記憶體；
+允許本機共享記憶體及 loopback 後成功啟動測試。Docker CLI 可用，但 daemon 未連線。
+
+| 命令與範圍 | 結果 |
+| --- | --- |
+| `python -m tests.hermes_agui.postgres_storage_probe` | PASS。真 PostgreSQL 上驗證 run admission、fencing、profile CAS、outbox 及 scope 隔離。 |
+| `scripts/run_tests.sh tests/hermes_agui` | PASS。23 檔、88 項通過、0 失敗。含 PostgreSQL 靜態 Host 委派／續聊、Runtime registry 與 profile snapshot。Docker 情境未執行。 |
+| `npm test -- --reporter=dot`（CopilotKit，含 PostgreSQL 測試庫） | PASS。16 檔、105 項全數通過。 |
+| `npm run build`（CopilotKit） | PASS。TypeScript 與 Vite 完成，Vite 回報部分 chunk 超過 500 kB。 |
+| `node --import tsx tests/fixtures/wiki-evaluate.ts`（CopilotKit） | PASS。既有 SQLite 繁中 fixture 的 recall@3 為 keyword 0.50、hybrid 0.9167、hybrid + graph 1.00。 |
+| `npm run test:e2e`（預設與指定模式） | PASS。首輪缺少 Playwright 指定的 Chromium，改用已安裝的 Chrome 重跑。預設 6 通過、4 條件跳過。指定 Graph、動態 Bot、多 Bot 模式分別通過 3、2、1 項，覆蓋預設跳過的案例。 |
+| 刪除雙服務容器可寫層後重建 | NOT RUN。Docker daemon 未連線，且現行 Graph 持久化與動態 Host provisioning 尚未接通外部儲存。 |
+| Part 2 雲端最終驗收 | NOT RUN。包含真 GCS/IAM、Cloud Tasks、分散式 replay/cancel、Firebase/Vercel E2E、還原與成本負載測試。 |
+
+GCP、Cloud Run、Vercel 正式部署教學須根據第二階段完成後的實際入口、服務身分、
+migration、環境變數與 smoke test 編寫。目前的靜態 Host 與 Runtime 設定可查
+[Part 1 實作報告](cloud-native-part-1-report.md)及[既有 AG-UI 部署文件](agui-deployment.md)。
+本輪未建立付費資源或部署服務，沒有部署 URL。

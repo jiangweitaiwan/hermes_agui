@@ -329,3 +329,77 @@ PostgreSQL 案例檢查 Runtime 沒有建立 registry SQLite 檔。Hermes Host �
 最終 Runtime 回歸在 PostgreSQL 18.6 通過 16 檔、105 項。真 Hermes Host 搭配 fake LLM
 的跨語言整合兩種模式皆通過，共 2 項，無跳過。TypeScript、Vite production build、
 Ruff 與 `git diff --check` 通過。Vite 仍回報既有 chunk 大小警告。
+
+## 靜態 Host 首次快照初始化
+
+在 `ab24d4adac6c39b7d3074c2d90fad49388775533` 的基礎上補齊首次回合的模板初始化。
+當 scope 尚無已發布 manifest，Host 取得 lease 後，會把可信部署模板的 `SOUL.md` 與
+`storage.approved_files` 核准的技能檔複製到私有執行目錄。後續回合使用已發布版本。
+既有 profile 的資料匯入仍使用 `import_profile`，以保存原生資料庫與原始 session identity。
+
+沿用 `tests/hermes_agui/test_profile_objects.py` 的隔離 worker 和 fake LLM。
+測試刪除原 profile 後用同一 thread 續聊，確認原始對話、system prompt 與原生技能可用。
+此測試檔共 4 項通過。Ruff 與 `git diff --check` 通過。
+真 PostgreSQL storage probe 通過。使用同一座一次性資料庫重跑
+`scripts/run_tests.sh tests/hermes_agui/test_delegation.py tests/hermes_agui/test_dynamic_runtime.py`，
+4 項通過，涵蓋靜態 durable Host 與 PostgreSQL Runtime registry。動態 Runtime 情境仍使用本機 Host registry。
+
+第一階段整體驗收仍有待完成。Host 動態 provisioning registry、Graph PostgreSQL/GCS
+與耐久 job、完整遷移與對帳仍有缺口。Docker daemon 未連線，本次未執行雙服務容器重建。
+
+## 動態 Host PostgreSQL registry 與 Bot 匯入
+
+將 Host migration 001–004 依序套用至 Host DB，Runtime 套用其既有 001–003。
+Host DB 應用程式角色須能讀寫 `hermes_agui_host.managed_bots`，以及依既有 lease/profile 路徑
+讀寫 `bot_state`。Host 的 `management` 與 `storage` 可同時配置，並由秘密環境變數注入
+與 Runtime 相同的 `AGUI_BOT_CREDENTIAL_SEED`。此模式以 Host 的單一 `storage.project`
+作為管理範圍。同一 Host 內可有多位 owner，Runtime 管理身分的 project 必須與 Host 相符。
+
+Host 只在 PostgreSQL 保存 Bot scope、模板、能力、生命週期和 revision。Runtime 與 Host 使用
+同一組 HMAC 派生 Bot bearer 與 memory key。每次解析 Bot 會讀取權威狀態，durable run
+取得 lease 時再核對 revision。更新／停用會在同一 scope 的 profile row 上與 run admission
+互斥。相同規格的重送會維持原 revision，刪除會保留 tombstone。Runtime 已有的啟動 reconcile
+可以重送相同規格。目前仍缺以跨服務 operation ID 追蹤及對帳延遲寫入的協定。
+managed 模板技能由 deployment 重建，Bot 自己的記憶與其他核准檔案使用原有快照機制。
+動態 Host 以管理規格生成 `SOUL.md`。若舊 profile 有手動自訂 persona，切換前須對照 Bot 設定。
+
+### 離線匯入既有 Bot
+
+先停止兩服務的相關 writer，留存 SQLite 一致性備份及各 Bot 的 profile 備份。
+先在隔離 DB/bucket 驗證。從已知 Runtime owner/project 對照 Host registry，確認 Bot ID、
+principal 和模板一致。對每個 native Bot 使用既有匯入命令新增的參數：
+
+```sh
+python -m hermes_agui.storage.import_profile \
+  --source /backup/managed/bot-id/home \
+  --project staging --principal alice --bot bot-id \
+  --session-home-identity /original/managed/bot-id/home \
+  --managed-registry /backup/managed/registry.sqlite3 --owner-id alice-owner \
+  --dry-run
+```
+
+加入需保存的個別 `--approve` 路徑。模板供應的技能由目標模板重建。
+移除 `--dry-run` 會使用 Host DB 和 GCS 設定，驗證不可變物件後一併發布 profile 與 registry。
+同 scope 已存在時停止，需先用原本的匯入輸出對帳，避免覆蓋線上寫入。
+
+接著在 `examples/copilotkit` 執行 Runtime registry 的 metadata 匯入：
+
+```sh
+node --import tsx server/storage/import-bot-registry.ts \
+  --source /backup/runtime-registry.sqlite3 --config /deploy/bots.json --dry-run
+```
+
+確認 scope、數量與 SHA-256 後移除 `--dry-run`，以 `AGUI_RUNTIME_DATABASE_URL` 寫入目標。
+匯入會驗證授權身分、模板、能力、委派目標及寫入對帳，相同資料可重跑，遇到衝突會回滾。
+舊版隨機憑證留在離線來源備份，切換後由 Host 與 Runtime 共同派生新憑證。
+尚未提供 Graph 備份匯入、歷史 thread 完整盤點、兩服務的全量對帳，或雙服務容器重建的整體驗收。
+
+| 本輪驗收 | 結果 |
+| --- | --- |
+| PostgreSQL storage probe 與 Python 聚焦整合 | PASS。4 檔、12 項通過。雙 Host 副本讀取相同 registry，遠端停用後舊 revision 無法取得 lease，移除 managed root 後同 thread 續聊。首輪發現未啟用 Graph 的 Host 仍寫入空 outbox，已改由 `graph_completions` 控制並重跑通過。 |
+| Runtime Vitest、TypeScript 及 Vite | PASS。16 檔、105 項測試通過。Vite 有既有 chunk 大小警告。 |
+| Runtime 匯入 | PASS。一次性 PostgreSQL 的 dry-run、寫入與重跑回報相同數量及 checksum。 |
+| Managed Host 匯入 | PASS。使用真 PostgreSQL 與 filesystem object adapter，驗證 manifest、原始 session identity、憑證欄位排除及重複匯入拒絕。 |
+| 整體重建與 GCS | NOT RUN。Docker daemon 未連線。Graph PostgreSQL/GCS adapter 與跨實例 job 尚未完成。 |
+
+第一階段整體驗收仍未通過。

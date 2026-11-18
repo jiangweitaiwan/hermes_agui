@@ -128,3 +128,79 @@ def test_active_run_prevents_unload_and_reconfiguration(tmp_path, native_config)
             from tests.waiting import wait_until
             wait_until(lambda: not adapter.active, timeout=5)
             assert client.delete("/internal/bots/bot-alpha", headers=ADMIN).status_code == 200
+
+
+def test_postgres_managed_host_rebuilds_and_observes_remote_disable(tmp_path, native_config, monkeypatch):
+    import hashlib
+    import hmac
+    import json
+    import os
+    from shutil import rmtree
+    from urllib.parse import urlencode
+    from uuid import uuid4
+
+    import pytest
+
+    from hermes_agui.storage.host_settings import HostStorage
+    from hermes_agui.storage.objects import FilesystemObjects
+    from hermes_agui.storage.profile import ProfileObjects
+
+    socket = os.environ.get("HERMES_AGUI_TEST_DB_SOCKET")
+    if not socket:
+        pytest.skip("Requires disposable PostgreSQL with Host migrations")
+    pool_type = pytest.importorskip("psycopg_pool").ConnectionPool
+    url = "postgresql://hermes@localhost/postgres?" + urlencode({"host": socket})
+    seed = bytes.fromhex("93" * 32)
+    monkeypatch.setenv("AGUI_BOT_CREDENTIAL_SEED", seed.hex())
+    project = str(uuid4())
+    bot = spec(projectId=project, ownerId="registered-owner")
+
+    def credential(purpose):
+        value = json.dumps([purpose, bot["ownerId"], project, bot["principal"], bot["id"]],
+                           separators=(",", ":")).encode()
+        return hmac.new(seed, value, hashlib.sha256).hexdigest()
+
+    bot.update(token=credential("host-token"), memoryKey=credential("memory-key"))
+    management_path = f"/internal/bots/{bot['id']}"
+    agent_path = f"/bots/{bot['id']}/agent"
+    bearer = {"Authorization": f"Bearer {bot['token']}"}
+
+    with FakeLLMServer([Text("persisted response"), Text("resumed response")]) as provider:
+        config = settings(tmp_path, native_config, provider)
+        objects = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
+
+        def app():
+            pool = pool_type(url, min_size=1, max_size=4, open=False)
+            storage = HostStorage(pool, objects, project, None, {})
+            return create_host([], management=config, storage=storage)
+
+        def chat(client, run_id, message):
+            reply = client.post(agent_path, headers=bearer, json=payload(threadId="shared-thread",
+                runId=run_id, messages=[{"id": run_id, "role": "user", "content": message}]))
+            assert events(reply)[-1]["type"] == "RUN_FINISHED", reply.text
+
+        first_app, other_app = app(), app()
+        with TestClient(first_app) as first, TestClient(other_app) as other:
+            assert first.put(management_path, headers=ADMIN, json={**bot, "token": "wrong" * 8}).status_code == 422
+            assert first.put(management_path, headers=ADMIN, json=bot).status_code == 200
+            assert first.put(management_path, headers=ADMIN, json=bot).status_code == 200
+            assert other.get(management_path, headers=ADMIN).json()["status"] == "active"
+            chat(other, "first", "retain the original message")
+            stale = other_app.state.adapters[bot["id"]].durable_runs
+            assert first.post(management_path + "/disable", headers=ADMIN).status_code == 200
+            assert stale.runs.begin(stale.scope, "shared-thread", "stale", uuid4(), 90,
+                                    managed_revision=stale.managed_revision) is None
+            assert other.post(agent_path, headers=bearer, json=payload()).status_code == 409
+            assert first.put(management_path, headers=ADMIN, json=bot).status_code == 200
+        rmtree(config.root)
+        with TestClient(app()) as restarted:
+            chat(restarted, "second", "continue the same thread")
+            assert restarted.delete(management_path, headers=ADMIN).status_code == 200
+            assert restarted.put(management_path, headers=ADMIN, json=bot).status_code == 409
+        messages = provider.main_requests()[-1]["messages"]
+        assert "retain the original message" in str(messages)
+        assert "persisted response" in str(messages)
+        with pool_type(url, min_size=1, max_size=1) as pool, pool.connection() as conn:
+            stored, = conn.execute("SELECT spec FROM hermes_agui_host.managed_bots WHERE project=%s",
+                                   (project,)).fetchone()
+        assert "token" not in stored and "memoryKey" not in stored

@@ -115,7 +115,7 @@ export class BotManager {
       };
       if (!runtime?.agentUrl || !runtime.token) throw new BotError(422, "Template has no approved endpoint");
       const spec = template.harness === "hermes" ? { id, name: input.name, description: input.description, templateId: template.id, principal: identity.principal,
-        projectId: identity.projectId, token, memoryKey, skills: input.skills, toolsets: input.toolsets } : undefined;
+        projectId: identity.projectId, ownerId: identity.ownerId, token, memoryKey, skills: input.skills, toolsets: input.toolsets } : undefined;
       return this.provision({ record, runtime, spec });
     });
   }

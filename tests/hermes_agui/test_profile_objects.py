@@ -49,13 +49,21 @@ async def test_durable_host_run_rehydrates_native_history(tmp_path, native_confi
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     homes = []
-    with FakeLLMServer([Text("before restart"), Text("after restart")]) as model:
+    skill_path = "skills/analyst/SKILL.md"
+    soul = "Use the project notebook."
+    skill = "---\nname: analyst\ndescription: Notebook analysis\n---\nRead the notebook index.\n"
+    with FakeLLMServer([Text("before restart"), ToolCall("skill_view", {"name": "analyst"}),
+                        Text("after restart")]) as model:
         for index, prompt in enumerate(("keep this history", "continue the thread")):
             config = replace(native_config(model, name=f"deployment-{index}"),
                              api_key="fixture-key")
+            if index == 0:
+                (config.home / "SOUL.md").write_text(soul, encoding="utf-8")
+                (config.home / skill_path).parent.mkdir(parents=True, exist_ok=True)
+                (config.home / skill_path).write_text(skill, encoding="utf-8")
             bot = SimpleNamespace(agent=config, authorize=None)
             lifecycle = DurableHostRuns(store, objects, scope, bot,
-                                        scratch=scratch, approved=frozenset())
+                                        scratch=scratch, approved=frozenset({skill_path}))
             run = SimpleNamespace(
                 turn=SimpleNamespace(thread_id="thread", run_id=str(index), text=prompt),
                 stop=asyncio.Event(), bridge=SimpleNamespace(failed=False),
@@ -63,16 +71,20 @@ async def test_durable_host_run_rehydrates_native_history(tmp_path, native_confi
             result = await lifecycle.execute(run, execute_native)
             assert result.get("completed")
             assert store.manifest is not None
+            assert {item.path for item in store.manifest.files} >= {"SOUL.md", skill_path, "state.db"}
             assert not list(scratch.iterdir())
+            rmtree(config.home)
 
         assert homes[0] != homes[1]
         contents = [message.get("content") for message in model.main_requests()[-1]["messages"]]
         assert "keep this history" in contents
         assert "before restart" in contents
+        assert any("Read the notebook index." in str(content) for content in contents)
         requests = model.main_requests()
         prompts = [[message["content"] for message in request["messages"] if message["role"] == "system"]
                    for request in requests]
-        assert len(prompts) == 2 and prompts[0] and prompts[0] == prompts[1]
+        assert len(prompts) == 3 and prompts[0] == prompts[1] == prompts[2]
+        assert any(soul in prompt for prompt in prompts[0])
 
 
 class ImmutableObjects:
