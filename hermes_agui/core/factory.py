@@ -26,6 +26,7 @@ class AgentConfig:
     agent_options: dict[str, Any] = field(default_factory=dict, repr=False)
     # An imported profile keeps its original identity input after relocation.
     session_home_identity: str | None = None
+    ephemeral_workspace: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "home", Path(self.home).expanduser().resolve())

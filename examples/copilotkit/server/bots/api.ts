@@ -65,6 +65,7 @@ export function createBotApi(manager: BotManager, auth: BotAuthentication) {
       if (path === "/api/bot-session" && request.method === "DELETE") return auth.logout(request);
       const identity = auth.authenticate(request);
       if (!identity) throw new BotError(401, "Authentication required");
+      if (request.method === "GET") await manager.sync();
       return await dispatch(request, path, identity);
     } catch (error) {
       return Response.json({ error: error instanceof BotError ? error.message : "Bot management unavailable" },

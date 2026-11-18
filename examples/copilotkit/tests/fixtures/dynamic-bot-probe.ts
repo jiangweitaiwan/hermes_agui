@@ -8,7 +8,9 @@ import type { BotRecord } from "../../server/bots/types";
 
 const [hostUrl, registryPath, portText] = process.argv.slice(2);
 const graph = new FakeGraphProvider([]);
-const management = { registryPath, hostUrl, hostToken: "host-manager-secret",
+const databaseUrl = process.env.TEST_BOT_REGISTRY_DATABASE_URL;
+const postgres = databaseUrl ? { url: databaseUrl, credentialSeed: "93".repeat(32) } : undefined;
+const management = { registryPath, postgres, hostUrl, hostToken: "host-manager-secret",
   users: [{ ownerId: "owner", principal: "owner", projectId: "alpha", token: "owner-token" }],
   templates: [{ id: "native", name: "Native", harness: "hermes" as const, model: "fake-model", provider: "custom",
     skills: [], toolsets: ["memory", "skills"] }],
@@ -75,8 +77,8 @@ try {
   if (!denied.includes("Delegation denied")) throw new Error("Disabled delegation target was admitted");
   await api(`/${child.id}/enable`, "POST");
   // Reopen the persistent Runtime registry while the Host remains online.
-  app.close();
   await stopInternal(internal);
+  await app.close();
   app = createApplication({}, options);
   await app.ready;
   internal = await startInternal();
@@ -88,6 +90,6 @@ try {
   if (listed.some(bot => bot.id === child.id) || !listed.some(bot => bot.id === parent.id)) throw new Error("Soft delete failed");
   process.stdout.write(JSON.stringify({ parent: parent.id, child: child.id }));
 } finally {
-  app.close();
   await stopInternal(internal);
+  await app.close();
 }

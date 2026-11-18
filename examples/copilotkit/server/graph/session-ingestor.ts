@@ -19,7 +19,7 @@ export class SessionIngestor {
     try { return this.enqueue(value); }
     catch { this.metrics.errors++; return undefined; }
   }
-  private enqueue(value: Completion): string | undefined {
+  enqueue(value: Completion): string | undefined {
     const { namespace: ns, user, assistants } = value;
     if (ns.visibility !== "bot_private" || !this.authorized(ns)) return this.skip();
     const answer = assistants.map(a => a.text).join("\n\n");

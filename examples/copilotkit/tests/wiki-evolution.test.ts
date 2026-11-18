@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { WikiStore, namespaceKey } from "../server/graph/wiki-store";
 import { DocumentIngestor } from "../server/graph/ingest-queue";
 import { SessionIngestor, RunCompletionObserver } from "../server/graph/session-ingestor";
+import { createCompletionApi } from "../server/graph/completion-api";
 import { WikiCompiler, type CompilerLLM } from "../server/graph/compiler";
 import { WikiGraphProvider } from "../server/graph/provider";
 import { MemoryEvolution } from "../server/graph/evolution";
@@ -93,6 +94,34 @@ test("reasoning and unapproved tool output are excluded; repeated completion, re
   observe(new SessionIngestor(new DocumentIngestor(reopened)));
   expect(reopened.db.prepare("SELECT count(*) AS n FROM ingest_jobs").get()!.n).toBe(1);
 });
+test("a completion retries after storage failure and cannot republish after revocation", async () => {
+  const { store, queue, sessions } = setup();
+  const token = "completion-fixture-token-over-32-characters";
+  const api = createCompletionApi(sessions, token);
+  const body = { namespace: ns, threadId: "thread", runId: "durable-run", messageId: "user",
+    user: "Research database recovery", assistants: [{ id: "final", text: answer }] };
+  const deliver = () => api(new Request("http://internal/internal/graph/completions", {
+    method: "POST", headers: { authorization: `Bearer ${token}` }, body: JSON.stringify(body),
+  }));
+  store.db.exec("CREATE TRIGGER reject_completion BEFORE INSERT ON ingest_jobs BEGIN SELECT RAISE(ABORT, 'test'); END;");
+  await expect(deliver()).rejects.toThrow();
+  store.db.exec("DROP TRIGGER reject_completion");
+
+  expect((await deliver()).status).toBe(204);
+  const compiler = new WikiCompiler(queue, model);
+  const job = (await compiler.runNext(ns))!;
+  const active = store.active(namespaceKey(ns), "recovery");
+  expect(active).toBeDefined();
+  expect((await deliver()).status).toBe(204);
+  expect(await compiler.runNext(ns)).toBeUndefined();
+  expect(store.active(namespaceKey(ns), "recovery")).toEqual(active);
+
+  queue.revoke(ns, queue.status(ns, job).source);
+  expect((await deliver()).status).toBe(204);
+  expect(await compiler.runNext(ns)).toBeUndefined();
+  expect(store.active(namespaceKey(ns), "recovery")).toBeUndefined();
+});
+
 test("A learns; B sees nothing until explicit original-source sharing; C never sees it; revoke withdraws mixed pages and shared copies", async () => {
   const { store, queue, sessions } = setup();
   const provider = new WikiGraphProvider(store);

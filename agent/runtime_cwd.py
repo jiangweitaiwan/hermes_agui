@@ -9,6 +9,7 @@ logical cwd via `_SESSION_CWD`.
 
 import logging
 import os
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,16 @@ logger = logging.getLogger(__name__)
 _UNSET: Any = object()
 
 _SESSION_CWD: ContextVar = ContextVar("HERMES_SESSION_CWD", default=_UNSET)
+ephemeral_workspace: ContextVar[bool] = ContextVar("ephemeral_workspace", default=False)
+
+
+@contextmanager
+def bind_ephemeral_workspace(enabled: bool):
+    token = ephemeral_workspace.set(enabled)
+    try:
+        yield
+    finally:
+        ephemeral_workspace.reset(token)
 
 # The package/source root (<root>/agent/runtime_cwd.py). A backend launched from or
 # self-spawned into this tree (desktop default) must never let an os.getcwd() fallback

@@ -26,6 +26,22 @@ class DelegationConfig:
             raise ValueError("Invalid delegation configuration")
 
 
+@dataclass(frozen=True)
+class DelegationInvocation:
+    config: DelegationConfig
+    source: str
+    thread: str
+    run: str
+    depth: int
+    source_token: str = field(repr=False)
+
+
+async def _request_from_worker(invocation, payload):
+    # The isolated worker owns the HTTP connection. Killing the worker closes
+    # it, so the coordinator can observe the parent disconnect.
+    return await _request(invocation.config, invocation.source_token, payload, asyncio.Event())
+
+
 def register_tool(home):
     from tools.registry import registry
 
@@ -44,16 +60,20 @@ def _message_bot(args, **_kwargs):
     call_id = _approval_tool_call_id.get()
     if execution is None or not call_id:
         return json.dumps({"status": "denied"})
-    loop, config, source, thread, run, depth, stop, source_token = execution
-    if depth:
+    invocation, loop, stop = execution
+    if invocation.depth:
         return json.dumps({"status": "depth_exceeded"})
     target, task = args.get("target_bot_id"), args.get("task")
     if (not isinstance(target, str) or not isinstance(task, str) or not task.strip()
             or len(task.encode()) > 16384):
         return json.dumps({"status": "invalid_request"})
-    payload = {"sourceBotId": source, "threadId": thread, "runId": run,
+    payload = {"sourceBotId": invocation.source, "threadId": invocation.thread, "runId": invocation.run,
                "toolCallId": call_id, "targetBotId": target, "task": task}
-    future = asyncio.run_coroutine_threadsafe(_request(config, source_token, payload, stop), loop)
+    if loop is None:
+        return json.dumps(asyncio.run(_request_from_worker(invocation, payload)))
+    future = asyncio.run_coroutine_threadsafe(
+        _request(invocation.config, invocation.source_token, payload, stop), loop,
+    )
     return json.dumps(future.result())
 
 

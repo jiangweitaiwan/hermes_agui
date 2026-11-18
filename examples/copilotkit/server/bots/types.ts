@@ -22,7 +22,7 @@ export interface HostSpec {
   id: string; name: string; description: string; templateId: string; principal: string; projectId: string;
   token: string; memoryKey: string; skills: string[]; toolsets: string[];
 }
-export interface StoredBot { record: BotRecord; runtime: RuntimeSettings; spec?: HostSpec }
+export interface StoredBot { record: BotRecord; runtime: RuntimeSettings; spec?: HostSpec; principal?: string }
 export interface BotTemplate {
   id: string; name: string; harness: "hermes" | "remote_ag_ui";
   model: string; provider: string; skills: string[]; toolsets: string[];

@@ -48,7 +48,9 @@ export class DocumentIngestor {
       const prior = this.store.db.prepare("SELECT * FROM ingest_keys WHERE ns=? AND key=?").get(ns, input.idempotencyKey);
       if (prior) {
         if (prior.fingerprint !== fingerprint) throw new Error("Idempotency conflict");
-        this.source(this.status(namespace, String(prior.job)));
+        // A lost delivery acknowledgement must not reopen a revoked session source.
+        const job = this.status(namespace, String(prior.job));
+        if (!origin?.knowledgeHash) this.source(job);
         return String(prior.job);
       }
       const known = origin?.knowledgeHash ? this.store.db.prepare("SELECT job FROM session_knowledge WHERE ns=? AND hash=?").get(ns, origin.knowledgeHash) : undefined;
@@ -91,14 +93,17 @@ export class DocumentIngestor {
     if (!row) throw new Error("Unknown job in namespace");
     return row as unknown as Job;
   }
-  claim(ns: Namespace, now = Date.now(), leaseMs = 30000): Job | undefined {
+  claim(ns: Namespace, now = Date.now(), leaseMs = 30000, jobId: string | null = null): Job | undefined {
     return this.store.transaction(() => {
+      const namespace = namespaceKey(ns);
       // Expired final attempts enter dead-letter rather than spinning forever.
-      this.store.db.prepare("UPDATE ingest_jobs SET state='failed',error='lease_expired',token=NULL WHERE ns=? AND state='running' AND lease<=? AND attempt>=3")
-        .run(namespaceKey(ns), now);
-      const row = this.store.db.prepare(`SELECT * FROM ingest_jobs WHERE ns=? AND attempt<3 AND
-        ((state='pending' AND available<=?) OR (state='running' AND lease<=?)) ORDER BY rowid LIMIT 1`)
-        .get(namespaceKey(ns), now, now) as unknown as Job | undefined;
+      this.store.db.prepare(`UPDATE ingest_jobs SET state='failed',error='lease_expired',token=NULL
+        WHERE ns=? AND state='running' AND lease<=? AND attempt>=3 AND (? IS NULL OR id=?)`)
+        .run(namespace, now, jobId, jobId);
+      const row = this.store.db.prepare(`SELECT * FROM ingest_jobs WHERE ns=? AND attempt<3
+        AND (? IS NULL OR id=?) AND ((state='pending' AND available<=?) OR (state='running' AND lease<=?))
+        ORDER BY rowid LIMIT 1`)
+        .get(namespace, jobId, jobId, now, now) as unknown as Job | undefined;
       if (!row) return undefined;
       const token = randomUUID();
       this.store.db.prepare("UPDATE ingest_jobs SET state='running',attempt=attempt+1,token=?,lease=? WHERE id=?").run(token, now + leaseMs, row.id);
@@ -131,6 +136,11 @@ export class DocumentIngestor {
   fail(job: Job) {
     this.store.db.prepare("UPDATE ingest_jobs SET state=?,error='compile_failed',token=NULL,available=? WHERE id=? AND token=? AND state='running'")
       .run(job.attempt >= 3 ? "failed" : "pending", Date.now() + 1000 * 2 ** job.attempt, job.id, job.token);
+  }
+  cancelClaim(job: Job) {
+    this.store.db.prepare(`UPDATE ingest_jobs SET state='cancelled',token=NULL
+      WHERE ns=? AND id=? AND token=? AND state='running' AND lease>?`)
+      .run(job.ns, job.id, job.token, Date.now());
   }
   cancel(ns: Namespace, id: string) {
     this.status(ns, id);

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { stringify } from "yaml";
 import { namespaceKey } from "./wiki-store";
-import { DocumentIngestor, type RawSource } from "./ingest-queue";
+import { DocumentIngestor, type Job, type RawSource } from "./ingest-queue";
 import { NamespaceSchema, type Namespace } from "./types";
 import { terms, parsePage } from "./markdown";
 
@@ -70,9 +70,18 @@ function validateBudget(value: number, maximum: number) {
 export class WikiCompiler {
   constructor(readonly queue: DocumentIngestor, readonly llm: CompilerLLM, readonly timeoutMs = 120000) {}
   async runNext(namespace: Namespace, signal = new AbortController().signal): Promise<string | undefined> {
+    return this.process(namespace, null, signal);
+  }
+  async processJob(namespace: Namespace, jobId: string, signal = new AbortController().signal): Promise<string | undefined> {
+    return this.process(namespace, z.string().uuid().parse(jobId), signal);
+  }
+  private async process(namespace: Namespace, jobId: string | null, signal: AbortSignal) {
     const ns = NamespaceSchema.parse(namespace);
-    const job = this.queue.claim(ns);
+    const job = this.queue.claim(ns, undefined, undefined, jobId);
     if (!job) return undefined;
+    return this.compile(ns, job, signal);
+  }
+  private async compile(ns: Namespace, job: Job, signal: AbortSignal) {
     const controller = new AbortController();
     const combined = AbortSignal.any([signal, controller.signal, AbortSignal.timeout(this.timeoutMs)]);
     const heartbeat = setInterval(() => {
@@ -96,7 +105,7 @@ export class WikiCompiler {
       if (inputs.length) this.queue.store.import(ns, inputs, publish);
       else this.queue.store.transaction(publish);
     } catch {
-      if (signal.aborted) this.queue.cancel(ns, job.id);
+      if (signal.aborted) this.queue.cancelClaim(job);
       else this.queue.fail(job);
     }
     finally { clearInterval(heartbeat); }

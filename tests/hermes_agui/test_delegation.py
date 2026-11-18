@@ -1,11 +1,13 @@
 """Real native loop → Node coordinator → same Python host with isolated child history."""
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlencode
 import socket
+import sqlite3
 import subprocess
 import threading
 
@@ -49,17 +51,36 @@ def free_port():
 
 
 @contextmanager
-def node_coordinator(tmp_path, bots, internal_port):
+def node_coordinator(tmp_path, bots, internal_port, *, project=None, database_url=None, graph_token=None):
     root = Path(__file__).resolve().parents[2]
     settings = {'bots': [{'id': name, 'agentUrl': f'{bots}/bots/{name}/agent',
                          'tokenEnv': f'{name.upper()}_TOKEN'} for name in ('researcher', 'reviewer')],
                 'delegation': {'tokenEnv': 'DELEGATION_TOKEN', 'allow': {
                     'researcher': ['reviewer'], 'reviewer': ['researcher']},
                     'listenPort': internal_port, 'timeoutMs': 5000}}
+    if project:
+        settings["delegation"]["timeoutMs"] = 45000
+        settings["storage"] = {"threadMappings": "postgres"}
+        for bot in settings["bots"]:
+            bot["threadScope"] = {"projectId": project, "principal": "local-owner"}
+    if graph_token:
+        settings["storage"]["graphCompletions"] = True
+        settings["graph"] = {"enabled": True, "dataRoot": str(tmp_path / "graph"), "evolution": {
+            "enabled": True, "pollMs": 60000, "compiler": {
+                "baseUrl": f"http://127.0.0.1:{internal_port}", "model": "fixture", "keyEnv": "GRAPH_COMPILER_KEY",
+            },
+        }}
+        for bot in settings["bots"]:
+            bot["memory"] = {**bot["threadScope"], "keyEnv": "MEMORY_SIGNING_KEY"}
     config = tmp_path / 'bots.json'
     config.write_text(json.dumps(settings))
     env = {**os.environ, 'AGUI_BOTS_CONFIG': str(config), 'RESEARCHER_TOKEN': 'researcher',
            'REVIEWER_TOKEN': 'reviewer', 'DELEGATION_TOKEN': 'internal-secret', 'PORT': str(free_port())}
+    if graph_token:
+        env.update(AGUI_GRAPH_COMPLETION_TOKEN=graph_token, MEMORY_SIGNING_KEY="memory-signing-fixture",
+                   GRAPH_COMPILER_KEY="compiler-fixture")
+    if database_url:
+        env["AGUI_RUNTIME_DATABASE_URL"] = database_url
     # Use the installed toolchain, with an explicit override for hermetic local acceptance.
     from hermes_platform.resolver import locate_command
 
@@ -79,7 +100,7 @@ def node_coordinator(tmp_path, bots, internal_port):
             except httpx.HTTPError:
                 return False
         wait_until(ready, timeout=60)
-        yield
+        yield f'http://127.0.0.1:{env["PORT"]}'
     finally:
         process.terminate()
         try:
@@ -182,3 +203,129 @@ def test_bidirectional_native_delegation_and_capacity(tmp_path, native_config):
             response = httpx.post(f'{url}/bots/researcher/agent', headers={'Authorization': 'Bearer researcher'},
                 json=payload(threadId='capacity', messages=[{'id': 'u1', 'role': 'user', 'content': 'delegate reviewer'}]), timeout=60)
             assert 'Parent received: busy' in ''.join(e.get('delta', '') for e in events(response))
+
+def test_durable_host_delegates_and_redelivers_graph_completion(tmp_path, native_config):
+    from dataclasses import replace
+    from uuid import uuid4
+
+    from hermes_agui.storage.completion_delivery import GraphCompletionDispatcher
+    from hermes_agui.storage.host_settings import HostStorage
+    from hermes_agui.storage.objects import FilesystemObjects
+    from hermes_agui.storage.profile import ProfileObjects
+    from hermes_agui.storage.run_outbox import PostgresRunOutbox
+
+    socket_dir = os.environ.get("HERMES_AGUI_TEST_DB_SOCKET")
+    if not socket_dir:
+        pytest.skip("Requires disposable PostgreSQL Unix socket with Host and Runtime migrations")
+    assert Path(socket_dir).is_absolute() and Path(socket_dir).is_dir()
+    database_url = "postgresql://hermes@localhost/postgres?" + urlencode({"host": socket_dir})
+    connection_pool = pytest.importorskip("psycopg_pool").ConnectionPool
+    project = str(uuid4())
+    pool = connection_pool(database_url, min_size=1, max_size=4, open=False)
+    names = ("researcher", "reviewer")
+    with connection_pool(database_url, min_size=1, max_size=1) as admin, admin.connection() as conn:
+        for name in names:
+            conn.execute("INSERT INTO hermes_agui_host.bot_state (project,principal,bot) VALUES (%s,%s,%s)",
+                         (project, "local-owner", name))
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    profiles = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
+    storage = HostStorage(pool, profiles, project, scratch, {}, graph_completions=True)
+    graph_token = "graph-completion-fixture-internal-token"
+    knowledge = "Observed completed. Confirmed database configuration can be restored from the durable profile."
+    port = free_port()
+    completion_url = f"http://127.0.0.1:{port}/internal/graph/completions"
+    delegation = DelegationConfig(f"http://127.0.0.1:{port}/internal/delegations", "internal-secret", timeout=60)
+
+    def reply(record):
+        messages = record["body"]["messages"]
+        task = next(msg["content"] for msg in reversed(messages) if msg["role"] == "user")
+        if messages[-1]["role"] == "tool":
+            status = json.loads(messages[-1]["content"])["status"]
+            return Text(knowledge if status == "completed" else "Observed " + status)
+        if task == "continue":
+            assert any(msg.get("content") == knowledge for msg in messages)
+            return Text("Recovered parent history")
+        if task == "delegate":
+            return ToolCall("message_bot", {"target_bot_id": "reviewer", "task": "nested"})
+        return ToolCall("message_bot", {"target_bot_id": "researcher", "task": "forbidden recursion"})
+
+    def bot_configs(model):
+        return [BotConfig(name, replace(native_config(model, name=name), api_key="fixture-key"),
+                          ServerConfig(name, runtime_memory_key="memory-signing-fixture",
+                                       runtime_memory_project=project)) for name in names]
+
+    with FakeLLMServer(reply) as model:
+        bots = bot_configs(model)
+        app = create_host(bots, delegation=delegation, storage=storage)
+        with host_server(app) as url, node_coordinator(
+            tmp_path, url, port, project=project, database_url=database_url, graph_token=graph_token,
+        ) as runtime_url:
+            request = payload(runId=str(uuid4()), messages=[{"id": "parent", "role": "user", "content": "delegate"}])
+            headers = {"Authorization": "Bearer researcher"}
+            response = httpx.post(f"{url}/bots/researcher/agent", headers={**headers, "X-Hermes-Delegation": "forged"},
+                                  json=request, timeout=30)
+            assert response.status_code == 403
+            response = httpx.post(f"{runtime_url}/api/copilotkit/agent/researcher/run", json=request, timeout=90)
+            output = events(response)
+            assert output[-1]["type"] == "RUN_FINISHED", response.text
+            assert "Observed completed" in "".join(event.get("delta", "") for event in output)
+            with pool.connection() as conn:
+                assert conn.execute("SELECT bot,status FROM hermes_agui_host.runs WHERE project=%s ORDER BY bot",
+                                    (project,)).fetchall() == [("researcher", "completed"), ("reviewer", "completed")]
+            assert not list(scratch.iterdir())
+            outbox = PostgresRunOutbox(pool)
+            with httpx.Client(timeout=10) as client:
+                dispatcher = GraphCompletionDispatcher(profiles, client, completion_url, graph_token)
+                assert client.post(completion_url, json={}).status_code == 401
+                # Deliver both turns after terminal. The short child answer is
+                # skipped by the same Graph policy used for stream ingestion.
+                with closing(sqlite3.connect(tmp_path / "graph" / "wiki.sqlite")) as graph:
+                    assert graph.execute("SELECT count(*) FROM ingest_jobs").fetchone() == (0,)
+                first = outbox.dispatch_once(dispatcher)
+                lost_ack = outbox.claim()
+                assert first is not None and lost_ack is not None
+                assert lost_ack.scope.bot == "researcher"
+                body = next((tmp_path / "objects").glob(f"profiles/*/{lost_ack.profile_revision}/completion.json"))
+                foreign = json.loads(body.read_text())
+                foreign["namespace"]["principal"] = "unrelated-owner"
+                authorization = {"Authorization": f"Bearer {graph_token}"}
+                assert client.post(completion_url, json=foreign, headers=authorization).status_code == 403
+                dispatcher.deliver(lost_ack)
+                with pool.connection() as conn:
+                    conn.execute("UPDATE hermes_agui_host.run_outbox SET lease_until=clock_timestamp() WHERE id=%s",
+                                 (lost_ack.id,))
+
+        # Retain PostgreSQL, object storage and the current local Graph store.
+        from shutil import rmtree
+
+        rmtree(scratch)
+        scratch.mkdir()
+        for bot in bots:
+            rmtree(bot.agent.home)
+            rmtree(bot.agent.cwd)
+        for name in ("bots.json", "node.log"):
+            (tmp_path / name).unlink()
+        rebuilt_storage = HostStorage(
+            connection_pool(database_url, min_size=1, max_size=4, open=False),
+            profiles, project, scratch, {}, graph_completions=True,
+        )
+        app = create_host(bot_configs(model), delegation=delegation, storage=rebuilt_storage)
+        with host_server(app) as url, node_coordinator(
+            tmp_path, url, port, project=project, database_url=database_url, graph_token=graph_token,
+        ) as runtime_url:
+            with httpx.Client(timeout=10) as client:
+                outbox = PostgresRunOutbox(rebuilt_storage.runs.pool)
+                retry = outbox.dispatch_once(GraphCompletionDispatcher(profiles, client, completion_url, graph_token))
+                assert retry is not None and retry.id == lost_ack.id and retry.attempt == 2
+                assert outbox.claim() is None
+            with closing(sqlite3.connect(tmp_path / "graph" / "wiki.sqlite")) as graph:
+                assert graph.execute("SELECT count(*) FROM ingest_jobs").fetchone() == (1,)
+                assert knowledge in graph.execute("SELECT content FROM document_sources").fetchone()[0]
+            request = payload(runId=str(uuid4()), messages=[{"id": "next", "role": "user", "content": "continue"}])
+            response = httpx.post(f"{runtime_url}/api/copilotkit/agent/researcher/run", json=request, timeout=90)
+            output = events(response)
+            assert output[-1]["type"] == "RUN_FINISHED", response.text
+            assert "Recovered parent history" in "".join(event.get("delta", "") for event in output)
+    assert any(msg.get("role") == "tool" and json.loads(msg["content"]).get("status") == "depth_exceeded"
+               for request in model.main_requests() for msg in request["messages"])

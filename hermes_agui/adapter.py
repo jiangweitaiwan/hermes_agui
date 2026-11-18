@@ -32,7 +32,8 @@ class AgentAdapter:
     durable in the HTTP host; exhaustion fails closed instead of evicting IDs.
     """
 
-    def __init__(self, service, config, *, receipt_store=None, host_has_capacity=None, delegation=None, bot_id=None):
+    def __init__(self, service, config, *, receipt_store=None, host_has_capacity=None, delegation=None, bot_id=None,
+                 durable_runs=None):
         self.service, self.config = service, config
         self.delegation, self.bot_id = delegation, bot_id
         self.active: dict[str, Run] = {}
@@ -40,6 +41,7 @@ class AgentAdapter:
         self.closed = False
         self.receipt_store = receipt_store
         self.host_has_capacity = host_has_capacity
+        self.durable_runs = durable_runs
 
     def start(self, turn: TurnInput, *, delegation_depth=0) -> Run:
         if self.closed:
@@ -64,7 +66,7 @@ class AgentAdapter:
                 raise AdmissionError(409, "Run or user message ID has already been submitted")
             if outcome == "full":
                 raise AdmissionError(503, "Server admission capacity reached")
-        else:
+        elif self.durable_runs is None:
             self.receipts.update(keys)
         self.active[turn.thread_id] = run
         run.task = asyncio.create_task(self._execute(run))
@@ -93,21 +95,31 @@ class AgentAdapter:
         return run
 
     async def _execute(self, run: Run) -> dict[str, Any]:
+        try:
+            if self.durable_runs is not None:
+                return await self.durable_runs.execute(run, self._execute_native)
+            return await self._execute_native(run, self.service)
+        except Exception:  # health: allow BLE001 -- storage errors may contain credential-bearing connection details
+            return {"failed": True}
+        finally:
+            self.active.pop(run.turn.thread_id, None)
+
+    async def _execute_native(self, run: Run, service) -> dict[str, Any]:
         turn = run.turn
         try:
             if run.stop.is_set():
                 return {"interrupted": True}
-            from hermes_agui.delegation import _execution
+            from hermes_agui.delegation import DelegationInvocation, _execution
 
-            token = _execution.set((asyncio.get_running_loop(), self.delegation, self.bot_id,
-                turn.thread_id, turn.run_id, run.delegation_depth, run.stop, self.config.bearer_token)
-                if self.delegation else None)
+            invocation = DelegationInvocation(self.delegation, self.bot_id, turn.thread_id,
+                turn.run_id, run.delegation_depth, self.config.bearer_token) if self.delegation else None
+            token = _execution.set((invocation, asyncio.get_running_loop(), run.stop) if invocation else None)
             try:
                 from agent.runtime_reference import runtime_reference
 
                 reference_token = runtime_reference.set(turn.runtime_memory)
                 try:
-                    future = self.service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
+                    future = service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
                                                  callbacks=run.bridge.callbacks)
                 finally:
                     runtime_reference.reset(reference_token)
@@ -119,7 +131,7 @@ class AgentAdapter:
                     # Repeated checks span queued -> construction -> native active
                     # transitions. A False return is never treated as termination.
                     future.cancel()
-                    await asyncio.to_thread(self._interrupt, turn)
+                    await asyncio.to_thread(self._interrupt, service, turn)
                 await asyncio.wait({wrapped}, timeout=0.05)
             if wrapped.cancelled():
                 return {"interrupted": True}
@@ -127,12 +139,10 @@ class AgentAdapter:
         except Exception:  # health: allow BLE001 -- HTTP boundary intentionally suppresses provider exceptions containing credentials/prompts
             # Exception messages may contain provider credentials or prompt data.
             return {"failed": True}
-        finally:
-            self.active.pop(turn.thread_id, None)
 
-    def _interrupt(self, turn):
+    def _interrupt(self, service, turn):
         try:
-            self.service.cancel(turn.thread_id, turn.run_id)
+            service.cancel(turn.thread_id, turn.run_id)
         except Exception:  # health: allow BLE001 -- cancellation failure must not abandon the still-owned native future or disclose secrets
             return False
         return True
@@ -144,4 +154,5 @@ class AgentAdapter:
             run.stop.set()
         if runs:
             await asyncio.gather(*(run.task for run in runs))
-        await asyncio.to_thread(self.service.close)
+        if self.service is not None:
+            await asyncio.to_thread(self.service.close)

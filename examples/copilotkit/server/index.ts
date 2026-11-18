@@ -25,11 +25,12 @@ interface DeploymentBot {
   id: string;
   agentUrl: string;
   tokenEnv: string;
+  threadScope?: { principal: string; projectId: string };
   memory?: { keyEnv: string; principal: string; projectId: string };
 }
 const settings = registry ? Object.fromEntries(registry.bots.map((bot: DeploymentBot) =>
   [bot.id, {
-    agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "",
+    agentUrl: bot.agentUrl, token: process.env[bot.tokenEnv] ?? "", threadScope: bot.threadScope,
     memory: bot.memory ? { key: process.env[bot.memory.keyEnv] ?? "",
       principal: bot.memory.principal, projectId: bot.memory.projectId } : undefined,
   }])) : {
@@ -39,10 +40,28 @@ const settings = registry ? Object.fromEntries(registry.bots.map((bot: Deploymen
 const { loadWiki } = await import("./graph/provider");
 const wiki = loadWiki(registry?.graph);
 const { loadEvolution } = await import("./graph/evolution");
+const threadBackend = registry?.storage?.threadMappings ?? "local";
+if (threadBackend !== "local" && threadBackend !== "postgres") throw new Error("Invalid Runtime thread mapping backend");
+const threadMappings = threadBackend === "postgres"
+  ? new (await import("./storage/thread-mappings")).PostgresThreadMappings(process.env.AGUI_RUNTIME_DATABASE_URL ?? "")
+  : undefined;
+await threadMappings?.ready(!!registry?.delegation);
+const graphCompletions = registry?.storage?.graphCompletions ?? false;
+if (typeof graphCompletions !== "boolean") throw new Error("Invalid Runtime Graph completion mode");
+const botRegistry = registry?.storage?.botRegistry ?? "local";
+if (botRegistry !== "local" && botRegistry !== "postgres") throw new Error("Invalid Runtime Bot registry backend");
+const managementSettings = loadManagement(registry?.management);
+if (botRegistry === "postgres") {
+  if (!managementSettings) throw new Error("PostgreSQL Bot registry requires Bot management");
+  managementSettings.postgres = { url: process.env.AGUI_RUNTIME_DATABASE_URL ?? "",
+    credentialSeed: process.env.AGUI_BOT_CREDENTIAL_SEED ?? "" };
+}
 const application = createApplication(registry ? settings : { hermes: settings }, {
+  threadMappings,
+  graphCompletionToken: graphCompletions ? process.env.AGUI_GRAPH_COMPLETION_TOKEN ?? "" : undefined,
   graph: registry?.graph?.enabled ? { provider: wiki, timeoutMs: registry.graph.timeoutMs, authorize: () => true } : undefined,
   evolution: loadEvolution(wiki, registry?.graph?.evolution),
-  management: loadManagement(registry?.management),
+  management: managementSettings,
   delegation: registry?.delegation ? { ...registry.delegation,
     token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
 });
@@ -57,16 +76,26 @@ const metricsTimer = application.evolution ? setInterval(() => {
 }, 60000) : undefined;
 metricsTimer?.unref();
 const runtime = createCopilotNodeHandler(application.runtime);
-const graphApi = createCopilotNodeHandler(async request => application.graphApi(request));
+const graphApi = createCopilotNodeHandler(async request => {
+  await application.management?.manager.sync();
+  return application.graphApi(request);
+});
 const management = application.management ? createCopilotNodeHandler(application.management.api) : undefined;
-const internal = application.delegation
-  ? (await import("./delegation-http")).createDelegationServer(application.delegation) : undefined;
+const internalRoutes = new Map<string, import("./delegation-http").InternalRoute>();
+if (application.delegation) {
+  internalRoutes.set("/internal/delegations", { maxBytes: 20_000, handle: request => application.delegation!.handle(request) });
+}
+if (application.graphCompletion) {
+  internalRoutes.set("/internal/graph/completions", { maxBytes: 512 * 1024, handle: application.graphCompletion });
+}
+const internal = internalRoutes.size
+  ? (await import("./delegation-http")).createInternalServer(internalRoutes) : undefined;
 if (internal) {
-  const internalPort = registry.delegation.listenPort ?? 3001;
+  const internalPort = registry.internal?.listenPort ?? registry.delegation?.listenPort ?? 3001;
   if (!Number.isInteger(internalPort) || internalPort < 1 || internalPort > 65535 || internalPort === port) {
-    throw new Error("Invalid delegation listenPort");
+    throw new Error("Invalid internal listenPort");
   }
-  internal.listen(internalPort, registry.delegation.listenHost ?? "127.0.0.1");
+  internal.listen(internalPort, registry.internal?.listenHost ?? registry.delegation?.listenHost ?? "127.0.0.1");
 }
 const production = process.argv.includes("--production");
 const vite = production ? undefined : await (await import("vite")).createServer({
@@ -122,7 +151,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     clearInterval(metricsTimer);
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { void application.close().then(() => { wiki?.close(); return vite?.close(); }).then(() => process.exit(0)); });
+    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); wiki?.close(); await vite?.close(); }).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

@@ -1,7 +1,9 @@
 import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import type { RunAgentInput } from "@ag-ui/core";
 import { randomUUID, timingSafeEqual } from "node:crypto";
-import type { RuntimeSettings } from "./runtime";
+import type { RuntimeSettings, RuntimeThreads } from "./runtime";
+
+import type { DelegationIds } from "./storage/thread-mappings";
 
 export interface DelegationSettings {
   token: string;
@@ -35,7 +37,8 @@ export class DelegationCoordinator {
   private records = new Map<string, RecordEntry>();
   private timeout: number;
   constructor(private bots: Record<string, RuntimeSettings>, private settings: DelegationSettings,
-    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>, private ingestion?: SessionIngestor) {
+    private prepare?: (id: string, input: RunAgentInput) => Promise<RunAgentInput>, private ingestion?: SessionIngestor,
+    private threads?: RuntimeThreads) {
     this.timeout = settings.timeoutMs ?? 55_000;
     if (!settings.token || !Number.isFinite(this.timeout) || this.timeout <= 0 || this.timeout > 290_000 ||
       !Number.isInteger(settings.maxRecords ?? 1024) || (settings.maxRecords ?? 1024) < 1 ||
@@ -88,7 +91,7 @@ export class DelegationCoordinator {
       const record: RecordEntry = { fingerprint, expires: Infinity,
         parentUrl: parentUrl(source, call),
         sourceToken: source.token,
-        result: this.execute(call, controller.signal) };
+        result: this.start(call, source, controller.signal) };
       this.records.set(key, record);
       const result = await record.result;
       record.expires = Date.now() + 300_000;
@@ -97,10 +100,30 @@ export class DelegationCoordinator {
       controller.signal.aborted ? "cancelled" : "failed" }); }
     finally { clearTimeout(timer); request.signal.removeEventListener("abort", abort); }
   }
-  private async execute(call: Call, signal: AbortSignal): Promise<DelegationResult> {
+  private async start(call: Call, source: RuntimeSettings, signal: AbortSignal): Promise<DelegationResult> {
     const target = this.bots[call.targetBotId];
     if (!target) return { status: "denied" };
-    const ids = { delegationId: randomUUID(), threadId: `delegation-${randomUUID()}`, runId: randomUUID() };
+    let ids: DelegationIds;
+    try {
+      if (this.threads) {
+        const admission = await this.threads.store.admitDelegation(this.threads.scope(call.sourceBotId, source), {
+          parentThread: call.threadId, parentRun: call.runId, toolCallId: call.toolCallId, targetBotId: call.targetBotId, task: call.task,
+        });
+        if (admission.status === "conflict") return { status: "invalid_request" };
+        if (admission.status === "existing") return { ...admission.ids, status: "busy" };
+        ids = admission.ids;
+      } else {
+        ids = { delegationId: randomUUID(), threadId: `delegation-${randomUUID()}`, runId: randomUUID() };
+      }
+      signal.throwIfAborted();
+      if (this.bots[call.sourceBotId] !== source || this.bots[call.targetBotId] !== target) return { status: "denied" };
+    } catch {
+      return { status: signal.reason === "timeout" ? "timeout" : signal.aborted ? "cancelled" : "failed" };
+    }
+    return this.execute(call, target, ids, signal);
+  }
+
+  private async execute(call: Call, target: RuntimeSettings, ids: DelegationIds, signal: AbortSignal): Promise<DelegationResult> {
     let completed = false;
     try {
       let input: RunAgentInput = { threadId: ids.threadId, runId: ids.runId, state: {}, tools: [], context: [],

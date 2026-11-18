@@ -1,14 +1,78 @@
 """Native snapshot restart and allowlisted immutable object contracts."""
 
+import asyncio
 from dataclasses import replace
 from shutil import rmtree
+from types import SimpleNamespace
 
 import pytest
 
 from hermes_agui.core import HermesAgentService
+from hermes_agui.storage.host_runs import DurableHostRuns
 from hermes_agui.storage.objects import FilesystemObjects
 from hermes_agui.storage.profile import BotScope, ProfileObjects
 from tests.fakes.fake_llm_provider import FakeLLMServer, Text, ToolCall
+
+
+@pytest.mark.asyncio
+async def test_durable_host_run_rehydrates_native_history(tmp_path, native_config):
+    class RunStore:
+        manifest = None
+
+        def begin(self, scope, thread_id, run_id, attempt, seconds):
+            return run_id
+
+        def profile(self, scope):
+            return self.manifest
+
+        def renew(self, lease, seconds):
+            return True
+
+        def finish(self, lease, *, status, profile=None, expected_revision=None, reason=None,
+                   evidence_generation=None):
+            assert evidence_generation is None
+            assert reason is None, reason
+            assert status == "completed"
+            assert expected_revision == (self.manifest.revision if self.manifest else None)
+            self.manifest = profile
+            return True
+
+    async def execute_native(run, service):
+        homes.append(service.config.home)
+        return await asyncio.wrap_future(service.submit(
+            run.turn.thread_id, run.turn.text, run_id=run.turn.run_id,
+        ))
+
+    store = RunStore()
+    scope = BotScope("project", "local-owner", "analyst")
+    objects = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    homes = []
+    with FakeLLMServer([Text("before restart"), Text("after restart")]) as model:
+        for index, prompt in enumerate(("keep this history", "continue the thread")):
+            config = replace(native_config(model, name=f"deployment-{index}"),
+                             api_key="fixture-key")
+            bot = SimpleNamespace(agent=config, authorize=None)
+            lifecycle = DurableHostRuns(store, objects, scope, bot,
+                                        scratch=scratch, approved=frozenset())
+            run = SimpleNamespace(
+                turn=SimpleNamespace(thread_id="thread", run_id=str(index), text=prompt),
+                stop=asyncio.Event(), bridge=SimpleNamespace(failed=False),
+            )
+            result = await lifecycle.execute(run, execute_native)
+            assert result.get("completed")
+            assert store.manifest is not None
+            assert not list(scratch.iterdir())
+
+        assert homes[0] != homes[1]
+        contents = [message.get("content") for message in model.main_requests()[-1]["messages"]]
+        assert "keep this history" in contents
+        assert "before restart" in contents
+        requests = model.main_requests()
+        prompts = [[message["content"] for message in request["messages"] if message["role"] == "system"]
+                   for request in requests]
+        assert len(prompts) == 2 and prompts[0] and prompts[0] == prompts[1]
 
 
 class ImmutableObjects:

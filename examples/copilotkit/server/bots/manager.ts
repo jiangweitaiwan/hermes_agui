@@ -1,15 +1,16 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { RuntimeSettings } from "../runtime";
-import { BotRegistry } from "./registry";
+import type { Registry } from "./registry";
 import type { HostPort } from "./host-client";
 import { BotError, BotInputSchema, publicBot, type BotInput, type BotTemplate,
   type Identity, type StoredBot, type BotRecord } from "./types";
 
 export interface BotManagerOptions {
-  registry: BotRegistry; host: HostPort; agentUrl: (id: string) => string;
+  registry: Registry; host: HostPort; agentUrl: (id: string) => string;
   templates: BotTemplate[]; maxBotsPerOwner?: number; maxRecords?: number; onChange?: () => void;
 }
-/** One Runtime writer serializes lifecycle operations, including upstream acknowledgements. */
+/** Serialize local lifecycle operations and acquire the registry lock when shared. */
 export class BotManager {
   private queue: Promise<unknown> = Promise.resolve();
   constructor(readonly options: BotManagerOptions, readonly bots: Record<string, RuntimeSettings>,
@@ -22,19 +23,36 @@ export class BotManager {
     }
   }
   private serial<T>(work: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(work);
+    const result = this.queue.then(() => this.options.registry.write?.(work) ?? work());
     this.queue = result.catch(() => undefined);
     return result;
   }
+  sync(): Promise<void> {
+    if (!this.options.registry.refresh) return Promise.resolve();
+    const result = this.queue.then(async () => {
+      await this.options.registry.refresh!();
+      const records = this.options.registry.all();
+      const ids = new Set(records.map(bot => bot.record.id));
+      for (const id of Object.keys(this.bots)) {
+        if (!ids.has(id)) { delete this.bots[id]; delete this.allow[id]; }
+      }
+      for (const bot of records) this.publish(bot, false);
+    });
+    this.queue = result.catch(() => undefined);
+    return result;
+  }
+  private matchesIdentity(bot: StoredBot, identity: Identity) {
+    return bot.record.ownerId === identity.ownerId && bot.record.projectId === identity.projectId &&
+      (bot.principal === undefined || bot.principal === identity.principal);
+  }
   owned(id: string, identity: Identity, includeDeleted = false): StoredBot {
     const bot = this.options.registry.get(id);
-    if (!bot || (!includeDeleted && bot.record.deletedAt) || bot.record.ownerId !== identity.ownerId ||
-      bot.record.projectId !== identity.projectId) throw new BotError(404, "Unknown Bot");
+    if (!bot || (!includeDeleted && bot.record.deletedAt) || !this.matchesIdentity(bot, identity)) throw new BotError(404, "Unknown Bot");
     return bot;
   }
   listBots(identity: Identity): BotRecord[] {
     return this.options.registry.all().filter(bot => !bot.record.deletedAt &&
-      bot.record.ownerId === identity.ownerId && bot.record.projectId === identity.projectId).map(publicBot);
+      this.matchesIdentity(bot, identity)).map(publicBot);
   }
   private input(value: unknown, identity: Identity, id?: string): { input: BotInput; template: BotTemplate } {
     const parsed = BotInputSchema.safeParse(value);
@@ -49,30 +67,34 @@ export class BotManager {
     }
     return { input, template };
   }
-  private publish(bot: StoredBot): void {
+  private publish(bot: StoredBot, notify = true): void {
     const { id, status, deletedAt, delegationTargets } = bot.record;
     if (status === "active" && !deletedAt) {
-      this.bots[id] = { ...structuredClone(bot.runtime), ownerId: bot.record.ownerId };
+      const settings = { ...bot.runtime, ownerId: bot.record.ownerId };
+      if (!isDeepStrictEqual(this.bots[id], settings)) this.bots[id] = structuredClone(settings);
       this.allow[id] = [...delegationTargets];
     } else { delete this.bots[id]; delete this.allow[id]; }
-    this.options.onChange?.();
+    if (notify) this.options.onChange?.();
   }
-  private save(bot: StoredBot): void {
+  private async save(bot: StoredBot): Promise<void> {
     bot.record.updatedAt = new Date().toISOString();
-    this.options.registry.put(bot);
+    await this.options.registry.put(bot);
     this.publish(bot);
   }
   private async provision(bot: StoredBot): Promise<BotRecord> {
+    if (!bot.runtime.agentUrl || !bot.runtime.token || (bot.record.harness === "hermes" && !bot.spec)) {
+      throw new BotError(503, "Bot deployment references unavailable");
+    }
     bot.record.status = "provisioning";
-    this.save(bot);
+    await this.save(bot);
     try {
       if (bot.spec) await this.options.host.register(bot.spec);
       bot.record.status = "active";
-      this.save(bot);
+      await this.save(bot);
       return publicBot(bot);
     } catch (error) {
       bot.record.status = "failed";
-      this.save(bot);
+      await this.save(bot);
       throw error instanceof BotError ? error : new BotError(503, "Bot provisioning failed; retry is available");
     }
   }
@@ -83,7 +105,8 @@ export class BotManager {
       if (records.filter(bot => bot.record.ownerId === identity.ownerId && !bot.record.deletedAt).length >= (this.options.maxBotsPerOwner ?? 32) ||
         records.length >= (this.options.maxRecords ?? 128)) throw new BotError(409, "Bot quota reached");
       const id = `bot-${randomUUID()}`, now = new Date().toISOString();
-      const token = randomBytes(32).toString("hex"), memoryKey = randomBytes(32).toString("hex");
+      const { token, memoryKey } = this.options.registry.credentials?.(id, identity) ??
+        { token: randomBytes(32).toString("hex"), memoryKey: randomBytes(32).toString("hex") };
       const record: BotRecord = { ...input, id, ownerId: identity.ownerId, projectId: identity.projectId,
         model: template.model, provider: template.provider, status: "provisioning", createdAt: now, updatedAt: now };
       const runtime: RuntimeSettings = template.harness === "remote_ag_ui" ? structuredClone(template.remote!) : {
@@ -107,11 +130,11 @@ export class BotManager {
       next.record = { ...next.record, ...input, model: template.model, provider: template.provider };
       if (next.spec) next.spec = { ...next.spec, name: input.name, description: input.description, templateId: input.templateId, skills: input.skills, toolsets: input.toolsets };
       else next.runtime = structuredClone(template.remote!);
-      if (previous.record.status === "disabled") { next.record.status = "disabled"; this.save(next); return publicBot(next); }
+      if (previous.record.status === "disabled") { next.record.status = "disabled"; await this.save(next); return publicBot(next); }
       try { return await this.provision(next); }
       catch (error) {
         // A definite busy response means the Host did not mutate anything.
-        if (error instanceof BotError && error.status === 409) this.save(previous);
+        if (error instanceof BotError && error.status === 409) await this.save(previous);
         throw error;
       }
     });
@@ -133,16 +156,22 @@ export class BotManager {
       const bot = structuredClone(previous);
       bot.record.status = "disabled";
       if (deleted) bot.record.deletedAt = new Date().toISOString();
-      this.save(bot);
+      await this.save(bot);
       try {
         if (bot.spec) await (deleted ? this.options.host.delete(id) : this.options.host.disable(id));
       } catch (error) {
-        if (error instanceof BotError && error.status === 409) this.save(previous);
+        if (error instanceof BotError && error.status === 409) await this.save(previous);
         throw error;
       }
     });
   }
-  async restore(): Promise<void> {
+  restore(bootstrap?: () => Promise<void>): Promise<void> {
+    return this.serial(async () => {
+      await bootstrap?.();
+      await this.reconcile();
+    });
+  }
+  private async reconcile(): Promise<void> {
     for (const bot of this.options.registry.all()) {
       if (bot.record.deletedAt || bot.record.status === "disabled") {
         if (bot.spec) {
@@ -155,7 +184,7 @@ export class BotManager {
         this.publish(bot);
       } else if (["active", "provisioning"].includes(bot.record.status)) {
         const template = this.options.templates.find(item => item.id === bot.record.templateId);
-        if (!template) { bot.record.status = "failed"; this.save(bot); continue; }
+        if (!template) { bot.record.status = "failed"; await this.save(bot); continue; }
         if (!bot.spec && template.remote) bot.runtime = structuredClone(template.remote);
         try { await this.provision(bot); } catch { /* Durable failed state is visible for explicit retry. */ }
       } else this.publish(bot);

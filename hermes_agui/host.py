@@ -49,6 +49,8 @@ def load_host(path: Path):
     bots = []
     for item in data.get("bots", []):
         agent = dict(item["agent"])
+        if "api_key_env" in agent:
+            agent["api_key"] = os.environ[agent.pop("api_key_env")]
         for key in ("home", "cwd"):
             value = Path(agent[key]).expanduser()
             agent[key] = value if value.is_absolute() else path.resolve().parent / value
@@ -84,5 +86,8 @@ def load_host(path: Path):
                                   for key, value in template.get("skills", {}).items()}
             templates[name] = ProvisionTemplate(**template)
         management = ManagementConfig(root, os.environ[settings.pop("token_env")], templates, **settings)
+    from hermes_agui.storage.host_settings import load_storage
+
+    storage = load_storage(data.get("storage", {}))
     return create_host(bots, delegation=delegation, management=management, default_bot=data.get("default_bot"),
-                       max_active_runs=data.get("max_active_runs", 8))
+                       max_active_runs=data.get("max_active_runs", 8), storage=storage)

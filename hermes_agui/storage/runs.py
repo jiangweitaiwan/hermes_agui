@@ -33,8 +33,9 @@ class RunRecord:
 class PostgresRunStore:
     """Use a bounded psycopg pool supplied by the Host application."""
 
-    def __init__(self, pool):
+    def __init__(self, pool, *, publish_completions=False):
         self.pool = pool
+        self.publish_completions = publish_completions
 
     def begin(self, scope: BotScope, thread_id: str, run_id: str, attempt: UUID, seconds: int) -> RunLease | None:
         with self.pool.connection() as conn:
@@ -81,7 +82,8 @@ class PostgresRunStore:
         return True
 
     def finish(self, lease: RunLease, *, status: TerminalStatus, reason: str | None = None,
-               expected_revision: str | None = None, profile: ProfileRevision | None = None) -> bool:
+               expected_revision: str | None = None, profile: ProfileRevision | None = None,
+               evidence_generation: str | None = None) -> bool:
         """Finish atomically with the optional publication of a staged profile."""
         if status not in {"completed", "failed", "interrupted"}:
             raise ValueError("Invalid terminal status")
@@ -99,6 +101,11 @@ class PostgresRunStore:
             conn.execute("""UPDATE hermes_agui_host.runs SET status=%s, reason=%s, finished_at=clock_timestamp()
                 WHERE (project,principal,bot,run_id)=(%s,%s,%s,%s)""",
                 (status, reason, *scope, lease.run_id))
+            if self.publish_completions and status == "completed" and profile is not None:
+                conn.execute("""INSERT INTO hermes_agui_host.run_outbox
+                    (project,principal,bot,run_id,profile_revision,profile,evidence_generation)
+                    VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)""",
+                    (*scope, lease.run_id, profile.revision, json.dumps(asdict(profile)), evidence_generation))
             conn.execute("""UPDATE hermes_agui_host.bot_state SET active_run=NULL, expires_at=NULL
                 WHERE (project,principal,bot)=(%s,%s,%s)""", scope)
         return True

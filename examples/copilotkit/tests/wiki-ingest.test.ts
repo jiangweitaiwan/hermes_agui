@@ -36,6 +36,19 @@ async function hits(store: WikiStore, identity = scope) {
   if (result.status !== "ok") throw new Error(result.status);
   return result.hits;
 }
+test("targeted delivery processes only its scoped job and leaves a replay unchanged", async () => {
+  const { store, queue } = setup();
+  const worker = new WikiCompiler(queue, model());
+  const first = queue.enqueue(ns, upload("database first"));
+  const target = queue.enqueue(ns, upload("database target"));
+  expect(await worker.processJob({ ...ns, principal: "other" }, target)).toBeUndefined();
+  expect(await worker.processJob(ns, target)).toBe(target);
+  expect(queue.status(ns, first).state).toBe("pending");
+  expect(queue.status(ns, target).state).toBe("completed");
+  const revision = store.active(namespaceKey(ns), "database")!.revision;
+  expect(await worker.processJob(ns, target)).toBeUndefined();
+  expect(store.active(namespaceKey(ns), "database")!.revision).toBe(revision);
+});
 test("documents A/B/C compile incrementally with links, conflicts, provenance and duplicate suppression", async () => {
   const { store, queue } = setup();
   const worker = new WikiCompiler(queue, model());

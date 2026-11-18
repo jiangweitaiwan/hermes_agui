@@ -55,12 +55,13 @@ class HermesAgentService:
 
     @contextmanager
     def _scope(self, native_id: str) -> Iterator[None]:
+        from agent.runtime_cwd import bind_ephemeral_workspace
         from agent.runtime_scope import bind_profile_scope
         from gateway.session_context import set_session_vars
 
         # Native session helpers include legacy clear semantics. A private Context
         # keeps every mutation (including AIAgent construction) out of the caller.
-        with bind_profile_scope(self.config.home):
+        with bind_profile_scope(self.config.home), bind_ephemeral_workspace(self.config.ephemeral_workspace):
             set_session_vars(platform="api_server", source="api_server", session_id=native_id,
                              session_key=native_id, user_id=self.config.principal,
                              cwd=str(self.config.cwd), async_delivery=False, cron_session="")

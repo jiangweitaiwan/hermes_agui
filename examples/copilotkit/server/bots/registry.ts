@@ -1,10 +1,20 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, chmodSync, lstatSync } from "node:fs";
 import { dirname } from "node:path";
-import type { StoredBot } from "./types";
+import type { Identity, StoredBot } from "./types";
+
+export interface Registry {
+  all(): StoredBot[];
+  get(id: string): StoredBot | undefined;
+  put(bot: StoredBot): void | Promise<void>;
+  close(): void | Promise<void>;
+  refresh?(): Promise<void>;
+  write?<T>(work: () => Promise<T>): Promise<T>;
+  credentials?(id: string, identity: Identity): { token: string; memoryKey: string };
+}
 
 /** Server-only durable registry. Credentials never leave publicBot's projection. */
-export class BotRegistry {
+export class BotRegistry implements Registry {
   private db: DatabaseSync;
   constructor(filename: string) {
     mkdirSync(dirname(filename), { recursive: true, mode: 0o700 });

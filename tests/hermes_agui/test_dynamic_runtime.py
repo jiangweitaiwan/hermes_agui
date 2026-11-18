@@ -7,6 +7,7 @@ import socket
 import sqlite3
 import subprocess
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import pytest
 
@@ -14,7 +15,15 @@ from tests.fakes.fake_llm_provider import FakeLLMServer, Text, ToolCall
 from tests.hermes_agui.test_runtime_entrypoint import runtime
 
 
-def test_managed_runtime_native_delegation_and_persistent_lifecycle(native_config, tmp_path):
+@pytest.mark.parametrize("backend", ["sqlite", "postgres"])
+def test_managed_runtime_native_delegation_and_persistent_lifecycle(native_config, tmp_path, backend):
+    database_url = ""
+    if backend == "postgres":
+        socket_dir = os.environ.get("HERMES_AGUI_TEST_DB_SOCKET")
+        if not socket_dir:
+            pytest.skip("Requires a disposable PostgreSQL Unix socket with Runtime migrations")
+        assert Path(socket_dir).is_absolute() and Path(socket_dir).is_dir()
+        database_url = "postgresql://hermes@localhost/postgres?" + urlencode({"host": socket_dir})
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node is required for dynamic Runtime acceptance")
@@ -33,6 +42,7 @@ def test_managed_runtime_native_delegation_and_persistent_lifecycle(native_confi
             return ToolCall("message_bot", {"target_bot_id": text.split()[1], "task": "Project Alpha 使用什麼資料庫？"})
         return Text("PostgreSQL")
 
+    registry_path = tmp_path / "runtime-registry.sqlite3"
     with FakeLLMServer(respond) as provider:
         cfg = native_config(provider)
         from utils import load_yaml_file_readonly
@@ -52,10 +62,12 @@ def test_managed_runtime_native_delegation_and_persistent_lifecycle(native_confi
                                     "TEST_NATIVE_KEY": "sk-fake-e2e", "TEST_DELEGATION_KEY": "delegation-secret"}):
             with runtime(cfg.home, cfg.cwd, tmp_path, bots_config=deployment) as url:
                 completed = subprocess.run([node, "node_modules/tsx/dist/cli.mjs", "tests/fixtures/dynamic-bot-probe.ts",
-                    url, str(tmp_path / "runtime-registry.sqlite3"), str(port)], cwd=example,
+                    url, str(registry_path), str(port)], cwd=example,
                     capture_output=True, text=True, timeout=150, check=False,
-                    env={**os.environ, "COPILOTKIT_TELEMETRY_DISABLED": "true", "DO_NOT_TRACK": "1"})
+                    env={**os.environ, "COPILOTKIT_TELEMETRY_DISABLED": "true", "DO_NOT_TRACK": "1",
+                         "TEST_BOT_REGISTRY_DATABASE_URL": database_url})
                 assert completed.returncode == 0, completed.stderr
+        assert registry_path.exists() == (backend == "sqlite")
         ids = json.loads(completed.stdout)
         requests = provider.main_requests()
         assert len(requests) >= 6

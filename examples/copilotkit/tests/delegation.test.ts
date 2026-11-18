@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { afterEach, expect, test } from "vitest";
-import { DelegationCoordinator } from "../server/delegation";
+import { createApplication } from "../server/application";
+import type { DelegationSettings } from "../server/delegation";
+import { PostgresThreadMappings } from "../server/storage/thread-mappings";
 
 const servers: ReturnType<typeof createServer>[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => {
@@ -32,15 +35,20 @@ async function setup(options: { depth?: number; mode?: string; timeout?: number;
   servers.push(server); server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = server.address(); if (!address || typeof address === "string") throw new Error();
   const url = `http://127.0.0.1:${address.port}`;
-  const coordinator = new DelegationCoordinator({ a: { agentUrl: `${url}/bots/a/agent`, token: "a-token" },
-    b: { agentUrl: `${url}/bots/b/agent`, token: "b-token" } }, {
-    token: "internal", allow: { a: ["b"], b: ["a"] }, timeoutMs: options.timeout ?? 2000, maxRecords: options.maxRecords,
-  });
+  const projectId = randomUUID();
+  const withRuntime = (threadMappings?: PostgresThreadMappings, principal = "alice", project = projectId) => {
+    const threadScope = { projectId: project, principal };
+    const delegation: DelegationSettings = {
+      token: "internal", allow: { a: ["b"], b: ["a"] }, timeoutMs: options.timeout ?? 2000, maxRecords: options.maxRecords,
+    };
+    const application = createApplication({ a: { agentUrl: `${url}/bots/a/agent`, token: "a-token", threadScope },
+      b: { agentUrl: `${url}/bots/b/agent`, token: "b-token", threadScope } }, { delegation, threadMappings });
+    return (value = call, token = "a-token", signal?: AbortSignal) => application.delegation!.handle(new Request(`${url}/internal/delegations`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(value), signal,
+    }));
+  };
   const call = { sourceBotId: "a", targetBotId: "b", threadId: "parent", runId: "root", toolCallId: "tool", task: "short task" };
-  const request = (value = call, token = "a-token", signal?: AbortSignal) => coordinator.handle(new Request(`${url}/internal/delegations`, {
-    method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(value), signal,
-  }));
-  return { runs, cancels, call, request, started };
+  return { runs, cancels, call, request: withRuntime(), withRuntime, started };
 }
 test("directional authorization, independent child IDs, bounded result, and parent/tool dedup", async () => {
   const { request, call, runs } = await setup({ maxRecords: 1 });
@@ -74,4 +82,37 @@ test("disconnect after child admission cancels its stream and execution", async 
   controller.abort();
   expect(await (await result).json()).toMatchObject({ status: "cancelled" });
   expect(fixture.cancels).toHaveLength(1);
+});
+
+const database = process.env.HERMES_AGUI_TEST_RUNTIME_DATABASE_URL;
+test.skipIf(!database)("delegation mapping admits one child across Runtimes and isolates authenticated scopes", async () => {
+  const { call, runs, cancels, withRuntime } = await setup();
+  const first = new PostgresThreadMappings(database!);
+  const second = new PostgresThreadMappings(database!);
+  try {
+    await Promise.all([first.ready(true), second.ready(true)]);
+    const requests = [withRuntime(first), withRuntime(second)];
+    expect((await requests[0](call, "b-token")).status).toBe(403);
+    const outcomes = await Promise.all(requests.map(async request => (await request()).json()));
+    const completed = outcomes.find(outcome => outcome.status === "completed");
+    expect(completed).toMatchObject({ status: "completed", text: "child answer" });
+    const { text, ...ids } = completed;
+    expect(outcomes).toContainEqual({ ...ids, status: "busy" });
+    expect(runs).toHaveLength(1);
+
+    const replacement = withRuntime(second);
+    expect(await (await replacement()).json()).toEqual({ ...ids, status: "busy" });
+    expect(await (await replacement({ ...call, task: "changed" })).json()).toEqual({ status: "invalid_request" });
+    expect(await (await withRuntime(second, "bob")()).json()).toMatchObject({ status: "completed" });
+    expect(await (await withRuntime(second, "alice", randomUUID())()).json()).toMatchObject({ status: "completed" });
+    expect(new Set(runs.map(run => run.threadId)).size).toBe(3);
+
+    const offline = new PostgresThreadMappings(database!);
+    await offline.close();
+    expect(await (await withRuntime(offline)({ ...call, toolCallId: "another-tool" })).json()).toEqual({ status: "failed" });
+    expect(runs).toHaveLength(3);
+    expect(cancels).toHaveLength(0);
+  } finally {
+    await Promise.all([first.close(), second.close()]);
+  }
 });

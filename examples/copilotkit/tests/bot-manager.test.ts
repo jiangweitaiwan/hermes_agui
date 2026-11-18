@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createApplication } from "../server/application";
 import { BotRegistry } from "../server/bots/registry";
 import { BotManager } from "../server/bots/manager";
 import { BotError, type HostSpec } from "../server/bots/types";
@@ -110,4 +111,78 @@ test("an offline Host cannot reopen a durably disabled Bot during restore", asyn
   f.fail(false);
   await f.manager.enableBot(bot.id, identity);
   expect(f.bots[bot.id]).toBeDefined();
+});
+
+const databaseUrl = process.env.HERMES_AGUI_TEST_RUNTIME_DATABASE_URL;
+test.skipIf(!databaseUrl)("PostgreSQL registry persists Bot metadata, serializes quota, and restores credentials", async () => {
+  const { PostgresBotRegistry } = await import("../server/storage/bot-registry");
+  const { Pool } = await import("pg");
+  const f = fixture(1);
+  const pool = new Pool({ connectionString: databaseUrl });
+  const seed = "56".repeat(32);
+  const open = () => new PostgresBotRegistry(databaseUrl!, seed, f.options.templates, [identity], f.options.agentUrl);
+  const first = open(), second = open();
+  try {
+    const a = new BotManager({ ...f.options, registry: first }, {}, {});
+    const published: Record<string, RuntimeSettings> = {};
+    const b = new BotManager({ ...f.options, registry: second }, published, {});
+    const both = await Promise.allSettled([a.createBot(input, identity), b.createBot(input, identity)]);
+    expect(both.filter(result => result.status === "fulfilled")).toHaveLength(1);
+    expect(both.find(result => result.status === "rejected")).toMatchObject({ reason: { status: 409 } });
+    await b.sync();
+    const [record] = b.listBots(identity);
+    expect(record).toMatchObject({ status: "active", name: input.name });
+    expect(published[record.id].token).toBe(f.calls[0].token);
+    const row = await pool.query("SELECT record FROM hermes_agui_runtime.bot_registry WHERE id=$1", [record.id]);
+    expect(row.rows[0].record).toEqual(record);
+    expect(JSON.stringify(row.rows)).not.toContain(f.calls[0].memoryKey);
+    await a.deactivate(record.id, identity, false);
+    const api = createBotApi(b, new BotAuthentication([{ ...identity, token: "user-token" }]));
+    const response = await api(new Request("http://local/api/bots", { headers: { Authorization: "Bearer user-token" } }));
+    expect(await response.json()).toEqual([expect.objectContaining({ id: record.id, status: "disabled" })]);
+    expect(published[record.id]).toBeUndefined();
+    const wrongOwner = new PostgresBotRegistry(databaseUrl!, seed, f.options.templates,
+      [{ ...identity, principal: "replacement-principal" }], f.options.agentUrl);
+    try {
+      const changed = new BotManager({ ...f.options, registry: wrongOwner }, {}, {});
+      await changed.restore();
+      const replacement = { ...identity, principal: "replacement-principal" };
+      expect(changed.listBots(replacement)).toEqual([]);
+      await expect(changed.enableBot(record.id, replacement)).rejects.toMatchObject({ status: 404 });
+    } finally { await wrongOwner.close(); }
+    const reopened = open();
+    try {
+      const restarted = new BotManager({ ...f.options, registry: reopened }, {}, {});
+      await restarted.restore();
+      await restarted.enableBot(record.id, identity);
+      expect(f.calls.at(-1)).toMatchObject({ id: record.id, token: f.calls[0].token, memoryKey: f.calls[0].memoryKey });
+    } finally { await reopened.close(); }
+  } finally {
+    await Promise.all([first.close(), second.close(), pool.end()]);
+  }
+});
+
+test.skipIf(!databaseUrl)("a live Runtime reads Bot lifecycle changes committed by another Runtime", async () => {
+  const deployedId = "registry-runtime-test";
+  const open = () => createApplication({
+    [deployedId]: { agentUrl: "http://127.0.0.1:1/agent", token: "deployment-token" },
+  }, { management: {
+    postgres: { url: databaseUrl!, credentialSeed: "56".repeat(32) },
+    hostUrl: "http://127.0.0.1:1", hostToken: "management-token",
+    users: [{ ...identity, token: "user-token" }], templates: [],
+  } });
+  const a = open(), b = open();
+  const headers = { Authorization: "Bearer user-token" };
+  const info = () => b.runtime(new Request("http://local/api/copilotkit/info", { headers }));
+  try {
+    await Promise.all([a.ready, b.ready]);
+    expect(await (await info()).text()).toContain(deployedId);
+    const disabled = await a.management!.api(new Request(`http://local/api/bots/${deployedId}/disable`, {
+      method: "POST", headers,
+    }));
+    expect(disabled.status).toBe(204);
+    expect(await (await info()).text()).not.toContain(deployedId);
+    const direct = await b.runtime(new Request(`http://local/api/copilotkit/agent/${deployedId}/run`, { method: "POST", headers }));
+    expect(direct.status).toBe(404);
+  } finally { await Promise.all([a.close(), b.close()]); }
 });

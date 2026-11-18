@@ -50,7 +50,7 @@ def create_app(agent_config: AgentConfig, config: ServerConfig, *, service_facto
 
 
 def create_host(bots, *, default_bot=None, max_active_runs=8,
-                service_factory=HermesAgentService, delegation=None, management=None):
+                service_factory=HermesAgentService, delegation=None, management=None, storage=None):
     """One lifespan; independent trusted service and HTTP state for each Bot."""
     from hermes_agui.host import validate_bots
     from hermes_agui.host_runtime import HostRuntime
@@ -61,13 +61,17 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
     if not registry and (management is None or default_bot is not None):
         raise ValueError("Configure Bots or managed provisioning")
     configured_bots = list(registry.values())
-    host = HostRuntime(registry, service_factory, delegation, max_active_runs)
+    if storage is not None and management is not None:
+        raise ValueError("Durable Host requires static Bots")
+    host = HostRuntime(registry, service_factory, delegation, max_active_runs, storage)
 
     @asynccontextmanager
     async def lifespan(app):
         app.state.adapters = host.adapters
         app.state.host = host
         try:
+            if storage is not None:
+                await anyio.to_thread.run_sync(storage.open)
             registry.clear()
             host.disabled.clear()
             for bot in configured_bots:
@@ -81,9 +85,13 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
                 app.state.adapter = host.adapters[default_bot]
             yield
         finally:
-            await host.close()
-            if management and hasattr(app.state, "management"):
-                app.state.management.close()
+            try:
+                await host.close()
+                if management and hasattr(app.state, "management"):
+                    app.state.management.close()
+            finally:
+                if storage is not None:
+                    await anyio.to_thread.run_sync(storage.close)
 
     app = FastAPI(title="Hermes AG-UI", lifespan=lifespan)
 
@@ -215,6 +223,8 @@ def main():
         app = load_host(args.bots_config)
         uvicorn.run(app, host=args.host, port=args.port)
         return
+    if os.environ.get("AGUI_STORAGE_BACKEND", "local") != "local":
+        parser.error("Durable storage requires --bots-config")
     token = os.environ.get("AGUI_API_KEY", "")
     if not token:
         parser.error("Set the AGUI_API_KEY secret before starting the server")
