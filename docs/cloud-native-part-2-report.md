@@ -95,3 +95,24 @@ Part 2 可檢視但尚不能視為已驗收契約的交接入口：
 - Host migrations 001–005、Runtime 001–007；`agui-cloud` extra、既有 PG/GCS/seed/completion 環境變數、fixture grants 與共享容器 scenario。
 
 停止時沒有新增 Cloud Tasks/Scheduler、Firebase、正式 IAM service identity、SSE replay、跨 instance cancel 或 GCP/Vercel 部署。先補完 Part 1 尚未通過的項目，才開始 Part 2。
+
+
+## 2026-11-19 最終前置驗收 — PASS（停止於交接）
+
+Tested code SHA：`c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9`；source digest：`3dfd47ac67b3e26de62b0e42d7a10ff800f001e201df846757a8259eaeb96795`。
+依 [Part 1 Final Acceptance](cloud-native-part-1-report.md#2026-11-19-final-acceptance--pass)、
+[status JSON](cloud-native-part1-status.json) 與 [證據索引](../artifacts/part1-final-20261119/INDEX.md)，
+同候選 **G1–G8 全部 PASS，Part 1 accepted／Part 2 prerequisites accepted**。此前的 FAIL/NOT RUN 為歷史紀錄，未作本候選 PASS 證據。
+
+| 前置契約 | 結果 |
+| --- | --- |
+| Legacy／Storage／Graph／Job／Provisioning | PASS：完整 Runtime 118、Python AG-UI 91、真 PG probe、四種 browser 模式及故障注入。 |
+| 雙服務重建 | PASS：真 PG／外部 object double，刪除兩應用與全部可寫層，原 session/transcript/memory/skill、Graph reference／授權與 Host disable 完整復原。 |
+| Migration | Owner 核准 fresh_deployment；既有本機資料保留，歷史全量遷移 N/A；importer compatibility／fresh schema／restart PASS，不能直接切換既有使用者。 |
+| Build／check | 正式 Host/Runtime 與 fixture images、production smoke/native probe、TS/Vite、17 repository checks、diff checks PASS。 |
+| Graph injection contract | Owner 核准 run-local untrusted reference，實際 provider request 驗證完整知識／provenance，system prompt 不變；Core 未改。 |
+| 真 GCS/IAM/PITR 與 Part 2 實雲 | NOT RUN，沒有部署 URL 或付費資源。 |
+
+可接線入口仍為 Graph worker-cli `process/tick/reconcile`、Bot reconcile-cli、Host completion_delivery `--once`、Host 001–005／Runtime 001–007 schema、分權角色與 PG/GCS config。Cloud Run 的可靠工作不能依賴 response 後 timer。成功 turn snapshot、未提交變更遺失窗口、seed 保管／輪替、網路分割窗口與 objects retention 限制見 Part 1 報告。
+
+**本輪未開始 Part 2。** Cloud Tasks/Scheduler、Firebase/Vercel、正式 IAM service identity、SSE replay/cross-instance cancel、真 GCS generation/IAM、備份/PITR 還原、成本／負載驗收皆待後續明確啟動。

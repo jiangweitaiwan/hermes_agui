@@ -539,3 +539,63 @@ Part 1 整體仍未通過。下一個工程缺口為 A 的來源、provenance、
 - 查清 repository-wide check 在此 HEAD 缺少的 CI helpers/root manifest，保留 FAIL 直到修復或有明確的驗收範圍處置。
 
 既有相容方案限制仍有效：只提交成功 turn；未提交 memory/skill 可能遺失；沒有工具級 checkpoint、exactly-once 外部副作用或任意 Agent 中斷續跑。快照容量／allowlist／seed 遺失與輪替限制見操作文件。未引用 objects 目前保留，沒有自動 GC；PG/GCS CLI 沒有與 local `cleanup` 對等的刪除實作。已記錄至少七天寬限及全歷史引用對帳要求，未宣稱 GC 已完成。未建立 GCP 付費資源、未部署 Part 2。
+
+
+## 2026-11-19 Final Acceptance — PASS
+
+**Part 1 accepted；Part 2 prerequisites accepted。** 必要 G1–G8 均在同一候選通過。
+本輪停止於交接，沒有開始 Part 2 或部署 GCP/Vercel。此節取代前述舊候選的當前判定，保留所有歷史失敗。
+
+- 起始 HEAD：`c0d2e5990f1a708debfdab181e449c141189a0c3`；起始只有 owner 提供的驗收文件未追蹤，未覆蓋既有工作。
+- Tested code SHA：`c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9`；固定比較 base：`ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`（起始 HEAD 的直接父 commit），不是候選與自己相比。
+- Frozen source digest：`3dfd47ac67b3e26de62b0e42d7a10ff800f001e201df846757a8259eaeb96795`。完整 manifest、同候選命令／exit code／起止／elapsed／log checksum 見 [證據索引](../artifacts/part1-final-20261119/INDEX.md) 與 [status JSON](cloud-native-part1-status.json)。報告 commit 另記於 `artifacts/part1-final-20261119/report-revision.json`；產品、fixtures、runner、配置及依賴 digest 不變。
+- 證據起點 2026-11-19 03:53:25 UTC；候選凍結 `2026-11-19T09:05:21.599309+00:00`；驗收完成 `2026-11-19T09:31:07.309675+00:00`。
+- Node 22.18.0、Hermes PM Python 3.14.9（agui/agui-cloud/dev/test）、PostgreSQL 18.6 UTF-8、Docker PostgreSQL 17；macOS 12.7.6，4 CPU／8 GiB，Docker 2 CPU／約 4 GiB，Chrome 150.0.7871.125。套件由 lockfiles 建立。重型 suites 串行，Vitest/Python/browser workers=1，retries=0。
+
+| Gate | Status | 同候選一手證據 step（各 exit=0） |
+| --- | --- | --- |
+| G1 Legacy regression | **PASS** | final-regression, final-browser, final-legacy-container-probe |
+| G2 Storage | **PASS** | final-migrate, final-regression, final-container |
+| G3 Graph | **PASS** | final-regression, final-browser, final-container |
+| G4 Job | **PASS** | final-regression, final-container |
+| G5 Provisioning | **PASS** | final-regression, final-container |
+| G6 Restart | **PASS** | final-host-image, final-fixture-image, final-runtime-image, final-container |
+| G7 Migration | **PASS** | final-migrate, final-regression, final-container |
+| G8 Build | **PASS** | final-host-image, final-fixture-image, final-runtime-image, final-regression, final-container, final-legacy-container-probe, final-repository-check, final-guard-contracts, final-diff-candidate, final-diff-worktree |
+| Part 2 GCS/IAM/PITR | **NOT RUN** | 不以 object double 代替實雲 |
+
+完整 Runtime **20 檔／118 passed**；真 PG probe PASS；Python AG-UI **25 檔／91 passed／0 failed**。正常 Python selector 的 integration cases 另以容器入口執行；原 `test_runtime_container.py` 所使用的完整 `container_probe.py` 直接在本候選正式 image 執行，保留其全部 assertions 並驗證成功 marker。Browser 預設／Graph／dynamic／multi 四模式依序 **6 / 3 / 2 / 1 passed**；預設條件跳過由指定模式覆蓋。TS/Vite build、17 個 repository checks、guard 行為測試及兩種 diff check 均通過。沒有必要 gate 靠 skip、關功能或弱化規則通過。
+
+### 修復與失敗歷史
+
+- 原 bounds／CLI timeout 在安靜環境未重現，保持原 30/60 秒期限；初次 sandbox loopback EPERM 保存後，以正常授權重驗真 HTTP。未把資源競爭假說當成已證實根因。最終全套沒有 timeout／RPC error。
+- busy-run 測試誤用 `finish` 的 keyword-only 參數；先保存 red，再修正為 `status=`／`reason=`，原拒絕與後續 reconciliation 斷言保留。
+- fork 初始提交缺六個真實 CI helpers，依匹配 upstream checker 恢復，來源見 [provenance](../scripts/ci/RESTORED_GUARDS.md)。lazy-deps 的兩個 git subprocess 補 60 秒 deadline；修正原計畫 no-tmp 文字與 TS metrics package-root discovery。新增 resolver contracts 在 base 2 failed、修正版 2 passed；沒有空 manifest、假 guard、baseline 上調或 enforcement 豁免。
+- PostgreSQL readiness 保持 40 秒，改用真 SQL ping、容器存活與最後錯誤診斷；本輪實際正常啟動。新增診斷曾因 PG 沒有可選 Tmpfs 欄位而失敗，已修正並保存 `attempt-61bd4fd/`。
+- 舊 fixture 用無關查詢 `retrieve`（真 API 0 頁，`PostgreSQL` 2 頁），且把 multipart content 當字串、要求 Graph 進入 cached system prompt；保留 `attempt-1a55972/`、`attempt-89eadbf/` 的 FAIL／JUnit／診斷及結束重試的人工 stop 紀錄。Owner 明確核准既有 run-local untrusted reference 契約後才修改 oracle；沒有改 Core。`89eadbf` 的整體回歸雖通過，仍未沿用作最終 PASS。
+
+- `c259c3a` 的必要 suites 通過後，最後 diff 發現 owner 文件尾端空白與六個恢復 helper 的多餘檔尾空行；保存於 `attempt-c259c3a/`，修正格式後在本候選重跑全部必要驗收，沒有混用舊 PASS。
+
+### Restart、資料保留與授權證據
+
+正式 Host／Runtime entrypoints 在 read-only root 與指定 port 通過容器內 loopback smoke，缺少／無效設定 fail fast。共享 scenario **2 passed、0 skip**；Host／Runtime 各三代容器 IDs 不同，具 fresh tmpfs，只共用外部 object volume 與唯讀部署模板，沒有舊 profile／workspace／wiki mount；SQL 角色跨 schema 被拒絕。見 [restart-proof](../artifacts/part1-final-20261119/restart-proof.json)、JUnit、DB snapshots 與容器 logs。
+
+已驗證已提交 manifest 含 state.db、native memory、核准 skill；原 thread mapping／native session IDs／tool results 復原，實際 skill_view 成功，新 thread 載入 persistent memory。未 ACK completion 重送不增加原 source/job，Graph active revision 可讀。B 在分享前的實際 LLM request 不含 A 知識，分享後獨立 untrusted reference 含完整知識、正確 Bot/thread，且與 active revision／原 run provenance 相符；B system prompt 前後相同。C 重建後仍不可越權。Runtime disable 後拒絕新 run，Host applied disabled/revision 有 SQL 證據，原 completed run 不改寫。獨立 worker takeover／fence、撤銷與故障注入由同候選真 PG suites 證明。
+
+### Migration 與 retrieval
+
+Owner 於 2026-11-19 核准 **fresh_deployment**；保留既有本機資料。歷史全量遷移 **N/A（不是 PASS）**，Host／Runtime importer compatibility、fresh schema 與完整重建均 PASS。沒有宣稱可直接切換既有使用者。
+
+同 corpus／`evaluation-synonym-fixture` encoder 的 local / PG 結果如下；原始 latency、queue/compiler 資料在 regression log，並非真模型品質或雲端效能。
+
+| Mode | recall@3 local / PG | MRR local / PG | noise local / PG |
+| --- | --- | --- | --- |
+| keyword | 0.5000 / 0.5000 | 0.5000 / 0.5000 | 0.1429 / 0.1429 |
+| hybrid | 0.9167 / 0.9167 | 0.9583 / 0.9583 | 0.0769 / 0.0769 |
+| hybridGraph | 1.0000 / 1.0000 | 0.9583 / 0.9583 | 0.1250 / 0.1250 |
+
+### 已知限制與交接
+
+只提交成功 turn；未提交 memory/skill 可能遺失，沒有工具級 checkpoint 或 exactly-once 外部副作用。原 session_home_identity、scope/checksum/generation/CAS/fence、allowlist／64 MiB／256 項、Wiki/source 配額保持不變。未引用 objects 保留，未實作 GC；未來至少七天寬限並對全部歷史引用對帳。Credential seed 需持久保管，線上輪替未實作。Runtime disable 意圖至 Host applied 的網路分割窗口仍存在。正式 Runtime 的 loopback／Host／Origin 邊界保持原契約；Cloud Run ingress／服務 URL／IAM 由 Part 2 接線與實雲驗證，本輪 smoke 不宣稱雲端外部可達。真 GCS generation/IAM、Cloud SQL/PITR、Cloud Tasks/Scheduler、Firebase/Vercel、SSE replay/cross-instance cancel、實雲恢復／成本／負載均 **NOT RUN，留 Part 2**。
+
+交接入口沿用 worker-cli `process/tick/reconcile`、bots reconcile-cli、Host completion_delivery `--once`、Host 001–005／Runtime 001–007 與正式 images；未開始 Part 2。Storage ownership/limits 未改，inventory 不需變更。

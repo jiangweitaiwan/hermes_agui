@@ -141,3 +141,23 @@ Runtime desired state 與單調 revision、operation 同交易提交；Host appl
 成功回合才提交原生 profile；失敗／中斷回合可能失去未提交 memory/skill 變更，沒有工具級 checkpoint 或 exactly-once 外部副作用。Profile 上限 64 MiB／256 項，Wiki 預設 256 KiB／1000 pages，原始 source 上限 1 MiB。整份 SQLite backup／上下載的延遲隨容量成長。
 
 目前不刪除未引用 object：SQL rollback、重送前 staging 可能留下孤立物件。採保留策略，後續 GC 至少保留七天寬限，且必須對所有歷史 source/wiki revision、Host manifest/outbox 引用對帳後才能刪除；不可只看 active pointer，亦不可對整個 bucket 套短期 lifecycle。真 GCS IAM/generation、備份/PITR 實雲還原及成本測試仍屬 Part 2。
+
+
+## 2026-11-19 最終候選與重現紀錄
+
+Tested SHA `c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9`；base `ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`；source digest `3dfd47ac67b3e26de62b0e42d7a10ff800f001e201df846757a8259eaeb96795`。
+實際命令／exit code／elapsed／UTC 起止／log checksum 見 `artifacts/part1-final-20261119/INDEX.md` 與各 step JSON。
+最終使用全新 PG Unix socket cluster（UTF-8，Host 001–005／Runtime 001–007 各一次），PM agui/agui-cloud/dev/test、Node 22.18.0、Chrome 150.0.7871.125。
+
+順序為三個 Docker build → production smoke／完整 restart → 既有 native container probe → fresh PG/migrate → regression（Python workers=1、Vitest maxWorkers=1、retries=0）→ browser 四模式 → repository check → guard contracts → diff checks。各重型階段未重疊。容器 build/scenario 使用現有 container mode 內相同命令拆開記錄，以保留每個 build exit code、JUnit 與 `--basetemp` 診斷。
+
+```bash
+HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j 1 --file-timeout 600 tests/hermes_agui/test_cloud_native_restart.py -m integration --junitxml=/path/to/evidence/container.junit.xml -o junit_logging=all
+HERMES_TEST_WORKERS=1 scripts/cloud_native_part1_check.sh regression
+scripts/cloud_native_part1_check.sh browser
+"$HERMES_PYTHON" scripts/check --base ae7d7ae51eca59c49a79ef47f7d086fb23f0798a --commit c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9
+git diff --check ae7d7ae51eca59c49a79ef47f7d086fb23f0798a c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9
+git diff --check
+```
+
+原 legacy container wrapper 的 probe 直接以候選正式 image 執行，命令保留在 `final-legacy-container-probe.json`；其全部 asserts 與成功 marker 已驗證。正常 Python selector 排除的 integration 由這個 probe 及完整 restart/smoke 覆蓋；browser 預設條件案例由三個指定模式覆蓋。舊失敗與 `89eadbf` 的非最終完整回歸均保存於 attempt 目錄，沒有混作本候選結果。報告追加後僅 docs 改變，source manifest 重新核對一致。

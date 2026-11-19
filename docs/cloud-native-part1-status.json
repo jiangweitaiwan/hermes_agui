@@ -1,13 +1,38 @@
 {
-  "captured_at_utc": "2026-11-18T12:37:55.222057+00:00",
-  "head": "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
-  "candidate": "HEAD plus uncommitted working tree; no candidate commit created",
-  "starting_worktree_clean": true,
-  "stopped_by_owner": true,
-  "part1_accepted": false,
-  "part2_prerequisites_accepted": false,
-  "migration_scope": "not explicitly approved; only non-destructive fresh test databases used",
-  "source_manifest_sha256": "5aaefebb7795b3e4b962a2e3d5fe440d3e03b6338d0ed19db1ce6916b5920e4c",
+  "captured_at_utc": "2026-11-19T09:31:07.309675+00:00",
+  "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "starting_head": "c0d2e5990f1a708debfdab181e449c141189a0c3",
+  "base_sha": "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
+  "starting_worktree_clean": false,
+  "starting_untracked_owner_file": "docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md",
+  "stopped_by_owner": false,
+  "part1_accepted": true,
+  "part2_prerequisites_accepted": true,
+  "migration_scope": "fresh_deployment; owner approved 2026-11-19; retain local data; historical full migration N/A",
+  "owner_decisions": {
+    "recorded_at_utc": "2026-11-19T04:54:50.802644+00:00",
+    "fresh_deployment": {
+      "approved": true,
+      "date": "2026-11-19",
+      "text": "我核准首次雲端部署採用 fresh_deployment，保留既有本機資料，不要求全量歷史資料遷移，但仍需通過 importer 相容性測試。",
+      "historical_full_migration": "N/A",
+      "retain_local_data": true
+    },
+    "g6_reference_contract": {
+      "approved": true,
+      "date": "2026-11-19",
+      "text": "核准依 run-local untrusted reference 契約驗收（建議）",
+      "scope": "current LLM request independent untrusted reference; full knowledge and provenance/ACL; unchanged system prompt; no Core change",
+      "proposal": "PROPOSED_REFERENCE_CONTRACT.md"
+    }
+  },
+  "historical_full_migration": {
+    "status": "N/A",
+    "reason": "owner-approved fresh_deployment"
+  },
+  "source_manifest_sha256": "3dfd47ac67b3e26de62b0e42d7a10ff800f001e201df846757a8259eaeb96795",
+  "source_manifest": "artifacts/part1-final-20261119/source-manifest.json",
   "source_files_sha256": {
     "Dockerfile.agui": "7dc69ee904554c913eabb0c6f0739a71eb2e58ea0361ca89a968ccc424763ea2",
     "Dockerfile.agui.part1-test": "a42b4565d2bb4113107497ab7b2626b3eb44d13a2c007bffebf7a228587f07a9",
@@ -69,208 +94,782 @@
     "hermes_agui/storage/migrations/005_management_operations.sql": "e8f0db513b6049a388e7c987f96e9ed0da8e8dd180b5a5e187c70376a5816bd5",
     "justfile": "2ab85a707b6d98cfd3c4d7486a3a852ead14cc95de10c069073ff649a779aac2",
     "pyproject.toml": "14b4072771ba64979010732edc380aa4b2469ed337a55d764d99bb8db191a5b1",
-    "scripts/cloud_native_part1_check.sh": "abe7ae2643da0f79df95a1d03b156cb51a16a4dd68d4a0c7fc2907df0932aab0",
+    "scripts/ci/RESTORED_GUARDS.md": "9eafe39bd06a5b29cc49fb3c0945b7cfc8eef2d4970a55fb26cb5d91fd3f9610",
+    "scripts/ci/check_agents_md_size.py": "d4b8aa6ea4fc2bb2b4fca21298f23c8d3247d100b587314660b3647f881112fa",
+    "scripts/ci/check_blob_size.py": "e533b652f0d03bb359726495a23e08b8f53fa02b75cceb12a693ec19aad637f6",
+    "scripts/ci/check_lazy_deps_imports.py": "7474c5e5b8f3aa0fdbb25ea029c72c83463fed186fb78923228a2ea28cf324ce",
+    "scripts/ci/check_line_endings.py": "1ae7e95659810c515e749fa69fda81ca0b505bf19bb8b1e808ddf054b4572b91",
+    "scripts/ci/check_os_marker_fakes.py": "d0aa32bb08c040439f250ecd5dd1389995b04812454332c1eec33712bc378d3a",
+    "scripts/ci/check_profile_archive_boundary.py": "cba2aae41f080d0d4d6ed85a4a675cfc85cec2f55af42686817607b359e82f78",
+    "scripts/cloud_native_part1_check.sh": "f8d76612a41bcc779437d7429b4c03a11132b37fd7b37cee284bec3bf9fcc358",
+    "scripts/code_health/ts_measure.py": "b0efff85358c675c3c5adf3e2762ed0b9cef3df62abf9b79ded17e4295a0e770",
     "tests/fakes/fake_llm_provider.py": "2172ab63bf3a0941a02d03f2fbe9d7af29a3bc523fdc7f052ef2f27b3222a2ff",
     "tests/hermes_agui/cloud_native_grants.sql": "bdeab483a14d24d32555e5303a6dad73092aac8e9b2ac3172445a1131312e2eb",
     "tests/hermes_agui/cloud_native_host.py": "775cedddfd4a2e08ba94691df415858100f15c240037b2603c30e715641305b8",
-    "tests/hermes_agui/cloud_native_scenario.py": "a8d9b70022b46970808212c9e3393c48923acda62d062290833d845c4acf583e",
-    "tests/hermes_agui/test_cloud_native_restart.py": "b6c0b76fa526622f0474e5f8c3d353876216959b7fb7ce071f5441fdc72780c2",
-    "tests/hermes_agui/test_dynamic_host.py": "dc43fd5c3ad913639a4e758991aaa9ec07870cbe1a60605e1db6698d920fad5a",
+    "tests/hermes_agui/cloud_native_scenario.py": "e5b1cfeefb80a115c7ebd33547edb15344a05739d3b1f65db828e84b9f1cce0a",
+    "tests/hermes_agui/cloud_native_smoke.py": "3c83e584b635bb1e24b7e2113fdc9c437d246a7842d830fcbb848161b9001e5f",
+    "tests/hermes_agui/test_cloud_native_restart.py": "07209ef538a6a20a1d350d9fc88d33e320a6702c2ca2f452622bd86f22c7e8ee",
+    "tests/hermes_agui/test_dynamic_host.py": "7c706661554ecd2645979ca85fdbb8fc18f7cd59c60c53d8316cfcd48ab6a4c7",
     "tests/hermes_agui/test_dynamic_runtime.py": "05e4cb8a7831e69e757e64f7618a6615f304798e1752239f30d6b85bcbcebd9b",
     "tests/hermes_agui/test_profile_import_compatibility.py": "3bebc65f85cd32ffe041df4f14c65a1445e27e4b074230843c7c95ac2815def1",
+    "tests/scripts/test_code_health_packages.py": "36469d3cafef294c07e548aaca5f0453dd5b3e4eecd8f5eefd2726704b993783",
     "uv.lock": "e0f34adea504b89da1eceb1b0fdadc9c14d6032e93ed6747874a3a9b57ff9c50"
   },
   "changed_files": [
-    "Dockerfile.agui",
-    "Dockerfile.agui.part1-test",
-    "Dockerfile.agui.part1-test.dockerignore",
-    "docs/cloud-native-inventory.md",
-    "docs/cloud-native-part-1-report.md",
-    "docs/cloud-native-part-2-report.md",
+    "docs/CLOUD_NATIVE_PART_1.md",
+    "docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md",
     "docs/cloud-native-part1-validation.md",
-    "examples/copilotkit/.dockerignore",
-    "examples/copilotkit/.env.example",
-    "examples/copilotkit/Dockerfile",
-    "examples/copilotkit/server/application-config.ts",
-    "examples/copilotkit/server/application.ts",
-    "examples/copilotkit/server/bootstrap.ts",
-    "examples/copilotkit/server/bots/deployment.ts",
-    "examples/copilotkit/server/bots/host-client.ts",
-    "examples/copilotkit/server/bots/manager.ts",
-    "examples/copilotkit/server/bots/operations.ts",
-    "examples/copilotkit/server/bots/reconcile-cli.ts",
-    "examples/copilotkit/server/bots/registry.ts",
-    "examples/copilotkit/server/delegation.ts",
-    "examples/copilotkit/server/graph-memory.ts",
-    "examples/copilotkit/server/graph/access.ts",
-    "examples/copilotkit/server/graph/api.ts",
-    "examples/copilotkit/server/graph/browser-store.ts",
-    "examples/copilotkit/server/graph/browser.ts",
-    "examples/copilotkit/server/graph/cli.ts",
-    "examples/copilotkit/server/graph/compiler.ts",
-    "examples/copilotkit/server/graph/completion-api.ts",
-    "examples/copilotkit/server/graph/evolution.ts",
-    "examples/copilotkit/server/graph/ingest-cli.ts",
-    "examples/copilotkit/server/graph/ingest-queue.ts",
-    "examples/copilotkit/server/graph/ingest-store.ts",
-    "examples/copilotkit/server/graph/objects.ts",
-    "examples/copilotkit/server/graph/postgres-ingest-queue.ts",
-    "examples/copilotkit/server/graph/postgres-source-store.ts",
-    "examples/copilotkit/server/graph/postgres-wiki-store.ts",
-    "examples/copilotkit/server/graph/provider.ts",
-    "examples/copilotkit/server/graph/session-ingestor.ts",
-    "examples/copilotkit/server/graph/source-store.ts",
-    "examples/copilotkit/server/graph/wiki-store.ts",
-    "examples/copilotkit/server/graph/worker-cli.ts",
-    "examples/copilotkit/server/index.ts",
-    "examples/copilotkit/server/runtime.ts",
-    "examples/copilotkit/server/storage/bot-registry.ts",
-    "examples/copilotkit/server/storage/migrations/005_graph_sources.sql",
-    "examples/copilotkit/server/storage/migrations/006_graph_jobs.sql",
-    "examples/copilotkit/server/storage/migrations/007_bot_operations.sql",
-    "examples/copilotkit/tests/bot-import-compatibility.test.ts",
-    "examples/copilotkit/tests/bot-manager.test.ts",
-    "examples/copilotkit/tests/bot-operations.test.ts",
-    "examples/copilotkit/tests/fixtures/cloud-native-runtime.ts",
-    "examples/copilotkit/tests/fixtures/graph-job-worker.ts",
-    "examples/copilotkit/tests/graph-browser.test.ts",
-    "examples/copilotkit/tests/wiki-evolution-lifecycle.test.ts",
-    "examples/copilotkit/tests/wiki-evolution-runtime.test.ts",
-    "examples/copilotkit/tests/wiki-postgres-sources.test.ts",
-    "hermes_agui/management.py",
-    "hermes_agui/storage/host_settings.py",
-    "hermes_agui/storage/local_management_operations.py",
-    "hermes_agui/storage/managed_bots.py",
-    "hermes_agui/storage/managed_operations.py",
-    "hermes_agui/storage/migrations/005_management_operations.sql",
-    "justfile",
-    "pyproject.toml",
+    "scripts/ci/RESTORED_GUARDS.md",
+    "scripts/ci/check_agents_md_size.py",
+    "scripts/ci/check_blob_size.py",
+    "scripts/ci/check_lazy_deps_imports.py",
+    "scripts/ci/check_line_endings.py",
+    "scripts/ci/check_os_marker_fakes.py",
+    "scripts/ci/check_profile_archive_boundary.py",
     "scripts/cloud_native_part1_check.sh",
-    "tests/fakes/fake_llm_provider.py",
-    "tests/hermes_agui/cloud_native_grants.sql",
-    "tests/hermes_agui/cloud_native_host.py",
+    "scripts/code_health/ts_measure.py",
     "tests/hermes_agui/cloud_native_scenario.py",
+    "tests/hermes_agui/cloud_native_smoke.py",
     "tests/hermes_agui/test_cloud_native_restart.py",
     "tests/hermes_agui/test_dynamic_host.py",
-    "tests/hermes_agui/test_dynamic_runtime.py",
-    "tests/hermes_agui/test_profile_import_compatibility.py",
-    "uv.lock"
+    "tests/scripts/test_code_health_packages.py"
   ],
-  "results": {
-    "focused_graph_faults": {
-      "status": "PASS",
-      "files": 3,
-      "passed": 20,
-      "final_candidate_rerun_complete": false,
-      "log": "/private/tmp/hermes-part1-fault-check.log"
+  "environment": {
+    "starting_head": "c0d2e5990f1a708debfdab181e449c141189a0c3",
+    "comparison_base": "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
+    "starting_worktree": "only untracked docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md",
+    "os": "macOS-12.7.6-x86_64-i386-64bit-Mach-O",
+    "python": "3.14.9 (main, Oct 21 2026, 17:39:08) [Clang 23.1.3 ]",
+    "python_interpreter": "/private/tmp/hermes-part1-final-test-env/bin/python",
+    "node": "v22.18.0",
+    "postgresql": "pg_ctl (PostgreSQL) 18.6",
+    "host_cpu": 4,
+    "host_ram_bytes": 8589934592,
+    "docker_cpu": 2,
+    "docker_ram_bytes": 4124983296,
+    "browser": "installed Google Chrome",
+    "migration_scope": {
+      "decision": "fresh_deployment",
+      "approved_by": "owner in task instruction",
+      "approved_on": "2026-11-19",
+      "historical_full_migration": "N/A",
+      "local_data": "preserved",
+      "importer_compatibility": "required"
     },
-    "focused_graph_integration": {
-      "status": "PASS",
-      "files": 6,
-      "passed": 46,
-      "final_candidate_rerun_complete": false
+    "heavy_suites": "serial; Python workers=1; Vitest maxWorkers=1; retries=0",
+    "browser_version": "150.0.7871.125",
+    "final_pg_socket": "/private/tmp/part1-c9e7a56-pg",
+    "local_sqlite_version": "3.53.1",
+    "local_postgresql_server": "PostgreSQL 18.6 on aarch64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.0.13.5), 64-bit",
+    "local_postgresql_encoding": "UTF8",
+    "container_postgresql_server": "17.12 (Debian 17.12-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "metadata_permission_note": "Initial optional metadata SQL read hit sandbox EPERM; repeated with normal authorization. Acceptance suites already used normal authorization.",
+    "final_metadata_captured_at": "2026-11-19T09:14:05.350891+00:00"
+  },
+  "images": [
+    {
+      "name": "hermes-agui:part1",
+      "Id": "sha256:e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69",
+      "RepoDigests": [],
+      "Created": "2026-11-18T11:46:46.856005833Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "10000:10000",
+        "Entrypoint": [
+          "/usr/bin/tini",
+          "-g",
+          "--",
+          "python",
+          "-m",
+          "hermes_agui.server"
+        ],
+        "Cmd": [
+          "--home",
+          "/srv/hermes/profile",
+          "--cwd",
+          "/srv/workspace",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ],
+        "ExposedPorts": {
+          "8000/tcp": {}
+        }
+      }
     },
-    "focused_provisioning_python": {
-      "status": "PASS",
-      "files": 2,
-      "passed": 7,
-      "later_busy_run_assertion_run": false
+    {
+      "name": "hermes-agui:part1-test",
+      "Id": "sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b",
+      "RepoDigests": [],
+      "Created": "2026-11-18T12:08:48.990710803Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "10000:10000",
+        "Entrypoint": [
+          "/usr/bin/tini",
+          "-g",
+          "--",
+          "python",
+          "-m",
+          "tests.hermes_agui.cloud_native_host"
+        ],
+        "Cmd": null,
+        "ExposedPorts": {
+          "8000/tcp": {}
+        }
+      }
     },
-    "focused_provisioning_runtime": {
-      "status": "PASS",
-      "files": 2,
-      "passed": 7
+    {
+      "name": "hermes-runtime:part1",
+      "Id": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+      "RepoDigests": [],
+      "Created": "2026-11-18T12:21:59.074966058Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "10000:10000",
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Cmd": [
+          "npm",
+          "start"
+        ],
+        "ExposedPorts": {
+          "3000/tcp": {}
+        }
+      }
     },
-    "runtime_full": {
-      "status": "FAIL",
-      "files": 19,
-      "passed": 115,
-      "failed": 2,
-      "unhandled_errors": 1,
-      "failures": [
-        "graph-browser work bounds: timeout 30000ms",
-        "wiki-ingest-cli: timeout 60000ms",
-        "vitest-worker onTaskUpdate RPC timeout"
+    {
+      "name": "postgres:17",
+      "Id": "sha256:140936e8665d5274aa58df31b722693b4b451c541bb0f1a263a345d424bfacb4",
+      "RepoDigests": [
+        "postgres@sha256:0d938e975177bef9f1f61f3f9dbcf2e0aa0a139568f66d3415ed8892eb97f6ac"
       ],
-      "log": "/private/tmp/hermes-part1-regression.log"
+      "Created": "2026-11-12T20:55:34.149099236Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "",
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Cmd": [
+          "postgres"
+        ],
+        "ExposedPorts": {
+          "5432/tcp": {}
+        }
+      }
+    }
+  ],
+  "gates": {
+    "G1": {
+      "name": "Legacy regression",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-regression",
+        "final-browser",
+        "final-legacy-container-probe"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-browser.log",
+        "artifacts/part1-final-20261119/final-legacy-container-probe.log"
+      ]
+    },
+    "G2": {
+      "name": "Storage",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-migrate",
+        "final-regression",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-migrate.log",
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G3": {
+      "name": "Graph",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-regression",
+        "final-browser",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-browser.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G4": {
+      "name": "Job",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-regression",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G5": {
+      "name": "Provisioning",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-regression",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G6": {
+      "name": "Restart",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-host-image",
+        "final-fixture-image",
+        "final-runtime-image",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-host-image.log",
+        "artifacts/part1-final-20261119/final-fixture-image.log",
+        "artifacts/part1-final-20261119/final-runtime-image.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G7": {
+      "name": "Migration",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-migrate",
+        "final-regression",
+        "final-container"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-migrate.log",
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-container.log"
+      ]
+    },
+    "G8": {
+      "name": "Build",
+      "status": "PASS",
+      "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "steps": [
+        "final-host-image",
+        "final-fixture-image",
+        "final-runtime-image",
+        "final-regression",
+        "final-container",
+        "final-legacy-container-probe",
+        "final-repository-check",
+        "final-guard-contracts",
+        "final-diff-candidate",
+        "final-diff-worktree"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "artifacts": [
+        "artifacts/part1-final-20261119/final-host-image.log",
+        "artifacts/part1-final-20261119/final-fixture-image.log",
+        "artifacts/part1-final-20261119/final-runtime-image.log",
+        "artifacts/part1-final-20261119/final-regression.log",
+        "artifacts/part1-final-20261119/final-container.log",
+        "artifacts/part1-final-20261119/final-legacy-container-probe.log",
+        "artifacts/part1-final-20261119/final-repository-check.log",
+        "artifacts/part1-final-20261119/final-guard-contracts.log",
+        "artifacts/part1-final-20261119/final-diff-candidate.log",
+        "artifacts/part1-final-20261119/final-diff-worktree.log"
+      ]
+    }
+  },
+  "steps": {
+    "final-host-image": {
+      "label": "final-host-image",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile.agui",
+        "-t",
+        "hermes-agui:part1",
+        "."
+      ],
+      "started_at": "2026-11-19T09:05:24.283288+00:00",
+      "finished_at": "2026-11-19T09:05:48.180567+00:00",
+      "elapsed_seconds": 23.894,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-host-image.log",
+      "log_sha256": "1277f219e48a6c7a814edd59f4b56459008cbb5de84eb45012465ede5346a739"
+    },
+    "final-fixture-image": {
+      "label": "final-fixture-image",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "Dockerfile.agui.part1-test",
+        "-t",
+        "hermes-agui:part1-test",
+        "."
+      ],
+      "started_at": "2026-11-19T09:05:48.621487+00:00",
+      "finished_at": "2026-11-19T09:05:51.321820+00:00",
+      "elapsed_seconds": 2.7,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-fixture-image.log",
+      "log_sha256": "9170909c2ffab49505226e86ddc8a925c89f156ed9d62595f58147f8afedef6f"
+    },
+    "final-runtime-image": {
+      "label": "final-runtime-image",
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "examples/copilotkit/Dockerfile",
+        "-t",
+        "hermes-runtime:part1",
+        "examples/copilotkit"
+      ],
+      "started_at": "2026-11-19T09:05:51.523838+00:00",
+      "finished_at": "2026-11-19T09:05:53.693587+00:00",
+      "elapsed_seconds": 2.169,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-runtime-image.log",
+      "log_sha256": "9ba16f8d3215a8c025c9f3df985f8416bee0e9ee45ab59cde3b420a41d338b08"
+    },
+    "final-container": {
+      "label": "final-container",
+      "command": [
+        "scripts/run_tests.sh",
+        "-j",
+        "1",
+        "--file-timeout",
+        "600",
+        "tests/hermes_agui/test_cloud_native_restart.py",
+        "-m",
+        "integration",
+        "--basetemp=/private/tmp/part1-final-restart-c9e7a56",
+        "--junitxml=artifacts/part1-final-20261119/container.junit.xml",
+        "-o",
+        "junit_logging=all"
+      ],
+      "started_at": "2026-11-19T09:06:22.722053+00:00",
+      "finished_at": "2026-11-19T09:10:17.810399+00:00",
+      "elapsed_seconds": 235.081,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-container.log",
+      "log_sha256": "f1c01cfe3f26be9f845d3cc1f9e591ca43c530f1b6884d609117a3bab17cb86e"
+    },
+    "final-legacy-container-probe": {
+      "label": "final-legacy-container-probe",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        "agui-part1-legacy-c9e7a56",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges:true",
+        "--mount",
+        "type=bind,src=/Users/jiangwei/desktop/hermes/hermes-agent/tests/hermes_agui/container_probe.py,dst=/probe/container_probe.py,readonly",
+        "--mount",
+        "type=bind,src=/Users/jiangwei/desktop/hermes/hermes-agent/tests/fakes/fake_llm_provider.py,dst=/probe/fake_llm_provider.py,readonly",
+        "--entrypoint",
+        "python",
+        "hermes-agui:part1",
+        "/probe/container_probe.py"
+      ],
+      "started_at": "2026-11-19T09:10:18.051658+00:00",
+      "finished_at": "2026-11-19T09:10:39.780106+00:00",
+      "elapsed_seconds": 21.727,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-legacy-container-probe.log",
+      "log_sha256": "73b73573f7df526093344139248dc0aa4bee9611d39cd9b22d6f24399a1a2697"
+    },
+    "final-migrate": {
+      "label": "final-migrate",
+      "command": [
+        "scripts/cloud_native_part1_check.sh",
+        "migrate"
+      ],
+      "started_at": "2026-11-19T09:10:40.103517+00:00",
+      "finished_at": "2026-11-19T09:10:41.960166+00:00",
+      "elapsed_seconds": 1.856,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-migrate.log",
+      "log_sha256": "962d2a6a45e961864a455731df652e3e96de436b957fa5a01c613f151558c254"
+    },
+    "final-regression": {
+      "label": "final-regression",
+      "command": [
+        "scripts/cloud_native_part1_check.sh",
+        "regression"
+      ],
+      "started_at": "2026-11-19T09:10:42.082703+00:00",
+      "finished_at": "2026-11-19T09:22:35.336683+00:00",
+      "elapsed_seconds": 713.124,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-regression.log",
+      "log_sha256": "9c12d9aaf792f8ea9b4adbf2af0f14f6c954f94531573736167856e0b28e0fcf"
+    },
+    "final-browser": {
+      "label": "final-browser",
+      "command": [
+        "scripts/cloud_native_part1_check.sh",
+        "browser"
+      ],
+      "started_at": "2026-11-19T09:22:35.739128+00:00",
+      "finished_at": "2026-11-19T09:27:33.787746+00:00",
+      "elapsed_seconds": 298.04,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-browser.log",
+      "log_sha256": "cb612005902b279331d6ab252cf9fcc7d969ab31db69c6351868229d1164a042"
+    },
+    "final-repository-check": {
+      "label": "final-repository-check",
+      "command": [
+        "/private/tmp/hermes-part1-final-test-env/bin/python",
+        "scripts/check",
+        "--base",
+        "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
+        "--commit",
+        "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9"
+      ],
+      "started_at": "2026-11-19T09:27:34.202560+00:00",
+      "finished_at": "2026-11-19T09:29:44.362798+00:00",
+      "elapsed_seconds": 130.156,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-repository-check.log",
+      "log_sha256": "c68801615da9c9fa6a98bb2a58ed7006b32b12e123f6687085d821de29696652"
+    },
+    "final-guard-contracts": {
+      "label": "final-guard-contracts",
+      "command": [
+        "scripts/run_tests.sh",
+        "-j",
+        "1",
+        "tests/scripts/test_code_health_packages.py",
+        "tests/scripts/test_check_agents_md_size.py",
+        "tests/scripts/test_check_profile_archive_boundary.py"
+      ],
+      "started_at": "2026-11-19T09:29:44.705826+00:00",
+      "finished_at": "2026-11-19T09:30:06.102406+00:00",
+      "elapsed_seconds": 21.416,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-guard-contracts.log",
+      "log_sha256": "2be86f787bfdc864bb21229a97e518e32c058f07664f771ba0170b03d295f704"
+    },
+    "final-diff-candidate": {
+      "label": "final-diff-candidate",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
+        "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9"
+      ],
+      "started_at": "2026-11-19T09:06:22.027189+00:00",
+      "finished_at": "2026-11-19T09:06:22.338286+00:00",
+      "elapsed_seconds": 0.311,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-diff-candidate.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final-diff-worktree": {
+      "label": "final-diff-worktree",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "started_at": "2026-11-19T09:06:22.480252+00:00",
+      "finished_at": "2026-11-19T09:06:22.549034+00:00",
+      "elapsed_seconds": 0.068,
+      "exit_code": 0,
+      "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+      "log": "artifacts/part1-final-20261119/final-diff-worktree.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "results": {
+    "runtime_full": {
+      "status": "PASS",
+      "files": 20,
+      "passed": 118,
+      "failed": 0,
+      "skipped": 0,
+      "log": "artifacts/part1-final-20261119/final-regression.log"
     },
     "python_full_and_pg_probe": {
-      "status": "NOT RUN",
-      "reason": "regression runner stopped after Vitest failure"
+      "status": "PASS",
+      "files": 25,
+      "passed": 91,
+      "failed": 0,
+      "log": "artifacts/part1-final-20261119/final-regression.log"
     },
     "browser": {
-      "default": {
-        "passed": 6,
-        "skipped": 4
-      },
-      "graph": {
-        "passed": 3
-      },
-      "dynamic_bot": {
-        "passed": 2
-      },
-      "multi_bot": {
-        "status": "NOT RUN",
-        "reason": "not completed; stopped with webServer exited early"
-      },
-      "log": "/private/tmp/hermes-part1-browser.log"
+      "status": "PASS",
+      "passes_in_order_default_graph_dynamic_multi": [
+        6,
+        3,
+        2,
+        1
+      ],
+      "default_conditional_skips": [
+        4
+      ],
+      "log": "artifacts/part1-final-20261119/final-browser.log"
     },
     "retrieval_fixture": {
       "status": "PASS",
       "backend_results_equal": true,
-      "encoder": "deterministic fixture encoder",
-      "recall_at_3": {
-        "keyword": 0.5,
-        "hybrid": 0.9166666666666666,
-        "hybrid_graph": 1.0
-      }
+      "evaluations_local_then_pg": [
+        {
+          "environment": {
+            "node": "v22.18.0",
+            "corpusPages": 7,
+            "queries": 12,
+            "encoder": "evaluation-synonym-fixture",
+            "note": "in-process deterministic mock; no network, real-model quality or paid API cost claim"
+          },
+          "keyword": {
+            "recallAt3": 0.5,
+            "mrr": 0.5,
+            "noiseFraction": 0.14285714285714285,
+            "p50Ms": 2.5975670000000264,
+            "p95Ms": 8.622541000000183
+          },
+          "hybrid": {
+            "recallAt3": 0.9166666666666666,
+            "mrr": 0.9583333333333334,
+            "noiseFraction": 0.07692307692307693,
+            "p50Ms": 4.2657480000000305,
+            "p95Ms": 21.41746900000021
+          },
+          "hybridGraph": {
+            "recallAt3": 1,
+            "mrr": 0.9583333333333334,
+            "noiseFraction": 0.125,
+            "p50Ms": 4.3435799999999745,
+            "p95Ms": 9.936914999999999
+          },
+          "queue": {
+            "lagMs": 22,
+            "state": "completed"
+          },
+          "compiler": {
+            "elapsedMs": 118.7360050000002,
+            "calls": 3,
+            "inputBytes": 1461,
+            "outputBytes": 403,
+            "billedCost": null
+          }
+        },
+        {
+          "backend": "postgres",
+          "encoder": "evaluation-synonym-fixture",
+          "keyword": {
+            "recallAt3": 0.5,
+            "mrr": 0.5,
+            "noiseFraction": 0.14285714285714285,
+            "p50Ms": 6.587034000000131,
+            "p95Ms": 26.369545000000016
+          },
+          "hybrid": {
+            "recallAt3": 0.9166666666666666,
+            "mrr": 0.9583333333333334,
+            "noiseFraction": 0.07692307692307693,
+            "p50Ms": 8.523635000000013,
+            "p95Ms": 30.399194999999963
+          },
+          "hybridGraph": {
+            "recallAt3": 1,
+            "mrr": 0.9583333333333334,
+            "noiseFraction": 0.125,
+            "p50Ms": 8.543336000000181,
+            "p95Ms": 20.859394000000066
+          }
+        }
+      ],
+      "encoder": "evaluation-synonym-fixture",
+      "real_model_quality_claim": false
     },
     "container_restart": {
-      "status": "FAIL",
-      "latest_failure": "PostgreSQL container readiness timeout after 40 seconds",
-      "full_scenario_completed": false,
-      "log": "/private/tmp/hermes-part1-container-final.log"
+      "status": "PASS",
+      "full_scenario_completed": true,
+      "tests_passed": 2,
+      "skipped": 0,
+      "proof": "artifacts/part1-final-20261119/restart-proof.json",
+      "log": "artifacts/part1-final-20261119/final-container.log"
     },
     "host_image_build": {
       "status": "PASS",
-      "image": "hermes-agui:part1",
-      "id": "sha256:e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69"
+      "name": "hermes-agui:part1",
+      "Id": "sha256:e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69",
+      "RepoDigests": [],
+      "Created": "2026-11-18T11:46:46.856005833Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "10000:10000",
+        "Entrypoint": [
+          "/usr/bin/tini",
+          "-g",
+          "--",
+          "python",
+          "-m",
+          "hermes_agui.server"
+        ],
+        "Cmd": [
+          "--home",
+          "/srv/hermes/profile",
+          "--cwd",
+          "/srv/workspace",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ],
+        "ExposedPorts": {
+          "8000/tcp": {}
+        }
+      }
     },
     "runtime_image_build": {
       "status": "PASS",
-      "image": "hermes-runtime:part1",
-      "id": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59"
+      "name": "hermes-runtime:part1",
+      "Id": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+      "RepoDigests": [],
+      "Created": "2026-11-18T12:21:59.074966058Z",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "config": {
+        "User": "10000:10000",
+        "Entrypoint": [
+          "docker-entrypoint.sh"
+        ],
+        "Cmd": [
+          "npm",
+          "start"
+        ],
+        "ExposedPorts": {
+          "3000/tcp": {}
+        }
+      }
     },
     "repository_check": {
-      "status": "FAIL",
-      "reasons": [
-        "HEAD missing multiple scripts/ci/check_*.py helpers",
-        "no-tmp hit in original CLOUD_NATIVE_PART_1.md",
-        "health blocked by missing root package.json after supplying Node PATH"
-      ],
-      "log": "/private/tmp/hermes-part1-check.log"
+      "status": "PASS",
+      "checks": 17,
+      "log": "artifacts/part1-final-20261119/final-repository-check.log"
     },
     "new_importer_tests": {
-      "status": "NOT RUN",
+      "status": "PASS",
       "files": [
         "tests/hermes_agui/test_profile_import_compatibility.py",
         "examples/copilotkit/tests/bot-import-compatibility.test.ts"
-      ]
+      ],
+      "log": "artifacts/part1-final-20261119/final-regression.log"
     },
     "real_gcs_iam_pitr": {
       "status": "NOT RUN",
       "phase": "Part 2"
     }
   },
-  "remaining_gates": [
-    "final consistent-candidate legacy regression",
-    "complete dual-container restart",
-    "latest storage/graph/job/provisioning verification",
-    "new importer compatibility tests",
-    "owner migration scope decision",
-    "repository-wide checks"
-  ],
+  "skip_rationale": {
+    "runtime_required_skips": 0,
+    "python_integration_selection": "normal suite excludes integration; two restart/smoke cases ran explicitly; legacy runtime_container probe body ran directly in the candidate image with all assertions and success marker checked",
+    "browser": "default conditional cases covered by explicit GRAPH_MEMORY_TEST, DYNAMIC_BOT_TEST and MULTI_BOT_TEST modes"
+  },
+  "remaining_gates": [],
+  "blockers": [],
+  "real_gcs_iam_pitr": {
+    "status": "NOT RUN",
+    "phase": "Part 2"
+  },
   "validation_commands": "docs/cloud-native-part1-validation.md",
+  "execution_window": {
+    "first_preserved_focused_start": "2026-11-19T03:53:25+00:00",
+    "candidate_frozen_at": "2026-11-19T09:05:21.599309+00:00",
+    "completed_at": "2026-11-19T09:31:07.309675+00:00"
+  },
+  "prior_status": "artifacts/part1-final-20261119/prior-status-20261118.json",
+  "source_verified_unchanged": true,
+  "report_revision": "recorded after documentation commit in artifacts/part1-final-20261119/report-revision.json",
   "no_paid_cloud_resources_created": true,
   "part2_implemented": false
 }
