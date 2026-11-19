@@ -262,7 +262,7 @@ def recover(fixture, bots, evidence):
     assert shared.status_code == 200, shared.text
     assert fixture.request("/__test/tick", method="POST").status_code == 200
     assert fixture.request(f"/api/graph/{private_bot}/search?q=資料庫").json()["pages"]
-    fixture.run(private_bot, "retrieve", "new-thread")
+    fixture.run(private_bot, "retrieve PostgreSQL", "new-thread")
     assert fixture.request(f"/api/graph/{bot}/pages", owner="other").status_code == 404
     assert fixture.request(f"/api/graph/{private_bot}/search?q=資料庫", owner="other").status_code == 404
     assert fixture.request(f"/api/bots/{bot}/disable", method="POST").status_code == 204

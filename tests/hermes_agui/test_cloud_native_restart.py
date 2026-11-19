@@ -39,8 +39,8 @@ def test_cloud_native_dual_container_restart(tmp_path, native_config):
         if task == "memory-check":
             assert MEMORY in str(messages[0])
             return Text("已在新對話載入持久化的原生記憶。")
-        if task == "retrieve":
-            assert "資料庫" in str(messages[0])
+        if task == "retrieve PostgreSQL":
+            assert KNOWLEDGE in str(messages[0])
             return Text("檢索到已授權的共享資料庫知識。")
         raise AssertionError("Unexpected fake-model task")
 
