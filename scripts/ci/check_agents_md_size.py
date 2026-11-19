@@ -63,4 +63,3 @@ def main(repo: Path) -> int:
 
 if __name__ == "__main__":
     sys.exit(main(Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[2]))
-

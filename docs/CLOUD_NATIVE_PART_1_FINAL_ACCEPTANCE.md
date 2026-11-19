@@ -1,10 +1,10 @@
 # Hermes AG-UI — Cloud-native Part 1 Final Acceptance
 
 > 最終驗收收尾計畫｜執行者：Codex
-> 
-> Repository: https://github.com/jiangweitaiwan/hermes_agui.git  
-> 文件日期：2026-11-19  
-> 審查基準：`c0d2e5990f1a708debfdab181e449c141189a0c3`（main，commit message `add:part1-4`）  
+>
+> Repository: https://github.com/jiangweitaiwan/hermes_agui.git
+> 文件日期：2026-11-19
+> 審查基準：`c0d2e5990f1a708debfdab181e449c141189a0c3`（main，commit message `add:part1-4`）
 > 建議放置：`docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md`
 
 ## 1. 任務定義與停止條件
