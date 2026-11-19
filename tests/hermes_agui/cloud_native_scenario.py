@@ -40,7 +40,7 @@ class ContainerScenario:
 
     def record_container(self, name):
         """Save only operational fields; Docker's full inspect includes credentials."""
-        fields = '{{json .Id}}|{{json .Image}}|{{json .State}}|{{json .HostConfig.ReadonlyRootfs}}|{{json .HostConfig.Tmpfs}}|{{json .Mounts}}'
+        fields = '{{json .Id}}|{{json .Image}}|{{json .State}}|{{json .HostConfig.ReadonlyRootfs}}|{{json (index .HostConfig "Tmpfs")}}|{{json .Mounts}}'
         receipt = docker("inspect", "--format", fields, name)
         print(f"container evidence {name}: {receipt}", flush=True)
         (self.directory.parent / (name + ".inspect.txt")).write_text(receipt, encoding="utf-8")
