@@ -1,0 +1,14 @@
+{
+  "label": "final-regression",
+  "command": [
+    "scripts/cloud_native_part1_check.sh",
+    "regression"
+  ],
+  "started_at": "2026-11-19T05:07:13.219552+00:00",
+  "finished_at": "2026-11-19T05:23:57.988956+00:00",
+  "elapsed_seconds": 1004.739,
+  "exit_code": 0,
+  "head": "c259c3ac2d112c18c7c6e4814147ecb8ff60f3de",
+  "log": "artifacts/part1-final-20261119/final-regression.log",
+  "log_sha256": "e2d60612421eaedf808e90d3ad5c7ffd5cfcbe961b1ba193b7d3589ff675a0b4"
+}

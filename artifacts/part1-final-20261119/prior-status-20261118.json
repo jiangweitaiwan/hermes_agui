@@ -1,0 +1,276 @@
+{
+  "captured_at_utc": "2026-11-18T12:37:55.222057+00:00",
+  "head": "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a",
+  "candidate": "HEAD plus uncommitted working tree; no candidate commit created",
+  "starting_worktree_clean": true,
+  "stopped_by_owner": true,
+  "part1_accepted": false,
+  "part2_prerequisites_accepted": false,
+  "migration_scope": "not explicitly approved; only non-destructive fresh test databases used",
+  "source_manifest_sha256": "5aaefebb7795b3e4b962a2e3d5fe440d3e03b6338d0ed19db1ce6916b5920e4c",
+  "source_files_sha256": {
+    "Dockerfile.agui": "7dc69ee904554c913eabb0c6f0739a71eb2e58ea0361ca89a968ccc424763ea2",
+    "Dockerfile.agui.part1-test": "a42b4565d2bb4113107497ab7b2626b3eb44d13a2c007bffebf7a228587f07a9",
+    "Dockerfile.agui.part1-test.dockerignore": "4b51b707e7c6b9436d230526a5709e5a4cd39b618a2501809a268c75b595ce44",
+    "examples/copilotkit/.dockerignore": "0a259af31ae291dbd2b792ed645c243579e2f79943990f9c4d7ad2aae591a75d",
+    "examples/copilotkit/.env.example": "689147326f35da1b91dda61d5d1185351849b30b2e7ecce91b52f7930b8ed1d4",
+    "examples/copilotkit/Dockerfile": "d87231a688b9ec3f47710a61a0f7b089e57666e555454d91609c1b43c2e56cce",
+    "examples/copilotkit/server/application-config.ts": "65274e08cd222b4b1a794bb94585c2abf64311e3ac067b6c0ea5de309deec450",
+    "examples/copilotkit/server/application.ts": "4f6469ad0bc7b9db5b6513c0bfde758d0203b0af2a44d20fe43cc45866fbd3e0",
+    "examples/copilotkit/server/bootstrap.ts": "f64a0cffd0836ed4175291364729951a3ef69003bfa1b9739c82fe3412ee2d39",
+    "examples/copilotkit/server/bots/deployment.ts": "83c9148d1a57af2a0a288f81ce906a5041ecd142ea87f97de7c22e6f4a392b77",
+    "examples/copilotkit/server/bots/host-client.ts": "e928f4fc9eb8535c8547325f800caa11028c171b18d1060825ff3f068c204009",
+    "examples/copilotkit/server/bots/manager.ts": "60405367400cecf74aaef1d2be0541280e9744578960e42c7c65bfc51db8bcd0",
+    "examples/copilotkit/server/bots/operations.ts": "d6bac18d100bd0fff3b12beb58e42c7ee08969ad52df0431dccee882f8881daa",
+    "examples/copilotkit/server/bots/reconcile-cli.ts": "daec2ad5275b687b28dcbc19e1c77619b1f13a25d6fdb3050cd7d38d5ab48340",
+    "examples/copilotkit/server/bots/registry.ts": "cfb200b2ba2a5f6699db8e3e5604e3565484e9d9f3cceafc572ec2d4933f0845",
+    "examples/copilotkit/server/delegation.ts": "5b1efba01ff753517531740ab70891d43251c50caa419bb9f30b72251ea3aa60",
+    "examples/copilotkit/server/graph-memory.ts": "4814b6f4c2a77d1e961c35fbaf81f26fc9fc9429221e12edc2e9c3b08f9f86d7",
+    "examples/copilotkit/server/graph/access.ts": "2c7f075f2f4be2dd9c5598604265c5a0c5b953b6ce0d6d20d847bfe5f9772a55",
+    "examples/copilotkit/server/graph/api.ts": "eba65522efb0f7fdeb1103c0248602f0035297d4abc464034c655103dd0b3551",
+    "examples/copilotkit/server/graph/browser-store.ts": "999f00bf80c8a0077e61350932b594a5bb9b745c6615e31be4ca1974d501e1c8",
+    "examples/copilotkit/server/graph/browser.ts": "0aab6226823da88c190280af900fbee5ad3e699ba9e99e99ba8262eab3dae5d7",
+    "examples/copilotkit/server/graph/cli.ts": "98c353210646e1127a1dcd6cf4b45218116ed3901c89405ecfbb4bdfc7f11a86",
+    "examples/copilotkit/server/graph/compiler.ts": "955b29999eeaa92f39c1b5f527591f6fe1dbd2690a6006f4c21f9e4c7a59454d",
+    "examples/copilotkit/server/graph/completion-api.ts": "2f0d4813b4cfcf442f5f2980303053e2e325026f426ec4073fb6d5e586a69766",
+    "examples/copilotkit/server/graph/evolution.ts": "6c5098ec8c0c2a43637f7e7ca601aa565a6c2b51d1ccafb46ac4ab49e077545f",
+    "examples/copilotkit/server/graph/ingest-cli.ts": "2feff75a1df57459c81d9349ba2ad49b327a8a4a608a161fca122219115f4c7b",
+    "examples/copilotkit/server/graph/ingest-queue.ts": "e93d72507e008f695da8779e7a2d598116ad76010af316392556b1d3b9f93bda",
+    "examples/copilotkit/server/graph/ingest-store.ts": "851972f1ed18b014c3528443f83500efc093b5469a68f3c1e4387d0097359d02",
+    "examples/copilotkit/server/graph/objects.ts": "28fb1068cad54027331bff08a422d176a244dcbbb2c8a6b458d44b3c8c2e14f7",
+    "examples/copilotkit/server/graph/postgres-ingest-queue.ts": "6c286df96a7dd0740c66c372aef68e0afb40d23d277c2d6bfe9fbc7d71f14f66",
+    "examples/copilotkit/server/graph/postgres-source-store.ts": "10d3445d5eba059595177954aee31252a2bd1d0a21c693247843cfbea5e0e851",
+    "examples/copilotkit/server/graph/postgres-wiki-store.ts": "70bc02cc5e2e0134a46bd9c669f9e75f22909762208ae49a8de720180d7be530",
+    "examples/copilotkit/server/graph/provider.ts": "20aca8b71306211eb001f3164e1264741a3369eb41751e97b04f2e535e7a2973",
+    "examples/copilotkit/server/graph/session-ingestor.ts": "3a97e9db426a9d00e33c65f9459d753628b8b885344fb934dfc337386fb7a6a8",
+    "examples/copilotkit/server/graph/source-store.ts": "1a7d446dafc040f31526f1f5c1c0426420fac3b22440ac424adca7b9bb20dfd7",
+    "examples/copilotkit/server/graph/wiki-store.ts": "58931f4fabd9881e1e31469111fda789c24a22ef936aa6eb7b909d962b3ca32b",
+    "examples/copilotkit/server/graph/worker-cli.ts": "34c4a5eaf9acaa3b74523c03666e2c27cd3ceacef32a1072c083b22bf5baa287",
+    "examples/copilotkit/server/index.ts": "a9fe89664f2fb97a5f750acaf4ba96a33fd2bb5068a84d7be2a89f972cd14c7d",
+    "examples/copilotkit/server/runtime.ts": "4178b6bac59b4e478de91e341973792958d6be676c0a5c666736a62c41940e1a",
+    "examples/copilotkit/server/storage/bot-registry.ts": "4f9f102fccb20804fe3fc557f417c19fb8e8bf35131e73a094ab08621c0c9ebd",
+    "examples/copilotkit/server/storage/migrations/005_graph_sources.sql": "326d29f65405d7dd57b6b7023f13601c46a81a4ec9f7213a65c910f53cfb94b3",
+    "examples/copilotkit/server/storage/migrations/006_graph_jobs.sql": "ad00980c5a974ba3a0754bed9cfeacc888c67c7071786ad17c4242b5881e79a3",
+    "examples/copilotkit/server/storage/migrations/007_bot_operations.sql": "02a17792e329a62a5fcff8f805efe923ef02beda2a2663e36f9a6bf4334b50a6",
+    "examples/copilotkit/tests/bot-import-compatibility.test.ts": "35d966ca7635f343f289fa4e419808af17466f3a06a44fe20a8046b9e81d8fa5",
+    "examples/copilotkit/tests/bot-manager.test.ts": "04b3ad3c3d9c9e1a7bfbaa04a39cd597e9752e0d358ba55a58087e25a64fe711",
+    "examples/copilotkit/tests/bot-operations.test.ts": "e8fc2f62ad081eec3f3078a2b0a1b7406147cc29e6a4cee8a7f9a11e03d8e61e",
+    "examples/copilotkit/tests/fixtures/cloud-native-runtime.ts": "f879ba6308559a401707af736ffc14390c1af257a8574e095302133712c45ebf",
+    "examples/copilotkit/tests/fixtures/graph-job-worker.ts": "1723827f324a45700c3b8b9e9ba7a2d338fc7cc02093ad6ce2bd0774fe90077d",
+    "examples/copilotkit/tests/graph-browser.test.ts": "9ebd3601d7afb99224df217e0991fc80bf8df84c2695295b0a089afe116799f3",
+    "examples/copilotkit/tests/wiki-evolution-lifecycle.test.ts": "1f1367c1778cdd05aac47772cf50c04ebbb929ff793ab43375e2b6be2d0e358d",
+    "examples/copilotkit/tests/wiki-evolution-runtime.test.ts": "f9725b8c70e6e9814aa9117f9b1eba4d3097cea8cc4e191d944c3325ba864c92",
+    "examples/copilotkit/tests/wiki-postgres-sources.test.ts": "13add667bc4bafd10d5051e218118819a706ab0da535ada07deb41216f29f2c8",
+    "hermes_agui/management.py": "234ff6b9e83b8bb930357974b9cbc08e18214385d4e9257947d8b5837619f27d",
+    "hermes_agui/storage/host_settings.py": "3fcbca4c5cdf1e03ffad0972a4a8b96a82caf6641e1b01e983357f6680fb4333",
+    "hermes_agui/storage/local_management_operations.py": "224bc7a05e7486f5ef4746cf73351bd0d3602aabdd8e69c143f7d76730edb9b2",
+    "hermes_agui/storage/managed_bots.py": "7b0362132a9baf8743e48b2c78680b86dde4b0758b972e25bf6700a1a6ac6b96",
+    "hermes_agui/storage/managed_operations.py": "bb0e9d73d9682cfbe8905fbd058a6e00143f0dad0757f910286348c240e79d46",
+    "hermes_agui/storage/migrations/005_management_operations.sql": "e8f0db513b6049a388e7c987f96e9ed0da8e8dd180b5a5e187c70376a5816bd5",
+    "justfile": "2ab85a707b6d98cfd3c4d7486a3a852ead14cc95de10c069073ff649a779aac2",
+    "pyproject.toml": "14b4072771ba64979010732edc380aa4b2469ed337a55d764d99bb8db191a5b1",
+    "scripts/cloud_native_part1_check.sh": "abe7ae2643da0f79df95a1d03b156cb51a16a4dd68d4a0c7fc2907df0932aab0",
+    "tests/fakes/fake_llm_provider.py": "2172ab63bf3a0941a02d03f2fbe9d7af29a3bc523fdc7f052ef2f27b3222a2ff",
+    "tests/hermes_agui/cloud_native_grants.sql": "bdeab483a14d24d32555e5303a6dad73092aac8e9b2ac3172445a1131312e2eb",
+    "tests/hermes_agui/cloud_native_host.py": "775cedddfd4a2e08ba94691df415858100f15c240037b2603c30e715641305b8",
+    "tests/hermes_agui/cloud_native_scenario.py": "a8d9b70022b46970808212c9e3393c48923acda62d062290833d845c4acf583e",
+    "tests/hermes_agui/test_cloud_native_restart.py": "b6c0b76fa526622f0474e5f8c3d353876216959b7fb7ce071f5441fdc72780c2",
+    "tests/hermes_agui/test_dynamic_host.py": "dc43fd5c3ad913639a4e758991aaa9ec07870cbe1a60605e1db6698d920fad5a",
+    "tests/hermes_agui/test_dynamic_runtime.py": "05e4cb8a7831e69e757e64f7618a6615f304798e1752239f30d6b85bcbcebd9b",
+    "tests/hermes_agui/test_profile_import_compatibility.py": "3bebc65f85cd32ffe041df4f14c65a1445e27e4b074230843c7c95ac2815def1",
+    "uv.lock": "e0f34adea504b89da1eceb1b0fdadc9c14d6032e93ed6747874a3a9b57ff9c50"
+  },
+  "changed_files": [
+    "Dockerfile.agui",
+    "Dockerfile.agui.part1-test",
+    "Dockerfile.agui.part1-test.dockerignore",
+    "docs/cloud-native-inventory.md",
+    "docs/cloud-native-part-1-report.md",
+    "docs/cloud-native-part-2-report.md",
+    "docs/cloud-native-part1-validation.md",
+    "examples/copilotkit/.dockerignore",
+    "examples/copilotkit/.env.example",
+    "examples/copilotkit/Dockerfile",
+    "examples/copilotkit/server/application-config.ts",
+    "examples/copilotkit/server/application.ts",
+    "examples/copilotkit/server/bootstrap.ts",
+    "examples/copilotkit/server/bots/deployment.ts",
+    "examples/copilotkit/server/bots/host-client.ts",
+    "examples/copilotkit/server/bots/manager.ts",
+    "examples/copilotkit/server/bots/operations.ts",
+    "examples/copilotkit/server/bots/reconcile-cli.ts",
+    "examples/copilotkit/server/bots/registry.ts",
+    "examples/copilotkit/server/delegation.ts",
+    "examples/copilotkit/server/graph-memory.ts",
+    "examples/copilotkit/server/graph/access.ts",
+    "examples/copilotkit/server/graph/api.ts",
+    "examples/copilotkit/server/graph/browser-store.ts",
+    "examples/copilotkit/server/graph/browser.ts",
+    "examples/copilotkit/server/graph/cli.ts",
+    "examples/copilotkit/server/graph/compiler.ts",
+    "examples/copilotkit/server/graph/completion-api.ts",
+    "examples/copilotkit/server/graph/evolution.ts",
+    "examples/copilotkit/server/graph/ingest-cli.ts",
+    "examples/copilotkit/server/graph/ingest-queue.ts",
+    "examples/copilotkit/server/graph/ingest-store.ts",
+    "examples/copilotkit/server/graph/objects.ts",
+    "examples/copilotkit/server/graph/postgres-ingest-queue.ts",
+    "examples/copilotkit/server/graph/postgres-source-store.ts",
+    "examples/copilotkit/server/graph/postgres-wiki-store.ts",
+    "examples/copilotkit/server/graph/provider.ts",
+    "examples/copilotkit/server/graph/session-ingestor.ts",
+    "examples/copilotkit/server/graph/source-store.ts",
+    "examples/copilotkit/server/graph/wiki-store.ts",
+    "examples/copilotkit/server/graph/worker-cli.ts",
+    "examples/copilotkit/server/index.ts",
+    "examples/copilotkit/server/runtime.ts",
+    "examples/copilotkit/server/storage/bot-registry.ts",
+    "examples/copilotkit/server/storage/migrations/005_graph_sources.sql",
+    "examples/copilotkit/server/storage/migrations/006_graph_jobs.sql",
+    "examples/copilotkit/server/storage/migrations/007_bot_operations.sql",
+    "examples/copilotkit/tests/bot-import-compatibility.test.ts",
+    "examples/copilotkit/tests/bot-manager.test.ts",
+    "examples/copilotkit/tests/bot-operations.test.ts",
+    "examples/copilotkit/tests/fixtures/cloud-native-runtime.ts",
+    "examples/copilotkit/tests/fixtures/graph-job-worker.ts",
+    "examples/copilotkit/tests/graph-browser.test.ts",
+    "examples/copilotkit/tests/wiki-evolution-lifecycle.test.ts",
+    "examples/copilotkit/tests/wiki-evolution-runtime.test.ts",
+    "examples/copilotkit/tests/wiki-postgres-sources.test.ts",
+    "hermes_agui/management.py",
+    "hermes_agui/storage/host_settings.py",
+    "hermes_agui/storage/local_management_operations.py",
+    "hermes_agui/storage/managed_bots.py",
+    "hermes_agui/storage/managed_operations.py",
+    "hermes_agui/storage/migrations/005_management_operations.sql",
+    "justfile",
+    "pyproject.toml",
+    "scripts/cloud_native_part1_check.sh",
+    "tests/fakes/fake_llm_provider.py",
+    "tests/hermes_agui/cloud_native_grants.sql",
+    "tests/hermes_agui/cloud_native_host.py",
+    "tests/hermes_agui/cloud_native_scenario.py",
+    "tests/hermes_agui/test_cloud_native_restart.py",
+    "tests/hermes_agui/test_dynamic_host.py",
+    "tests/hermes_agui/test_dynamic_runtime.py",
+    "tests/hermes_agui/test_profile_import_compatibility.py",
+    "uv.lock"
+  ],
+  "results": {
+    "focused_graph_faults": {
+      "status": "PASS",
+      "files": 3,
+      "passed": 20,
+      "final_candidate_rerun_complete": false,
+      "log": "/private/tmp/hermes-part1-fault-check.log"
+    },
+    "focused_graph_integration": {
+      "status": "PASS",
+      "files": 6,
+      "passed": 46,
+      "final_candidate_rerun_complete": false
+    },
+    "focused_provisioning_python": {
+      "status": "PASS",
+      "files": 2,
+      "passed": 7,
+      "later_busy_run_assertion_run": false
+    },
+    "focused_provisioning_runtime": {
+      "status": "PASS",
+      "files": 2,
+      "passed": 7
+    },
+    "runtime_full": {
+      "status": "FAIL",
+      "files": 19,
+      "passed": 115,
+      "failed": 2,
+      "unhandled_errors": 1,
+      "failures": [
+        "graph-browser work bounds: timeout 30000ms",
+        "wiki-ingest-cli: timeout 60000ms",
+        "vitest-worker onTaskUpdate RPC timeout"
+      ],
+      "log": "/private/tmp/hermes-part1-regression.log"
+    },
+    "python_full_and_pg_probe": {
+      "status": "NOT RUN",
+      "reason": "regression runner stopped after Vitest failure"
+    },
+    "browser": {
+      "default": {
+        "passed": 6,
+        "skipped": 4
+      },
+      "graph": {
+        "passed": 3
+      },
+      "dynamic_bot": {
+        "passed": 2
+      },
+      "multi_bot": {
+        "status": "NOT RUN",
+        "reason": "not completed; stopped with webServer exited early"
+      },
+      "log": "/private/tmp/hermes-part1-browser.log"
+    },
+    "retrieval_fixture": {
+      "status": "PASS",
+      "backend_results_equal": true,
+      "encoder": "deterministic fixture encoder",
+      "recall_at_3": {
+        "keyword": 0.5,
+        "hybrid": 0.9166666666666666,
+        "hybrid_graph": 1.0
+      }
+    },
+    "container_restart": {
+      "status": "FAIL",
+      "latest_failure": "PostgreSQL container readiness timeout after 40 seconds",
+      "full_scenario_completed": false,
+      "log": "/private/tmp/hermes-part1-container-final.log"
+    },
+    "host_image_build": {
+      "status": "PASS",
+      "image": "hermes-agui:part1",
+      "id": "sha256:e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69"
+    },
+    "runtime_image_build": {
+      "status": "PASS",
+      "image": "hermes-runtime:part1",
+      "id": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59"
+    },
+    "repository_check": {
+      "status": "FAIL",
+      "reasons": [
+        "HEAD missing multiple scripts/ci/check_*.py helpers",
+        "no-tmp hit in original CLOUD_NATIVE_PART_1.md",
+        "health blocked by missing root package.json after supplying Node PATH"
+      ],
+      "log": "/private/tmp/hermes-part1-check.log"
+    },
+    "new_importer_tests": {
+      "status": "NOT RUN",
+      "files": [
+        "tests/hermes_agui/test_profile_import_compatibility.py",
+        "examples/copilotkit/tests/bot-import-compatibility.test.ts"
+      ]
+    },
+    "real_gcs_iam_pitr": {
+      "status": "NOT RUN",
+      "phase": "Part 2"
+    }
+  },
+  "remaining_gates": [
+    "final consistent-candidate legacy regression",
+    "complete dual-container restart",
+    "latest storage/graph/job/provisioning verification",
+    "new importer compatibility tests",
+    "owner migration scope decision",
+    "repository-wide checks"
+  ],
+  "validation_commands": "docs/cloud-native-part1-validation.md",
+  "no_paid_cloud_resources_created": true,
+  "part2_implemented": false
+}

@@ -1,0 +1,24 @@
+{
+  "label": "final-container",
+  "command": [
+    "scripts/run_tests.sh",
+    "-j",
+    "1",
+    "--file-timeout",
+    "600",
+    "tests/hermes_agui/test_cloud_native_restart.py",
+    "-m",
+    "integration",
+    "--basetemp=/private/tmp/part1-final-restart-c259c3a",
+    "--junitxml=artifacts/part1-final-20261119/container.junit.xml",
+    "-o",
+    "junit_logging=all"
+  ],
+  "started_at": "2026-11-19T05:00:43.277722+00:00",
+  "finished_at": "2026-11-19T05:03:54.732465+00:00",
+  "elapsed_seconds": 191.449,
+  "exit_code": 0,
+  "head": "c259c3ac2d112c18c7c6e4814147ecb8ff60f3de",
+  "log": "artifacts/part1-final-20261119/final-container.log",
+  "log_sha256": "d9419cdeceb6f2256d4ef8cb27df2d3c888288c35528255831af0f0b80cc0920"
+}

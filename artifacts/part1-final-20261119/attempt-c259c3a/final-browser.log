@@ -1,0 +1,106 @@
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test
+
+[2m[WebServer] [22m(node:48976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:48977) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:48977) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:48977) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:48876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+(node:49081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 tests/browser/bot-management.spec.ts:3:1 › owner creates, chats, edits, disables, enables and soft-deletes a native Bot
+  ✓   2 tests/browser/bot-management.spec.ts:60:1 › workspace handles allowlists, duplicate submit, lifecycle failures, logout and mobile navigation (10.7s)
+  ✓   3 tests/browser/chat.spec.ts:7:1 › UI streams native turns, observes tools, isolates threads and displays errors (42.9s)
+  ✓   4 tests/browser/chat.spec.ts:81:1 › native clarification and approval resume through the official runtime (4.4s)
+  ✓   5 tests/browser/graph-routing.spec.ts:3:1 › Graph routes return unavailable JSON rather than the workspace SPA (31ms)
+  ✓   6 tests/browser/graph-routing.spec.ts:13:1 › Graph route retains local Host and Origin guards (58ms)
+(node:49081) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  -   7 tests/browser/memory-explorer.spec.ts:5:1 › real scoped Wiki API renders safe Markdown, filters, dashboard and isolates Bots
+  -   8 tests/browser/memory-explorer.spec.ts:49:1 › native run publishes durable compiled knowledge to the real explorer
+  ✓   9 tests/browser/memory-explorer.spec.ts:82:1 › UI clears delayed private responses, pages live windows and handles unavailable/denied states (3.9s)
+  -  10 tests/browser/multi-bot.spec.ts:3:1 › Bot switching isolates concurrent streams, tools, HITL and errors
+
+  4 skipped
+  6 passed (1.7m)
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test tests/browser/memory-explorer.spec.ts
+
+[2m[WebServer] [22m(node:50013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:50013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:50013) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:49962) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:50106) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50106) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50106) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  ✓  1 tests/browser/memory-explorer.spec.ts:5:1 › real scoped Wiki API renders safe Markdown, filters, dashboard and isolates Bots (11.8s)
+(node:50502) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50502) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50502) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  ✓  2 tests/browser/memory-explorer.spec.ts:49:1 › native run publishes durable compiled knowledge to the real explorer (25.4s)
+  ✓  3 tests/browser/memory-explorer.spec.ts:82:1 › UI clears delayed private responses, pages live windows and handles unavailable/denied states (3.2s)
+
+  3 passed (1.2m)
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test tests/browser/bot-management.spec.ts
+
+[2m[WebServer] [22m(node:50793) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:50794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:50794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:50794) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 2 tests using 1 worker
+
+(node:50883) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50883) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/bot-management.spec.ts:3:1 › owner creates, chats, edits, disables, enables and soft-deletes a native Bot (28.3s)
+  ✓  2 tests/browser/bot-management.spec.ts:60:1 › workspace handles allowlists, duplicate submit, lifecycle failures, logout and mobile navigation (3.5s)
+
+  2 passed (58.2s)
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test tests/browser/multi-bot.spec.ts
+
+[2m[WebServer] [22m(node:51437) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:51438) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:51438) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:51438) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 1 test using 1 worker
+
+(node:51548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:51548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/multi-bot.spec.ts:3:1 › Bot switching isolates concurrent streams, tools, HITL and errors (38.8s)
+
+  1 passed (1.2m)

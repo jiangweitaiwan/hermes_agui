@@ -1,0 +1,16 @@
+{
+  "label": "check-focused-fixed",
+  "command": [
+    "/private/tmp/hermes-part1-final-test-env/bin/python",
+    "scripts/check",
+    "--base",
+    "ae7d7ae51eca59c49a79ef47f7d086fb23f0798a"
+  ],
+  "started_at": "2026-11-19T04:10:36.247948+00:00",
+  "finished_at": "2026-11-19T04:12:41.011043+00:00",
+  "elapsed_seconds": 124.761,
+  "exit_code": 0,
+  "head": "c0d2e5990f1a708debfdab181e449c141189a0c3",
+  "log": "artifacts/part1-final-20261119/check-focused-fixed.log",
+  "log_sha256": "2e8b1ff132084f55120f0f2621af1a56a58f4650861c1662e93184cd25d55ec2"
+}

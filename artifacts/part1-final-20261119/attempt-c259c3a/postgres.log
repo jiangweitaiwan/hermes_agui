@@ -1,0 +1,37 @@
+2026-11-19 13:07:11.275 CST [38015] LOG:  starting PostgreSQL 18.6 on aarch64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.0.13.5), 64-bit
+2026-11-19 13:07:11.278 CST [38015] LOG:  listening on Unix socket "/private/tmp/part1-c259c3a-pg/.s.PGSQL.5432"
+2026-11-19 13:07:11.293 CST [38021] LOG:  database system was shut down at 2026-11-19 13:07:11 CST
+2026-11-19 13:07:11.296 CST [38015] LOG:  database system is ready to accept connections
+2026-11-19 13:08:15.439 CST [38720] ERROR:  injected completion failure
+2026-11-19 13:08:15.439 CST [38720] CONTEXT:  PL/pgSQL function hermes_agui_runtime.fault_ab08a7c4f1c048f4af534f18945b8d82() line 2 at RAISE
+2026-11-19 13:08:15.439 CST [38720] STATEMENT:  UPDATE hermes_agui_runtime.graph_jobs j SET state='completed',token=NULL,lease=NULL,error=NULL
+	        WHERE ns=$1 AND id=$2 AND token=$3 AND state='running' AND lease>clock_timestamp()
+	        AND EXISTS (SELECT 1 FROM hermes_agui_runtime.graph_sources s WHERE s.ns=j.ns AND s.id=j.source AND s.version=j.version AND NOT s.deleted)
+2026-11-19 13:08:38.697 CST [38019] LOG:  checkpoint starting: immediate force wait
+2026-11-19 13:08:38.786 CST [38019] LOG:  checkpoint complete: wrote 250 buffers (1.5%), wrote 3 SLRU buffers; 1 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.041 s, total=0.090 s; sync files=181, longest=0.004 s, average=0.001 s; distance=6715 kB, estimate=6715 kB; lsn=0/1E0F3B8, redo lsn=0/1E0F360
+2026-11-19 13:08:57.602 CST [39160] ERROR:  division by zero
+2026-11-19 13:08:57.602 CST [39160] STATEMENT:  SELECT 1 / 0
+2026-11-19 13:09:14.130 CST [39352] ERROR:  new row for relation "runs" violates check constraint "fixture_reject_reason"
+2026-11-19 13:09:14.130 CST [39352] DETAIL:  Failing row contains (fixture, alice, analyst, replacement, thread, 663ea9e6-5308-470a-91de-175e72621997, 2, completed, 2026-11-19 13:09:14.088153+08, 2026-11-19 13:09:14.088153+08, 2026-11-19 13:09:14.130711+08, injected).
+2026-11-19 13:09:14.130 CST [39352] STATEMENT:  UPDATE hermes_agui_host.runs SET status=$1, reason=$2, finished_at=clock_timestamp()
+	                WHERE (project,principal,bot,run_id)=($3,$4,$5,$6)
+2026-11-19 13:09:14.157 CST [39360] ERROR:  new row for relation "run_outbox" violates check constraint "fixture_reject_completion"
+2026-11-19 13:09:14.157 CST [39360] DETAIL:  Failing row contains (1, fixture, alice, analyst, replacement, d326c3d2d08d4342b681d8a69b7e0fae, {"files": [{"path": "SOUL.md", "size": 15, "sha256": "bbe16d93cb..., pending, 0, 2026-11-19 13:09:14.156605+08, null, 2026-11-19 13:09:14.156605+08, null, null).
+2026-11-19 13:09:14.157 CST [39360] STATEMENT:  INSERT INTO hermes_agui_host.run_outbox
+	                    (project,principal,bot,run_id,profile_revision,profile,evidence_generation)
+	                    VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7)
+2026-11-19 13:13:38.798 CST [38019] LOG:  checkpoint starting: time
+2026-11-19 13:13:51.942 CST [38019] LOG:  checkpoint complete: wrote 130 buffers (0.8%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=13.121 s, sync=0.010 s, total=13.144 s; sync files=72, longest=0.002 s, average=0.001 s; distance=609 kB, estimate=6104 kB; lsn=0/1EACA70, redo lsn=0/1EA7B00
+2026-11-19 13:18:38.952 CST [38019] LOG:  checkpoint starting: time
+2026-11-19 13:18:40.989 CST [38019] LOG:  checkpoint complete: wrote 20 buffers (0.1%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=2.019 s, sync=0.004 s, total=2.037 s; sync files=18, longest=0.002 s, average=0.001 s; distance=57 kB, estimate=5500 kB; lsn=0/1EB61C8, redo lsn=0/1EB6170
+2026-11-19 13:23:39.000 CST [38019] LOG:  checkpoint starting: time
+2026-11-19 13:23:39.423 CST [38019] LOG:  checkpoint complete: wrote 4 buffers (0.0%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.414 s, sync=0.003 s, total=0.424 s; sync files=5, longest=0.002 s, average=0.001 s; distance=10 kB, estimate=4951 kB; lsn=0/1EB8DC0, redo lsn=0/1EB8D68
+2026-11-19 13:28:38.435 CST [38019] LOG:  checkpoint starting: time
+2026-11-19 13:28:41.622 CST [38019] LOG:  checkpoint complete: wrote 31 buffers (0.2%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=3.168 s, sync=0.007 s, total=3.188 s; sync files=24, longest=0.002 s, average=0.001 s; distance=91 kB, estimate=4465 kB; lsn=0/1ECFD50, redo lsn=0/1ECFCF8
+2026-11-19 17:05:20.111 CST [38015] LOG:  received fast shutdown request
+2026-11-19 17:05:20.117 CST [38015] LOG:  aborting any active transactions
+2026-11-19 17:05:20.158 CST [38015] LOG:  background worker "logical replication launcher" (PID 38024) exited with exit code 1
+2026-11-19 17:05:20.158 CST [38019] LOG:  shutting down
+2026-11-19 17:05:20.163 CST [38019] LOG:  checkpoint starting: shutdown immediate
+2026-11-19 17:05:20.208 CST [38019] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 0 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.021 s, sync=0.005 s, total=0.049 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=4018 kB; lsn=0/1ECFE00, redo lsn=0/1ECFE00
+2026-11-19 17:05:20.242 CST [38015] LOG:  database system is shut down

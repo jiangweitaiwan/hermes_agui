@@ -1,0 +1,1 @@
+scripts/check: code health needs ruff 0.15.22 (pyproject dev group); found none. Install it (`uv tool install ruff==0.15.22`) or put uv on PATH so `uvx ruff@0.15.22` works.

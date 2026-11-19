@@ -1,0 +1,19 @@
+
+=== health (failed) ===
+scripts/ci/check_lazy_deps_imports.py:50  HX006  _tracked_python_files
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+scripts/ci/check_lazy_deps_imports.py:62  HX006  _tracked_python_files
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+
+code health: 64 files vs ae7d7ae51eca: 2 blocking, 0 advisory (7.4s)
+
+Each function and file has its own cap: its value on main if it is already over target,
+otherwise the target. New code meets the target; existing code may only go down. Fix the code
+(the `fix:` line is the repo's remedy); a genuine exception takes a reviewed comment on the line,
+`# health: allow <RULE> -- <why>`. Rules and targets: scripts/code_health/config.py.
+Reproduce locally: python scripts/check --only health (every lint check: python scripts/check;
+on every push: python scripts/check --install-hook pre-push).
+
+scripts/check: 1 checks, FAILED: health

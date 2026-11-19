@@ -1,0 +1,19 @@
+{
+  "label": "final-fixture-image",
+  "command": [
+    "docker",
+    "build",
+    "-f",
+    "Dockerfile.agui.part1-test",
+    "-t",
+    "hermes-agui:part1-test",
+    "."
+  ],
+  "started_at": "2026-11-19T09:05:48.621487+00:00",
+  "finished_at": "2026-11-19T09:05:51.321820+00:00",
+  "elapsed_seconds": 2.7,
+  "exit_code": 0,
+  "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "log": "artifacts/part1-final-20261119/final-fixture-image.log",
+  "log_sha256": "9170909c2ffab49505226e86ddc8a925c89f156ed9d62595f58147f8afedef6f"
+}

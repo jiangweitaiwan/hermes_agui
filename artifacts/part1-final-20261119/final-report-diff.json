@@ -1,0 +1,15 @@
+{
+  "label": "final-report-diff",
+  "command": [
+    "git",
+    "diff",
+    "--check"
+  ],
+  "started_at": "2026-11-19T09:31:39.200917+00:00",
+  "finished_at": "2026-11-19T09:31:39.361331+00:00",
+  "elapsed_seconds": 0.158,
+  "exit_code": 0,
+  "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "log": "artifacts/part1-final-20261119/final-report-diff.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

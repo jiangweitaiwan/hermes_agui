@@ -1,89 +1,89 @@
-# Hermes AG-UI Cloud-native 改造計畫 — Part 2
+# Hermes AG-UI Cloud Native Part 2 — Source Code Readiness
 
-> Cloud Run Production Deployment：事件驅動、分散式 Run、Firebase Auth、GCP + Vercel
->
-> Repository: https://github.com/jiangweitaiwan/hermes_agui.git
-> 前置：`CLOUD_NATIVE_PART_1.md` 已實作並驗收；讀取實際 Part 1 report，不重新設計已通過的 storage layer。
+Repository: https://github.com/jiangweitaiwan/hermes_agui.git
 
-## 1. 目標與非目標
+## 1. 任務與邊界
 
-部署三個獨立 Cloud Run services：CopilotKit Runtime（公開 API、應用層驗證）、Hermes Host（private IAM）、Memory Worker（private IAM）。Cloud SQL PostgreSQL、GCS 為權威資料來源；Cloud Tasks 觸發 memory job；Firebase Auth 供前端登入；Vercel 保留現有 React/Vite workspace。保留 local mode。
+本計畫取代原 CLOUD_NATIVE_PART_2.md。Codex 僅在 repository 內改造程式碼、封裝、設定樣板、測試與文件；交付可由使用者手動部署的 Cloud Run Ready repository。不得建立 GCP 資源、執行遠端部署、修改 IAM/DNS、要求真實金鑰或產生雲端費用。所有真實 GCP/Vercel 驗收標記 NOT RUN，交由使用者。不得宣稱 production ready。
 
-第一版支援正常多 Bot、多 instance、重新部署後資料保留、可靠 job 重試、run cancellation 與事件重連。只對已存在且可明確序列化的 HITL checkpoint 提供 resume；任意 Python stack/tool 執行中崩潰後不可無縫接續，標 interrupted 並提供安全 retry UI。不得自動重放有外部副作用的工具。正式 production readiness 以實際測試及安全條件判定，無雲端權限時僅交付 deployable code，不宣稱已部署。
+以 Part 1 最終驗收 commit 238f1ae40f7783e347e2a1543c273dfe9c60c760 為歷史基線；開始時記錄實際 HEAD，閱讀 CLOUD_NATIVE_PART_1、REMAINING、FINAL_ACCEPTANCE 與最新報告、migration、fixture 和正式入口。若 HEAD 不包含驗收成果或基線有回歸，先報告阻塞，不重寫 storage layer。保留 PostgreSQL registry、lease/fencing、outbox、GCS snapshot/manifest、Graph Memory、Bot manager、原生 skill/memory、local mode 與 AG-UI contract。不得把 snapshot 說成已完成 SQL transcript 遷移。
 
-## 2. 依賴檢查與沿用成果
+## 2. 目標架構
 
-閱讀 Part 1 inventory/report、真實 source、migration schema、adapter/lease/job API、fixtures 與現有 frontend/delegation contract；記錄 HEAD。若 Part 1 的原生 session 採用 GCS snapshot 過渡，明確沿用限制與鎖，不能無聲改稱 Cloud SQL transcript 已完成。不得為了雲端服務再做一組 storage interface 或重複 migration。保留共享 scenario runner；只增加雲端特有的 test cases，最終完整回歸一次。
+```text
+Vercel React/Vite + Firebase Auth
+  | HTTPS / Firebase ID token / AG-UI stream
+  v
+Cloud Run Runtime (public ingress + application ACL)
+  | Google ID token + bot/management credential
+  v
+Cloud Run Hermes Host (private IAM)
+  | completion outbox -> authenticated Runtime callback
+  |
+  +-- Cloud SQL + GCS profile snapshots
+Runtime -- Cloud SQL + GCS graph objects
+Runtime durable jobs/outbox -> Cloud Tasks -> private Memory Worker
+Cloud Scheduler -> private Worker reconcile endpoint
+```
 
-## 3. Work package A：Cloud Tasks / Memory Worker
+三個服務；Worker 可與 Runtime 共用 image，不共用常駐 timer。Hermes Host 的 completion dispatcher 可採獨立可執行命令供 Scheduler/Cloud Run Job 呼叫，或以私有 Host endpoint 接收 Scheduler；選一個並記錄，不依賴 request 結束後仍有 CPU。PostgreSQL 為狀態權威，GCS 為版本化物件權威，容器磁碟只是 scratch。Vercel 不持有服務端秘密。
 
-將 Part 1 job dispatcher 接至 Cloud Tasks；獨立 worker HTTP entrypoint 呼叫既有 `processJob(jobId)`，不複製 compiler。Cloud Run request-based billing 模式下禁止依賴 request 結束後的 timer。Runtime 寫 durable job/outbox 與 run completion（若 ownership 不同，採明確事件及冪等接收），嘗試 enqueue；Cloud Scheduler 定期以 IAM 呼叫私有 reconciler 回補未發送 outbox/過期 lease（避免 dispatch 失敗永久遺失）。可共用 worker service 的私有 endpoint，不必增加第四個 service。task payload 只帶 job ID/必要 schema，從 DB 取得 scope，不放 secrets/transcript。
+## 3. Work package A — 正式入口與封裝
 
-Cloud Tasks HTTP target 使用專用 service account OIDC；worker 驗證服務身分，禁止匿名呼叫。設定 queue retry/backoff、rate/concurrency、dispatch deadline；worker 於持久化成功或已完成 job 才回 2xx，暫時失敗返回可重試狀態，永久失敗先持久化 terminal reason。task name 唯一屬輔助，DB idempotency 才是權威。測試重複 delivery、timeout 後重送、enqueue 中斷、過期接管、queue exhausted（可觀測並可人工重送）。Cloud Tasks HTTP 任務時間須遵循實際服務上限，過長工作切 checkpoint/chunk 或改用 Cloud Run Jobs，勿以無限 timeout 掩蓋問題。
+- 盤點 hermes_agui/server.py、examples/copilotkit/server/index.ts、Dockerfile.agui、examples/copilotkit/Dockerfile 與測試入口，核對實際符號及路徑後修改，不新增平行 production harness。
+- 正式服務支援 0.0.0.0:$PORT、單一 ingress port、HTTPS reverse proxy、明確 trusted origin/host 設定；將 loopback internal delegation listener 的雲端路由改為經認證的同 port endpoint，local mode 保留相容性。
+- 啟動時驗證必要設定、依賴與 schema version；health 不洩漏內容；提供 startup probe 可用端點。SIGTERM 停止接新 run、best-effort flush/release，可靠性不得依賴 shutdown。
+- 檢查 Cloud SQL Unix socket/connector DSN 在 Python/Node driver 的實際用法，GCS ADC 與 bucket/prefix 設定；缺少 durable backend 時 cloud mode fail closed，不允許默默改用本地資料。
+- Docker image 包含正式入口、migration、worker/dispatcher 命令與所需依賴；非必要不加入測試 fixture 或秘密；以容器實際啟動測試驗收。DB migration 獨立執行，避免每個 replica 競爭。
 
-## 4. Work package B：Distributed Run / AG-UI Streaming
+## 4. Work package B — IAM、Firebase、前端
 
-沿用 Part 1 RunStore、lease/fence。建立 durable event log（runId + monotonically increasing seq、scope、attempt、event type/payload/timestamp）；敏感內容按明確 retention/ACL，token delta 可有界批次持久化、terminal 事件須可靠保存；保證 event replay 不重複、不亂序，明確定義已發出未落盤的窗口（建議先保存再送）。仍保持 AG-UI event schema，不破壞現有 CopilotKit client；如需新增 replay endpoint/client adapter，先確認套件支援與真實 transport，再透過版本化擴充實作，不假設 Last-Event-ID 原生可用。
+- Runtime -> Host：以 ADC 取得短效 Google ID token，audience 為目標服務 URL（可配置正式 audience）；以 X-Serverless-Authorization 承載 Cloud Run IAM token，保留 Authorization 的現有 bot/management 憑證。逐一覆蓋 run、管理、delegation、completion 等呼叫；token cache 依 audience 隔離並更新，不記錄 token。
+- Host -> Runtime：Runtime 公開時不能只依 Cloud Run IAM；以獨立應用層 header 傳遞 Google ID token，server 驗證簽章、issuer、audience、expiry、允許的 service account identity，並維持既有業務憑證與 scope 驗證。內部路由拒絕匿名及 browser credentials。Worker/dispatcher/reconciler 採 private IAM 與適用的業務授權。
+- Firebase Admin 驗證 ID token，server-side uid -> principal/owner/project membership；所有 Bot、Thread、Graph、run、replay、cancel、delegation 路由均做 ACL。禁止 client 自行指定身份；過期/錯 audience/錯 scope 拒絕。雲端不得 fallback 到 local token/cookie。移除 production 對 process-local login Map 的依賴。
+- CORS 精確 allowlist、OPTIONS、必要 headers；不信任 Origin 作為身份；不允許任意 Vercel preview。前端直接 HTTPS fetch Runtime，確認實際 CopilotKit transport 的 bearer/stream 支援，若需 proxy 記錄 timeout 取捨。
+- 保留既有 UI，補登入/登出、token refresh、server-backed thread/history、reconnect/cancel/interrupted/error 狀態；不重做 UI。Firebase provider 可配置，以 email/password 為初始樣板。只公開 Firebase client config/API URL。
+- 安全閘門：拒絕 IDOR、SSRF、path traversal、跨租戶讀取與任意 toolset 提權；預設 allowlist memory/skills 等經審核工具，未隔離 terminal/code execution 禁用。多 Bot 不等於 OS sandbox；不可信 arbitrary code 多租戶不在本期範圍。
 
-跨 instance cancel：授權 endpoint 原子設 cancelRequested，owner 於 bounded interval/工具邊界讀取，傳遞 cancellation token，必要時終止隔離 subprocess；terminal transition CAS。外部工具可能已執行副作用，回覆 cancelled 不等於撤銷。client disconnect 與 cancel 分開；定義 disconnect grace 與 agent request ownership。第一版執行仍繫於活躍的 HTTP request，instance/請求中斷時 durable events 可重讀，未完成 run 由 reconciliation 標 interrupted。不要在回傳 response 後靠 background thread 繼續 agent。若要支援長時間離線自主運作，另採 durable execution job + streaming subscriber 並取得 scope 同意。
+## 5. Work package C — Durable background work
 
-HITL：盤點既有 interrupt/resume 支援，僅從明確持久化 checkpoint 恢復，校驗原 owner、thread/run、checkpoint 版本、一次性 resume token/operation；同一 resume 不能執行兩次。若 repo 無完整 resume 原語，交付安全 interrupted/unsupported 行為，列為未支援，不以 event replay 假裝恢復執行。
+沿用 Part 1 job/outbox/lease APIs，Cloud Tasks adapter 只送 job ID/schema，不送 transcript/secret。Worker 正式 HTTP 入口呼叫既有 compiler/processJob 邏輯；以專用 OIDC identity 授權。DB CAS/lease/fence 為冪等權威，不靠 task name 去重。成功持久化或已完成才 2xx；暫時失敗回可重試狀態，永久失敗先保存 terminal reason。處理 timeout 重送及 queue exhausted 的人工重送。
 
-Delegation：將原 loopback/internal listener 改為可經 Cloud Run 單一 ingress port 路由的受保護 internal endpoint。Hermes→Runtime public service 必須應用層驗證 Google service identity/audience 與允許的 principal（不可僅依 Cloud Run IAM，因 Runtime 公開）。Runtime→private Hermes 使用短效 Google ID token 與 invoker role，保留既有 bot authorization、delegation scope 與 correlation IDs；若另有業務 bearer，採明確獨立 header，避免覆蓋 cloud authentication。防止 bot cycle/depth、deadline、同 Bot lease 導致 nested delegation deadlock；驗證 A→B 成功、拒絕未授權、循環和 timeout。不得開放 terminal 任意操作給未受信任的租戶。
+Runtime 持久化 job/outbox 後 enqueue，失敗不丟已提交 job。Scheduler 呼叫 reconciler 補送、接管過期 lease、處理 Host completion delivery。Cloud mode 禁止依賴 Runtime evolution timer；local mode 保留。若 Host dispatcher 需要獨立命令，提供正式 CLI、image entrypoint、退出碼與文件。Cloud Tasks deadline 需有界；超限工作安全停止或明確列為需 chunk/Jobs 的限制，不設無限 timeout。
 
-## 5. Work package C：Firebase Auth、API 與 Vercel
+## 6. Work package D — Distributed Run / AG-UI
 
-使用 Firebase Auth 登入（初期 email/password 或 Google sign-in，依環境設定）；runtime Admin SDK 驗證 ID token、issuer/audience/expiration，必要時處理撤銷。uid 透過 server-side membership 映射現有 principal/owner/project，不直接信任 client 宣告 role；新增 Bot、Graph、歷史、run、cancel/replay 等所有路由進行 ACL，防止 IDOR。原 local token/cookie 僅在明確 local mode 保留，production 不允許 fallback。處理 token refresh，避免 URL/query/log 放 bearer。應用層 rate limit、run quota、input size、審計，不把 Origin 當身分驗證。
+- 沿用 run lease/fencing；新增必要 migration（只增量），durable event log 有 runId、scope、attempt、monotonic seq、event type/payload/time。先持久化再送，delta 可有界 batch；terminal 與 replay 有明確順序、去重與 retention。驗證真實 AG-UI client 後實作 replay API/client，不假設 Last-Event-ID 原生支援。
+- 跨 instance cancel 以 DB 原子 cancelRequested，owner 有界輪詢及工具邊界檢查，terminal CAS、必要時終止隔離 subprocess；取消不等於撤銷副作用。
+- Run 仍由活躍 HTTP request 持有；client 斷線不等同 cancel，定義 grace 和 ownership。實例崩潰由 reconcile 標 interrupted，已提交事件可重讀；不得假裝任意 Python stack 可續跑或自動重放外部副作用工具。
+- HITL 只恢復已有且可序列化 checkpoint，校驗 scope/version/一次性 resume operation；沒有原語則安全回 unsupported/interrupted，列明限制。
+- Delegation 保留 A→B scope、correlation ID、獨立 run、結果寫回 contract；驗證 cycle/depth/deadline、同 Bot lease deadlock、未授權拒絕。
 
-修改現有 loopback-only Host/Origin gate，使 production 在 `0.0.0.0:$PORT` bind，允許配置的 HTTPS frontend origin，保留 local 行為。CORS 精確 allowlist、OPTIONS、Authorization/Content-Type 與必要 header；不使用 wildcard + credentials。正常 browser 請求推薦 direct HTTPS fetch 至 Runtime，避免 Vercel rewrite 對長 SSE 的額外 timeout；測試現有 CopilotKit/AG-UI client 是否能注入 Firebase bearer 並正確處理 stream。若現有 client 限制必須使用 proxy，先驗證其 timeout、取消與 auth forwarding，記錄取捨，不能臆造套件 API。Vercel 環境只放公開 Firebase client settings、API base URL；不放 LLM key、DB URL、service account key。preview origin 明確 opt-in，不允許任意 *.vercel.app。
+## 7. Work package E — 手動部署交付包
 
-現有 workspace 增強最小必要功能：登入/登出、憑證逾期、thread list/history 從授權 server API 恢復（若原先只在頁面內存放，補 server-backed API）、interrupted/reconnect/cancel 顯示、errors。保留現有新增 bot、graph browser、chat UI；不重做設計系統。
+新增或沿用 deploy/gcp/ 下的 README、host.example.yaml、runtime.example.json、host/runtime/worker.env.example、database-grants.sql、compose.staging.yaml；名稱可依 repo 慣例調整並列出最終對照。設定樣板必須以真實 parser 驗證，不猜 env 名稱；提供各服務 secret/env、port、entrypoint、health、IAM caller/callee/audience、bucket/prefix、DB role、queue/deadline、Firebase/Vercel config 對照。Migration/grants 以正式 schema 驗證，migration role 與服務 role 分離。
 
-## 6. Work package D：GCP deployment artifacts
+提供本地 image build、migration、smoke 命令及手動操作所需 gcloud 命令參考（不得執行遠端命令）；不用 Terraform、自動 provisioning 或 CI/CD deploy pipeline。README 說明雙向 URL bootstrap、備份/還原、rollback/schema 相容、GCS retention、DB pool sizing、retry/reconcile 與 log redaction。初始 region asia-east1 可調，不承諾容量/費用。
 
-以 repo 原有 Dockerfile/建置工具為起點，新增/修正 Runtime 與 Worker entrypoint（可共享 image）、Hermes image、cloud build/deploy scripts、環境樣板及 Vercel config。選用一種可重跑部署方式（建議 gcloud scripts + 明確參數，若 repo 已有 IaC 則沿用），不要同時建兩套無人維護的 deployment stack。所有資源名稱、region、project、domain 可參數化；初始 region 可採 asia-east1，實際服務 availability、配額與費用在部署前確認。
+## 8. 單次最終本地整合驗收
 
-### 資源及初始設定（可調整，非容量保證）
+開發期間可執行 focused tests，完成全部 package 後執行一次完整 regression + production-entrypoint scenario。沿用 Part 1 共用 scenario runner，改用正式 Host/Runtime/Worker image 或正式入口，不用 fixture server 取代 production。真 PostgreSQL、外置持久化物件測試 adapter、fake LLM、mock IAM/Firebase/Cloud Tasks transport 可控注入且僅測試模式啟用。GCS/Google SDK adapter 的 unit/contract test 不等於真實服務驗收。前端 typecheck/build 加上實際 browser E2E（可使用測試 auth）；確認 production mode 無測試 bypass。
 
-| Resource | 初始策略 |
+| ID | 必須通過的本地測試 |
 |---|---|
-| Cloud Run runtime | 1–2 vCPU、1–2 GiB、concurrency 8、min 0/max 2、request timeout 依 run deadline 測試 |
-| Cloud Run hermes | 2 vCPU、4 GiB、初始 concurrency 1、min 0/max 2；確認 subprocess、工具 memory 與 CPU |
-| Cloud Run memory-worker | 1–2 vCPU、2 GiB、concurrency 1–2、min 0/max 2；queue deadline 早於/匹配實際 handler 限制 |
-| Cloud SQL PostgreSQL | 同 region、backups/PITR、migration role 與 service role 分離；依 pool 與 max instances 算 connection ceiling |
-| GCS | 同 region、uniform bucket access、public access prevention、版本/retention/lifecycle 依資料政策 |
-| Cloud Tasks / Scheduler | rate limit、retry/backoff、outbox reconciliation；專用 OIDC identity |
-| Secret Manager | LLM/OpenRouter keys、DB credentials 等；按 service 最小授權 |
-| Artifact Registry / Cloud Build | immutable image tag/commit SHA、可追溯版本、分離 deploy/build/runtime SA |
+| L01 | 三個正式入口在容器啟動，PORT/health/config/migration/grants 正確，缺必要設定 fail closed |
+| L02 | 建 A/B、不同 thread 對話、原生 memory/skill、graph evolution/retrieval、reload history、delegation；保留 Part 1 最終 scenario 的證據 |
+| L03 | 重建容器並刪除 writable layer，資料仍可讀、停用 Bot 不取得新 lease |
+| L04 | 各 Host/Runtime 至少兩個獨立 process 共享 PG/object storage；same Bot fence、different Bot concurrency、跨 instance cancel |
+| L05 | completion/outbox enqueue 中斷、duplicate delivery、timeout retry、expired lease、terminal failures；不重複 graph publication |
+| L06 | IAM/Firebase mock 驗證合法/過期/錯 audience/錯 principal；雙憑證不覆蓋；匿名/跨 scope/不允許 origin 拒絕、production 無 bypass |
+| L07 | AG-UI stream、replay 去重與順序、斷線、cancel race、kill owner 後 interrupted；副作用不自動重播 |
+| L08 | delegation cycle/depth/timeout/ACL、tool allowlist、安全隔離、secret redaction |
+| L09 | local mode regression、前端登入/登出/歷史/reconnect/cancel、image build、設定樣板解析 |
+| L10 | 備份還原及 rollback 本地演練，manifest 對帳、migration backward compatibility/最小權限 |
 
-Cloud Run runtime 對 browser public ingress，應用 Firebase auth；Hermes 和 Worker 不允許 unauthenticated invocation。服務之間依實際 ingress/network 設定可達、使用最小 IAM invoker binding；不要誤將 internal ingress 與 IAM private 視為同一件事。Cloud SQL 採官方 connector/Unix socket + IAM/secret 配置，或經核准的 private network path，禁止直接公開 DB port。ADC 透過 attach SA，避免長期 key。健康檢查不洩漏資料；readiness/startup 設計依 Cloud Run 支援機制，migration 由獨立命令/job 執行一次。設定 graceful SIGTERM 僅作 best effort，可靠性不能依賴 shutdown 時間。
+雲端專屬驗收 C01–C07（真 IAM/Firebase、Cloud SQL/GCS、Cloud Tasks/Scheduler、OpenRouter、Vercel streaming、revision/scale/recovery、成本負載）一律 NOT RUN；列明操作步驟與預期結果，不得用 mock 標 PASS。每項記錄命令、退出碼、log 證據與限制；中途失敗修復後重跑受影響測試，最終完整 suite 確認交付版本。
 
-部署 script 順序：檢查專案/billing/API/region→registry/SA/IAM→DB/GCS/Secret→build images→DB migration→部署 runtime/hermes/worker（必要時先設服務 URL 後更新環境，處理雙向 callback bootstrap）→queue/scheduler→Vercel env/build→smoke。實作 dry-run 或顯示資源變更，避免自動刪除 DB/bucket；實際建立付費資源需使用者授權。記錄官方文件及實際執行命令，不能以示意命令冒充已驗證指令。
+## 9. 交付與停止條件
 
-## 7. 租戶隔離與可靠性安全閘門
-
-多 Bot 邏輯隔離不等於不可信使用者的 OS sandbox。Cloud Run container 可存取自身 service credentials。預設只啟用現有受控 memory/skills 等 allowlisted toolsets；terminal/code execution、任意網路/檔案工具若無安全隔離，僅可信單租戶模式或預設禁用。對不可信多租戶 arbitrary code 需要獨立隔離策略與最低權限（不屬此兩階段默認範圍）。驗證 SSRF/token exposure、path traversal、prompt injection 導致的工具權限提升、跨租戶查詢。Production public exposure 之前必須通過 auth/ACL/IAM/security gate，否則限 private staging。
-
-觀測：structured logs 帶 correlation/run/job IDs、redact secrets/content；metrics 關注 run latency/error、hydration time、DB pool、stream reconnect、job age/retry、LLM token/cost、instance memory。加入 alert 與人工 retry/reconcile runbook。設定備份/PITR、GCS revision retention，測試還原至隔離環境；不要依賴 DB/GCS 跨服務原子備份，透過 manifest/revision 對帳。rolling deploy 使用 backward-compatible schema（expand/contract），rollback image 前確認 schema 相容，不自動刪資料。
-
-## 8. 最終驗收（沿用 Part 1 測試）
-
-| Case | 驗收條件 |
-|---|---|
-| Cloud restart / scale | 真實 staging GCS/PG；更換 revision/instance 或清空 writable layer，原 bot/session/memory/skills/graph 可讀 |
-| Multi-instance | 強制兩個 instance 或兩個獨立 process，same bot lock/fencing、different bot concurrency、取消跨 instance；可驗證 request routing |
-| Task delivery | 真 Cloud Tasks OIDC；重送、暫時錯誤、outbox 補送、無重複 graph publication |
-| Auth & isolation | 未登入 401、錯 scope 拒絕、token 過期、非允許 origin、private service IAM 拒絕、delegation ACL |
-| End-to-end | Vercel 登入→建 Bot A/B→對話→原生 memory/skill fixture→Graph evolution→新 thread 檢索→授權 delegation→reload history |
-| Stream | 連續事件、長 run 實測（選一個超過一般 proxy timeout 的受控 fixture）、中途斷線 replay、cancel race、instance kill 後 interrupted |
-| Recovery | DB/object restore drill、revision rollback、未發布 object/過期 run 清理；不丟已提交資料 |
-| Cost & load | 記錄 cold/warm latency、N 個不同 Bot 並行、DB 連線/記憶體峰值；比較預定資源配置，無憑據不承諾 SLA |
-
-共享 local/cloud contract 與原有 regression suite 在合併前完整執行一次；GCP 無權限時以 integration harness 驗證可用部分，雲端 case 一律標 NOT RUN 和需使用者執行的命令，不可標 PASS。可配置 fake LLM 做 deterministic regression，另做一次授權的 OpenRouter 真實 smoke（有預算限制）。
-
-## 9. 交付清單與停止條件
-
-- Cloud Tasks adapter/worker/reconciler、durable event replay/cancellation、Firebase Auth、IAM service-to-service、frontend 最小整合。
-- Docker/build/migration/deploy/smoke scripts、環境樣板、`docs/cloud-run-deployment.md`（從新 GCP project 與 Vercel 開始逐步操作）、rollback/backup/restore/security runbook。
-- `docs/cloud-native-part-2-report.md`：git commit、實際變更、服務及 IAM 配置、實測紀錄、部署 URL（只有真部署才填）、成本/限制、PASS/FAIL/NOT RUN、剩餘風險。
-- 未經允許不建立付費資源、不變更 DNS、不部署 public production、不提交 secrets。若不能通過資料持久化、跨租戶隔離、auth 或 job 冪等 gate，停止 public 上線並回報；不得用簡化 mock 或停用功能掩蓋失敗。
+交付 source、tests、migration（如必要）、Dockerfiles、部署樣板、手動部署參數表、docs/cloud-run-deployment.md、docs/cloud-native-part-2-report.md。報告記錄基線與交付 commit（如未 commit 記錄狀態）、實際變更、正式入口、測試證據、PASS/FAIL/NOT RUN、雲端待驗收與風險。不得填寫虛構部署 URL、成本、實測結果。完成條件為 L01–L10 全通過且無未解決的資料遺失/auth/ACL/冪等阻塞；若不滿足，標 SOURCE NOT READY 並列出阻塞。滿足才標 SOURCE READY / CLOUD NOT VALIDATED。完成後停止，不接續實際 GCP 部署。

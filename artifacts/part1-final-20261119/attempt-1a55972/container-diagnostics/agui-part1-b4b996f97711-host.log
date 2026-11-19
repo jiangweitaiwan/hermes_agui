@@ -1,0 +1,8 @@
+🔁 Transient APIConnectionError on custom — rebuilt client, waiting 4s before one last primary attempt.
+⏳ Provider temporarily unavailable — retrying automatically in 17s (cycle 1/5); cancel the request to stop
+⏳ Provider temporarily unavailable — retrying automatically in 30s (cycle 2/5); cancel the request to stop
+⏳ Provider temporarily unavailable — retrying automatically in 65s (cycle 3/5); cancel the request to stop
+⏳ Provider temporarily unavailable — retrying automatically in 63s (cycle 4/5); cancel the request to stop
+⏳ Provider temporarily unavailable — retrying automatically in 61s (cycle 5/5); cancel the request to stop
+state.db: on-disk journal_mode was delete and has been switched to WAL. This rewrites the database header and persists after this process exits. If delete was a deliberate choice (for example the mitigation for the SQLite WAL-reset bug, or a WAL-unsafe filesystem), setting it with PRAGMA on the file will not survive -- every open re-applies the configured mode. Set `database.journal_mode: delete` in config.yaml to make it stick. This message fires once per process per database.
+state.db: on-disk journal_mode was delete and has been switched to WAL. This rewrites the database header and persists after this process exits. If delete was a deliberate choice (for example the mitigation for the SQLite WAL-reset bug, or a WAL-unsafe filesystem), setting it with PRAGMA on the file will not survive -- every open re-applies the configured mode. Set `database.journal_mode: delete` in config.yaml to make it stick. This message fires once per process per database.

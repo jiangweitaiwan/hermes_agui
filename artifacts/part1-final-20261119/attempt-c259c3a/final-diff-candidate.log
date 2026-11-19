@@ -1,0 +1,14 @@
+docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md:4: trailing whitespace.
++> 
+docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md:5: trailing whitespace.
++> Repository: https://github.com/jiangweitaiwan/hermes_agui.git  
+docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md:6: trailing whitespace.
++> 文件日期：2026-11-19  
+docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md:7: trailing whitespace.
++> 審查基準：`c0d2e5990f1a708debfdab181e449c141189a0c3`（main，commit message `add:part1-4`）  
+scripts/ci/check_agents_md_size.py:66: new blank line at EOF.
+scripts/ci/check_blob_size.py:275: new blank line at EOF.
+scripts/ci/check_lazy_deps_imports.py:178: new blank line at EOF.
+scripts/ci/check_line_endings.py:82: new blank line at EOF.
+scripts/ci/check_os_marker_fakes.py:123: new blank line at EOF.
+scripts/ci/check_profile_archive_boundary.py:76: new blank line at EOF.

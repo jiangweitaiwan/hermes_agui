@@ -1,0 +1,18 @@
+{
+  "label": "final-guard-contracts",
+  "command": [
+    "scripts/run_tests.sh",
+    "-j",
+    "1",
+    "tests/scripts/test_code_health_packages.py",
+    "tests/scripts/test_check_agents_md_size.py",
+    "tests/scripts/test_check_profile_archive_boundary.py"
+  ],
+  "started_at": "2026-11-19T05:33:05.012488+00:00",
+  "finished_at": "2026-11-19T05:33:20.299231+00:00",
+  "elapsed_seconds": 15.286,
+  "exit_code": 0,
+  "head": "c259c3ac2d112c18c7c6e4814147ecb8ff60f3de",
+  "log": "artifacts/part1-final-20261119/final-guard-contracts.log",
+  "log_sha256": "e0807a62c70e8b90d00aa9581458f672b2c9f2ed0c3f4e24fb7487e3b6bb9767"
+}

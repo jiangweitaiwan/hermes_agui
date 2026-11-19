@@ -1,0 +1,378 @@
+{
+  "candidate": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "status": "PASS",
+  "tests": [
+    "test_cloud_native_production_images",
+    "test_cloud_native_dual_container_restart"
+  ],
+  "receipts": [
+    {
+      "id": "67aca24a10143bcf3151b18f2ef9e03d0df4fb9586881c39ce15671781426727",
+      "image": "sha256:140936e8665d5274aa58df31b722693b4b451c541bb0f1a263a345d424bfacb4",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 44231,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:07:45.133252599Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": false,
+      "tmpfs": null,
+      "mounts": [
+        {
+          "Destination": "/var/lib/postgresql/data",
+          "Driver": "local",
+          "Mode": "",
+          "Name": "d20c1e1df879259e1fccecb7e1e4d5eb3713e3dffd39841390a10e773529be4f",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/d20c1e1df879259e1fccecb7e1e4d5eb3713e3dffd39841390a10e773529be4f/_data",
+          "Type": "volume"
+        }
+      ],
+      "name": "agui-part1-369baf263413-pg"
+    },
+    {
+      "id": "0a6e8645163cb1f29965657b81a62c2ce9089edae7418776bcaac0e281fc8246",
+      "image": "sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [],
+          "Status": "starting"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 44387,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:07:51.595862662Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-host"
+    },
+    {
+      "id": "b30af1cfb9eccd716009cb2cae922c00e8dc84e92725f331c85777520a9c6cad",
+      "image": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 44512,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:07:56.70607511Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-runtime"
+    },
+    {
+      "id": "fbc7d86ab0e9300d646e27ba3bff43478b92227ecb27e3a87e55a422cf1b3ddd",
+      "image": "sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [],
+          "Status": "starting"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 44832,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:08:14.883757735Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-host"
+    },
+    {
+      "id": "6e82e2df865836ed64964197cb9156d338a8f3c8315d271896ffbc2eca7451c9",
+      "image": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 44940,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:08:19.462625503Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-runtime"
+    },
+    {
+      "id": "f36a94ead359cf13ecb350a3522e32b9748d3f2242eb3b4d9bc614b6af59b796",
+      "image": "sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "Health": {
+          "FailingStreak": 0,
+          "Log": [],
+          "Status": "starting"
+        },
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 45548,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:09:00.133586707Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-host"
+    },
+    {
+      "id": "7c8925baf377941c6c20b5fc814b58ebb423f86de367aed2476381428faaaa1a",
+      "image": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+      "state": {
+        "Dead": false,
+        "Error": "",
+        "ExitCode": 0,
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 45669,
+        "Restarting": false,
+        "Running": true,
+        "StartedAt": "2026-11-19T09:09:04.746821334Z",
+        "Status": "running"
+      },
+      "readOnlyRoot": true,
+      "tmpfs": {
+        "/scratch": "uid=10000,gid=10000,mode=700",
+        "/tmp": "mode=1777"
+      },
+      "mounts": [
+        {
+          "Destination": "/objects",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "agui-part1-369baf263413",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/agui-part1-369baf263413/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/deployment",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/host_mnt/private/tmp/part1-final-restart-c9e7a56/test_cloud_native_dual_contain0/templates",
+          "Type": "bind"
+        }
+      ],
+      "name": "agui-part1-369baf263413-runtime"
+    }
+  ],
+  "evidence": {
+    "learned profile evidence": [
+      {
+        "project": "b92d2122d3034478862c6ef5d9626b43",
+        "bot": "bot-b1198397-da0c-46c5-847e-b00ac510cd95",
+        "run": "896371f5-e802-4246-af8f-2004cd7d8432",
+        "mapping": [
+          [
+            "original-browser-thread",
+            "original-browser-thread"
+          ]
+        ],
+        "source": "541245a7-21e0-47e1-90a8-c5d721e18bd8",
+        "manifestRevision": "b32f6d0315964e7193304aed6e7dda0e",
+        "files": [
+          "SOUL.md",
+          "memories/MEMORY.md",
+          "skills/notebook/SKILL.md",
+          "state.db"
+        ],
+        "nativeSessionIds": [
+          "2c61160c-5b7d-4e86-b4eb-58974e691aaf"
+        ],
+        "toolResults": 2
+      }
+    ],
+    "restored profile evidence": [
+      {
+        "bot": "bot-b1198397-da0c-46c5-847e-b00ac510cd95",
+        "nativeSessionIds": [
+          "2c61160c-5b7d-4e86-b4eb-58974e691aaf"
+        ],
+        "toolResults": 2
+      }
+    ],
+    "shared reference evidence": [
+      {
+        "bot": "bot-b1198397-da0c-46c5-847e-b00ac510cd95",
+        "thread": "original-browser-thread",
+        "run": "896371f5-e802-4246-af8f-2004cd7d8432",
+        "activeRevision": "c6002009-92b2-4fe2-8204-dc4e55cccc58",
+        "recordIds": [
+          "c6002009-92b2-4fe2-8204-dc4e55cccc58:2",
+          "82a6a57b-c928-498d-808a-5e534305111b:1"
+        ],
+        "systemPromptUnchanged": true,
+        "fullKnowledgeMatched": true
+      }
+    ],
+    "disable evidence": [
+      {
+        "bot": "bot-b1198397-da0c-46c5-847e-b00ac510cd95",
+        "state": "disabled",
+        "appliedRevision": 2
+      }
+    ]
+  },
+  "app_container_ids_distinct": true,
+  "read_only_roots_and_fresh_tmpfs": true,
+  "shared_external_object_volume": "agui-part1-369baf263413",
+  "deployment_bind_read_only": true,
+  "no_profile_workspace_or_wiki_mount": true,
+  "junit_sha256": "dd7f7ce3eac29ac11f5d3716bb14b090ddd23bae2ca25e400adb6b369ea78aa1"
+}

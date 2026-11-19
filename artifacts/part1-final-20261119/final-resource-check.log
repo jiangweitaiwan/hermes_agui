@@ -1,0 +1,7 @@
+$ df -h . /private/tmp
+Filesystem       Size   Used  Avail Capacity iused     ifree %iused  Mounted on
+/dev/disk1s1    113Gi   71Gi   17Gi    81% 1415281 176123040    1%   /System/Volumes/Data
+/dev/disk1s1    113Gi   71Gi   17Gi    81% 1415281 176123040    1%   /System/Volumes/Data
+$ docker info --format CPUs={{.NCPU}} Memory={{.MemTotal}} Server={{.ServerVersion}}
+CPUs=2 Memory=4124983296 Server=24.0.5
+$ docker ps -a --filter name=agui-part1- --format {{.Names}} {{.Status}}

@@ -1,0 +1,19 @@
+{
+  "label": "final-test-pg-stop",
+  "command": [
+    "pg_ctl",
+    "-D",
+    "/private/tmp/part1-c9e7a56-pg/db",
+    "-m",
+    "fast",
+    "-w",
+    "stop"
+  ],
+  "started_at": "2026-11-19T09:31:02.330244+00:00",
+  "finished_at": "2026-11-19T09:31:02.490345+00:00",
+  "elapsed_seconds": 0.16,
+  "exit_code": 0,
+  "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "log": "artifacts/part1-final-20261119/final-test-pg-stop.log",
+  "log_sha256": "ca19178a35ab4153b75b494963b66ce8243e1b94c173107c87b44d09db23652d"
+}

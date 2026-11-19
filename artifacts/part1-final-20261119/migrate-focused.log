@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/private/tmp/hermes-part1-final-test-env/lib/python3.14/site-packages/psycopg/connection.py", line 126, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection is bad: connection to server on socket "/private/tmp/part1-final-pg/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?

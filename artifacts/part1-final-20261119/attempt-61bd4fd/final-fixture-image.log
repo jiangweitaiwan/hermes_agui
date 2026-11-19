@@ -1,0 +1,38 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load .dockerignore
+#1 transferring context:
+#1 transferring context: 3.10kB 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load build definition from Dockerfile.agui.part1-test
+#2 transferring dockerfile: 553B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/hermes-agui:part1
+#3 DONE 0.0s
+
+#4 [1/3] FROM docker.io/library/hermes-agui:part1
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 3.88kB 0.2s done
+#5 DONE 0.3s
+
+#6 [2/3] COPY tests/__init__.py /opt/hermes/tests/__init__.py
+#6 CACHED
+
+#7 [3/3] COPY tests/hermes_agui/cloud_native_host.py /opt/hermes/tests/hermes_agui/
+#7 CACHED
+
+#8 exporting to image
+#8 exporting layers done
+#8 writing image sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b 0.0s done
+#8 naming to docker.io/library/hermes-agui:part1-test 0.1s done
+#8 DONE 0.1s
+
+What's Next?
+  View summary of image vulnerabilities and recommendations → docker scout quickview

@@ -1,0 +1,27 @@
+{
+  "label": "focused-legacy-container-probe",
+  "command": [
+    "docker",
+    "run",
+    "--rm",
+    "--name",
+    "agui-part1-legacy-89eadbf",
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges:true",
+    "--mount",
+    "type=bind,src=/Users/jiangwei/desktop/hermes/hermes-agent/tests/hermes_agui/container_probe.py,dst=/probe/container_probe.py,readonly",
+    "--mount",
+    "type=bind,src=/Users/jiangwei/desktop/hermes/hermes-agent/tests/fakes/fake_llm_provider.py,dst=/probe/fake_llm_provider.py,readonly",
+    "--entrypoint",
+    "python",
+    "hermes-agui:part1",
+    "/probe/container_probe.py"
+  ],
+  "started_at": "2026-11-19T04:37:55.991614+00:00",
+  "finished_at": "2026-11-19T04:38:33.101767+00:00",
+  "elapsed_seconds": 37.109,
+  "exit_code": 0,
+  "head": "89eadbf8aa9f36b6c3d585685a4fd630af4e4abd",
+  "log": "artifacts/part1-final-20261119/focused-legacy-container-probe.log",
+  "log_sha256": "73b73573f7df526093344139248dc0aa4bee9611d39cd9b22d6f24399a1a2697"
+}

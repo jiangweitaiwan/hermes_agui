@@ -1,0 +1,12 @@
+Applied hermes_agui/storage/migrations/001_host.sql
+Applied hermes_agui/storage/migrations/002_run_outbox.sql
+Applied hermes_agui/storage/migrations/003_completion_evidence.sql
+Applied hermes_agui/storage/migrations/004_managed_bots.sql
+Applied hermes_agui/storage/migrations/005_management_operations.sql
+Applied examples/copilotkit/server/storage/migrations/001_threads.sql
+Applied examples/copilotkit/server/storage/migrations/002_delegations.sql
+Applied examples/copilotkit/server/storage/migrations/003_bot_registry.sql
+Applied examples/copilotkit/server/storage/migrations/004_graph_wiki.sql
+Applied examples/copilotkit/server/storage/migrations/005_graph_sources.sql
+Applied examples/copilotkit/server/storage/migrations/006_graph_jobs.sql
+Applied examples/copilotkit/server/storage/migrations/007_bot_operations.sql

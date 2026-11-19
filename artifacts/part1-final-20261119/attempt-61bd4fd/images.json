@@ -1,0 +1,78 @@
+[
+  {
+    "name": "hermes-agui:part1",
+    "Id": "sha256:e662df78141af877b43d7ed24f2ce549865bd067be0ad0ad0a7b3c4322c6ea69",
+    "RepoDigests": [],
+    "Created": "2026-11-18T11:46:46.856005833Z",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "config": {
+      "User": "10000:10000",
+      "Entrypoint": [
+        "/usr/bin/tini",
+        "-g",
+        "--",
+        "python",
+        "-m",
+        "hermes_agui.server"
+      ],
+      "Cmd": [
+        "--home",
+        "/srv/hermes/profile",
+        "--cwd",
+        "/srv/workspace",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "ExposedPorts": {
+        "8000/tcp": {}
+      }
+    }
+  },
+  {
+    "name": "hermes-agui:part1-test",
+    "Id": "sha256:6278182c8c4ee2fa14e7dd1733fb9b2dd231f6e0480305534d4bbb8e36e9b12b",
+    "RepoDigests": [],
+    "Created": "2026-11-18T12:08:48.990710803Z",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "config": {
+      "User": "10000:10000",
+      "Entrypoint": [
+        "/usr/bin/tini",
+        "-g",
+        "--",
+        "python",
+        "-m",
+        "tests.hermes_agui.cloud_native_host"
+      ],
+      "Cmd": null,
+      "ExposedPorts": {
+        "8000/tcp": {}
+      }
+    }
+  },
+  {
+    "name": "hermes-runtime:part1",
+    "Id": "sha256:fd83fa2d246840e428baf61e31e2a808402f88e4f251faf5d32541045973ed59",
+    "RepoDigests": [],
+    "Created": "2026-11-18T12:21:59.074966058Z",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "config": {
+      "User": "10000:10000",
+      "Entrypoint": [
+        "docker-entrypoint.sh"
+      ],
+      "Cmd": [
+        "npm",
+        "start"
+      ],
+      "ExposedPorts": {
+        "3000/tcp": {}
+      }
+    }
+  }
+]

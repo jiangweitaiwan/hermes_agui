@@ -1,0 +1,24 @@
+import datetime
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+root = Path.cwd()
+artifacts = root / 'artifacts/part1-final-20261119'
+label, *command = sys.argv[1:]
+started = datetime.datetime.now(datetime.UTC).isoformat()
+tick = time.monotonic()
+log = artifacts / (label + '.log')
+with log.open('w') as stream:
+    result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=False)
+record = {'label': label, 'command': command, 'started_at': started,
+          'finished_at': datetime.datetime.now(datetime.UTC).isoformat(),
+          'elapsed_seconds': round(time.monotonic() - tick, 3), 'exit_code': result.returncode,
+          'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+          'log': str(log.relative_to(root)), 'log_sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
+(artifacts / (label + '.json')).write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps(record), flush=True)
+raise SystemExit(result.returncode)

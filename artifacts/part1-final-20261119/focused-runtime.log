@@ -1,0 +1,19 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/bot-import-compatibility.test.ts tests/bot-operations.test.ts --reporter=verbose --maxWorkers=1
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:98683) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-operations.test.ts > ACK loss, process restart and stale acknowledgements converge without replacing newer intent 347ms
+(node:98755) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-import-compatibility.test.ts > legacy Runtime import retains stable metadata, omits secrets and preserves later desired operations on rerun 2796ms
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  12:09:09
+   Duration  10.07s (transform 625ms, setup 0ms, collect 5.93s, tests 3.15s, environment 1ms, prepare 330ms)
+

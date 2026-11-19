@@ -1,0 +1,219 @@
+"""Render acceptance reports only from completed, same-candidate evidence."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import math
+import re
+import shutil
+import subprocess
+
+root = Path.cwd()
+out = root / 'artifacts/part1-final-20261119'
+manifest = json.loads((out / 'source-manifest.json').read_text())
+candidate = manifest['candidate']
+base = manifest['base']
+labels = ['final-host-image', 'final-fixture-image', 'final-runtime-image',
+          'final-container', 'final-legacy-container-probe', 'final-migrate',
+          'final-regression', 'final-browser', 'final-repository-check',
+          'final-guard-contracts', 'final-diff-candidate', 'final-diff-worktree']
+steps = {label: json.loads((out / (label + '.json')).read_text()) for label in labels}
+for label, step in steps.items():
+    assert step['head'] == candidate and step['exit_code'] == 0, (label, step)
+    assert hashlib.sha256((root / step['log']).read_bytes()).hexdigest() == step['log_sha256'], label
+actual = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in manifest['files']}
+assert actual == manifest['files'], 'Frozen source changed'
+assert hashlib.sha256(json.dumps(actual, sort_keys=True).encode()).hexdigest() == manifest['sha256']
+proof = json.loads((out / 'restart-proof.json').read_text())
+assert proof['candidate'] == candidate and proof['status'] == 'PASS'
+decision = json.loads((out / 'owner-decisions.json').read_text())
+assert decision['fresh_deployment']['approved'] and decision['g6_reference_contract']['approved']
+reg = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', (out / 'final-regression.log').read_text())
+runtime = re.search(r'Test Files\s+(\d+) passed \((\d+)\)\s+Tests\s+(\d+) passed \((\d+)\)', reg)
+assert runtime and runtime[1] == runtime[2] and runtime[3] == runtime[4]
+python = re.search(r'=== Summary: (\d+) files, (\d+) tests passed, (\d+) failed', reg)
+assert python and python[3] == '0'
+assert 'PostgreSQL run admission, fencing, profile CAS, outbox and scope isolation passed' in reg
+assert 'Container native shell, SSE, authentication, history, receipts and restart: OK' in (out / 'final-legacy-container-probe.log').read_text()
+evaluations = []
+for match in re.finditer(r'(?m)^\{', reg):
+    try:
+        value = json.JSONDecoder().raw_decode(reg[match.start():])[0]
+    except json.JSONDecodeError:
+        continue
+    if isinstance(value, dict) and {'keyword', 'hybrid', 'hybridGraph'} <= value.keys():
+        evaluations.append(value)
+assert len(evaluations) == 2
+for result in evaluations:
+    for mode, floor in [('keyword', .5), ('hybrid', 11 / 12), ('hybridGraph', 1.)]:
+        assert result[mode]['recallAt3'] >= floor or math.isclose(result[mode]['recallAt3'], floor)
+equal = all(evaluations[0][mode][metric] == evaluations[1][mode][metric]
+            for mode in ('keyword', 'hybrid', 'hybridGraph')
+            for metric in ('recallAt3', 'mrr', 'noiseFraction'))
+browser = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', (out / 'final-browser.log').read_text())
+browser_passes = [int(n) for n in re.findall(r'(\d+)\s+passed\s+\(', browser)]
+browser_skips = [int(n) for n in re.findall(r'(\d+) skipped', browser)]
+assert len(browser_passes) == 4 and all(n > 0 for n in browser_passes), browser_passes
+sections = re.split(r'> hermes-copilotkit-example@[^\n]+ test:e2e', browser)[1:]
+assert len(sections) == 4
+assert all(not re.search(r'\b[1-9]\d* skipped\b', section) for section in sections[1:])
+assert not re.search(r'\b[1-9]\d* (?:tests )?skipped\b', reg)
+assert '17 checks, ok' in (out / 'final-repository-check.log').read_text()
+now = datetime.datetime.now(datetime.UTC).isoformat()
+gate_steps = {
+    'G1': ['final-regression', 'final-browser', 'final-legacy-container-probe'],
+    'G2': ['final-migrate', 'final-regression', 'final-container'],
+    'G3': ['final-regression', 'final-browser', 'final-container'],
+    'G4': ['final-regression', 'final-container'],
+    'G5': ['final-regression', 'final-container'],
+    'G6': ['final-host-image', 'final-fixture-image', 'final-runtime-image', 'final-container'],
+    'G7': ['final-migrate', 'final-regression', 'final-container'],
+    'G8': ['final-host-image', 'final-fixture-image', 'final-runtime-image', 'final-regression',
+           'final-container', 'final-legacy-container-probe', 'final-repository-check',
+           'final-guard-contracts', 'final-diff-candidate', 'final-diff-worktree'],
+}
+names = dict(zip(gate_steps, ['Legacy regression', 'Storage', 'Graph', 'Job', 'Provisioning', 'Restart', 'Migration', 'Build']))
+gates = {gate: {'name': names[gate], 'status': 'PASS', 'candidate': candidate,
+               'steps': selected, 'exit_codes': [steps[s]['exit_code'] for s in selected],
+               'artifacts': [steps[s]['log'] for s in selected]}
+         for gate, selected in gate_steps.items()}
+prior = out / 'prior-status-20261118.json'
+if not prior.exists():
+    shutil.copyfile(root / 'docs/cloud-native-part1-status.json', prior)
+old = json.loads(prior.read_text())
+changed = subprocess.check_output(['git', 'diff', '--name-only', 'c0d2e5990f1a708debfdab181e449c141189a0c3', candidate], text=True).splitlines()
+selected_files = set(old.get('source_files_sha256', {})) | set(changed)
+images = json.loads((out / 'images.json').read_text())
+status = {
+    'captured_at_utc': now, 'head': candidate, 'candidate': candidate,
+    'starting_head': 'c0d2e5990f1a708debfdab181e449c141189a0c3', 'base_sha': base,
+    'starting_worktree_clean': False, 'starting_untracked_owner_file': 'docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md',
+    'stopped_by_owner': False, 'part1_accepted': True, 'part2_prerequisites_accepted': True,
+    'migration_scope': 'fresh_deployment; owner approved 2026-11-19; retain local data; historical full migration N/A',
+    'owner_decisions': decision, 'historical_full_migration': {'status': 'N/A', 'reason': 'owner-approved fresh_deployment'},
+    'source_manifest_sha256': manifest['sha256'], 'source_manifest': 'artifacts/part1-final-20261119/source-manifest.json',
+    'source_files_sha256': {n: actual[n] for n in sorted(selected_files) if n in actual},
+    'changed_files': changed, 'environment': json.loads((out / 'environment.json').read_text()),
+    'images': images, 'gates': gates, 'steps': steps,
+    'results': {
+        'runtime_full': {'status': 'PASS', 'files': int(runtime[1]), 'passed': int(runtime[3]), 'failed': 0, 'skipped': 0, 'log': steps['final-regression']['log']},
+        'python_full_and_pg_probe': {'status': 'PASS', 'files': int(python[1]), 'passed': int(python[2]), 'failed': 0, 'log': steps['final-regression']['log']},
+        'browser': {'status': 'PASS', 'passes_in_order_default_graph_dynamic_multi': browser_passes, 'default_conditional_skips': browser_skips, 'log': steps['final-browser']['log']},
+        'retrieval_fixture': {'status': 'PASS', 'backend_results_equal': equal, 'evaluations_local_then_pg': evaluations, 'encoder': 'evaluation-synonym-fixture', 'real_model_quality_claim': False},
+        'container_restart': {'status': 'PASS', 'full_scenario_completed': True, 'tests_passed': 2, 'skipped': 0, 'proof': 'artifacts/part1-final-20261119/restart-proof.json', 'log': steps['final-container']['log']},
+        'host_image_build': {'status': 'PASS', **images[0]}, 'runtime_image_build': {'status': 'PASS', **images[2]},
+        'repository_check': {'status': 'PASS', 'checks': 17, 'log': steps['final-repository-check']['log']},
+        'new_importer_tests': {'status': 'PASS', 'files': ['tests/hermes_agui/test_profile_import_compatibility.py', 'examples/copilotkit/tests/bot-import-compatibility.test.ts'], 'log': steps['final-regression']['log']},
+        'real_gcs_iam_pitr': {'status': 'NOT RUN', 'phase': 'Part 2'},
+    },
+    'skip_rationale': {'runtime_required_skips': 0, 'python_integration_selection': 'normal suite excludes integration; two restart/smoke cases ran explicitly; legacy runtime_container probe body ran directly in the candidate image with all assertions and success marker checked', 'browser': 'default conditional cases covered by explicit GRAPH_MEMORY_TEST, DYNAMIC_BOT_TEST and MULTI_BOT_TEST modes'},
+    'remaining_gates': [], 'blockers': [], 'real_gcs_iam_pitr': {'status': 'NOT RUN', 'phase': 'Part 2'},
+    'validation_commands': 'docs/cloud-native-part1-validation.md',
+    'execution_window': {'first_preserved_focused_start': '2026-11-19T03:53:25+00:00', 'candidate_frozen_at': manifest['frozen_at'], 'completed_at': now},
+    'prior_status': 'artifacts/part1-final-20261119/prior-status-20261118.json',
+    'source_verified_unchanged': True, 'report_revision': 'recorded after documentation commit in artifacts/part1-final-20261119/report-revision.json',
+    'no_paid_cloud_resources_created': True, 'part2_implemented': False,
+}
+(root / 'docs/cloud-native-part1-status.json').write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n')
+rows = '\n'.join(f'| {g} {names[g]} | **PASS** | {", ".join(gate_steps[g])} |' for g in gates)
+metric_rows = '\n'.join(f'| {mode} | {evaluations[0][mode]["recallAt3"]:.4f} / {evaluations[1][mode]["recallAt3"]:.4f} | {evaluations[0][mode]["mrr"]:.4f} / {evaluations[1][mode]["mrr"]:.4f} | {evaluations[0][mode]["noiseFraction"]:.4f} / {evaluations[1][mode]["noiseFraction"]:.4f} |' for mode in ('keyword','hybrid','hybridGraph'))
+report = f'''
+
+## 2026-11-19 Final Acceptance — PASS
+
+**Part 1 accepted；Part 2 prerequisites accepted。** 必要 G1–G8 均在同一候選通過。
+本輪停止於交接，沒有開始 Part 2 或部署 GCP/Vercel。此節取代前述舊候選的當前判定，保留所有歷史失敗。
+
+- 起始 HEAD：`c0d2e5990f1a708debfdab181e449c141189a0c3`；起始只有 owner 提供的驗收文件未追蹤，未覆蓋既有工作。
+- Tested code SHA：`{candidate}`；固定比較 base：`{base}`（起始 HEAD 的直接父 commit），不是候選與自己相比。
+- Frozen source digest：`{manifest['sha256']}`。完整 manifest、同候選命令／exit code／起止／elapsed／log checksum 見 [證據索引](../artifacts/part1-final-20261119/INDEX.md) 與 [status JSON](cloud-native-part1-status.json)。報告 commit 另記於 `artifacts/part1-final-20261119/report-revision.json`；產品、fixtures、runner、配置及依賴 digest 不變。
+- 證據起點 2026-11-19 03:53:25 UTC；候選凍結 `{manifest['frozen_at']}`；驗收完成 `{now}`。
+- Node 22.18.0、Hermes PM Python 3.14.9（agui/agui-cloud/dev/test）、PostgreSQL 18.6 UTF-8、Docker PostgreSQL 17；macOS 12.7.6，4 CPU／8 GiB，Docker 2 CPU／約 4 GiB，Chrome 150.0.7871.125。套件由 lockfiles 建立。重型 suites 串行，Vitest/Python/browser workers=1，retries=0。
+
+| Gate | Status | 同候選一手證據 step（各 exit=0） |
+| --- | --- | --- |
+{rows}
+| Part 2 GCS/IAM/PITR | **NOT RUN** | 不以 object double 代替實雲 |
+
+完整 Runtime **{runtime[1]} 檔／{runtime[3]} passed**；真 PG probe PASS；Python AG-UI **{python[1]} 檔／{python[2]} passed／0 failed**。正常 Python selector 的 integration cases 另以容器入口執行；原 `test_runtime_container.py` 所使用的完整 `container_probe.py` 直接在本候選正式 image 執行，保留其全部 assertions 並驗證成功 marker。Browser 預設／Graph／dynamic／multi 四模式依序 **{' / '.join(map(str,browser_passes))} passed**；預設條件跳過由指定模式覆蓋。TS/Vite build、17 個 repository checks、guard 行為測試及兩種 diff check 均通過。沒有必要 gate 靠 skip、關功能或弱化規則通過。
+
+### 修復與失敗歷史
+
+- 原 bounds／CLI timeout 在安靜環境未重現，保持原 30/60 秒期限；初次 sandbox loopback EPERM 保存後，以正常授權重驗真 HTTP。未把資源競爭假說當成已證實根因。最終全套沒有 timeout／RPC error。
+- busy-run 測試誤用 `finish` 的 keyword-only 參數；先保存 red，再修正為 `status=`／`reason=`，原拒絕與後續 reconciliation 斷言保留。
+- fork 初始提交缺六個真實 CI helpers，依匹配 upstream checker 恢復，來源見 [provenance](../scripts/ci/RESTORED_GUARDS.md)。lazy-deps 的兩個 git subprocess 補 60 秒 deadline；修正原計畫 no-tmp 文字與 TS metrics package-root discovery。新增 resolver contracts 在 base 2 failed、修正版 2 passed；沒有空 manifest、假 guard、baseline 上調或 enforcement 豁免。
+- PostgreSQL readiness 保持 40 秒，改用真 SQL ping、容器存活與最後錯誤診斷；本輪實際正常啟動。新增診斷曾因 PG 沒有可選 Tmpfs 欄位而失敗，已修正並保存 `attempt-61bd4fd/`。
+- 舊 fixture 用無關查詢 `retrieve`（真 API 0 頁，`PostgreSQL` 2 頁），且把 multipart content 當字串、要求 Graph 進入 cached system prompt；保留 `attempt-1a55972/`、`attempt-89eadbf/` 的 FAIL／JUnit／診斷及結束重試的人工 stop 紀錄。Owner 明確核准既有 run-local untrusted reference 契約後才修改 oracle；沒有改 Core。`89eadbf` 的整體回歸雖通過，仍未沿用作最終 PASS。
+
+- `c259c3a` 的必要 suites 通過後，最後 diff 發現 owner 文件尾端空白與六個恢復 helper 的多餘檔尾空行；保存於 `attempt-c259c3a/`，修正格式後在本候選重跑全部必要驗收，沒有混用舊 PASS。
+
+### Restart、資料保留與授權證據
+
+正式 Host／Runtime entrypoints 在 read-only root 與指定 port 通過容器內 loopback smoke，缺少／無效設定 fail fast。共享 scenario **2 passed、0 skip**；Host／Runtime 各三代容器 IDs 不同，具 fresh tmpfs，只共用外部 object volume 與唯讀部署模板，沒有舊 profile／workspace／wiki mount；SQL 角色跨 schema 被拒絕。見 [restart-proof](../artifacts/part1-final-20261119/restart-proof.json)、JUnit、DB snapshots 與容器 logs。
+
+已驗證已提交 manifest 含 state.db、native memory、核准 skill；原 thread mapping／native session IDs／tool results 復原，實際 skill_view 成功，新 thread 載入 persistent memory。未 ACK completion 重送不增加原 source/job，Graph active revision 可讀。B 在分享前的實際 LLM request 不含 A 知識，分享後獨立 untrusted reference 含完整知識、正確 Bot/thread，且與 active revision／原 run provenance 相符；B system prompt 前後相同。C 重建後仍不可越權。Runtime disable 後拒絕新 run，Host applied disabled/revision 有 SQL 證據，原 completed run 不改寫。獨立 worker takeover／fence、撤銷與故障注入由同候選真 PG suites 證明。
+
+### Migration 與 retrieval
+
+Owner 於 2026-11-19 核准 **fresh_deployment**；保留既有本機資料。歷史全量遷移 **N/A（不是 PASS）**，Host／Runtime importer compatibility、fresh schema 與完整重建均 PASS。沒有宣稱可直接切換既有使用者。
+
+同 corpus／`evaluation-synonym-fixture` encoder 的 local / PG 結果如下；原始 latency、queue/compiler 資料在 regression log，並非真模型品質或雲端效能。
+
+| Mode | recall@3 local / PG | MRR local / PG | noise local / PG |
+| --- | --- | --- | --- |
+{metric_rows}
+
+### 已知限制與交接
+
+只提交成功 turn；未提交 memory/skill 可能遺失，沒有工具級 checkpoint 或 exactly-once 外部副作用。原 session_home_identity、scope/checksum/generation/CAS/fence、allowlist／64 MiB／256 項、Wiki/source 配額保持不變。未引用 objects 保留，未實作 GC；未來至少七天寬限並對全部歷史引用對帳。Credential seed 需持久保管，線上輪替未實作。Runtime disable 意圖至 Host applied 的網路分割窗口仍存在。正式 Runtime 的 loopback／Host／Origin 邊界保持原契約；Cloud Run ingress／服務 URL／IAM 由 Part 2 接線與實雲驗證，本輪 smoke 不宣稱雲端外部可達。真 GCS generation/IAM、Cloud SQL/PITR、Cloud Tasks/Scheduler、Firebase/Vercel、SSE replay/cross-instance cancel、實雲恢復／成本／負載均 **NOT RUN，留 Part 2**。
+
+交接入口沿用 worker-cli `process/tick/reconcile`、bots reconcile-cli、Host completion_delivery `--once`、Host 001–005／Runtime 001–007 與正式 images；未開始 Part 2。Storage ownership/limits 未改，inventory 不需變更。
+'''
+with (root / 'docs/cloud-native-part-1-report.md').open('a') as stream:
+    stream.write(report)
+with (root / 'docs/cloud-native-part-2-report.md').open('a') as stream:
+    stream.write(f'''
+
+## 2026-11-19 最終前置驗收 — PASS（停止於交接）
+
+Tested code SHA：`{candidate}`；source digest：`{manifest['sha256']}`。
+依 [Part 1 Final Acceptance](cloud-native-part-1-report.md#2026-11-19-final-acceptance--pass)、
+[status JSON](cloud-native-part1-status.json) 與 [證據索引](../artifacts/part1-final-20261119/INDEX.md)，
+同候選 **G1–G8 全部 PASS，Part 1 accepted／Part 2 prerequisites accepted**。此前的 FAIL/NOT RUN 為歷史紀錄，未作本候選 PASS 證據。
+
+| 前置契約 | 結果 |
+| --- | --- |
+| Legacy／Storage／Graph／Job／Provisioning | PASS：完整 Runtime {runtime[3]}、Python AG-UI {python[2]}、真 PG probe、四種 browser 模式及故障注入。 |
+| 雙服務重建 | PASS：真 PG／外部 object double，刪除兩應用與全部可寫層，原 session/transcript/memory/skill、Graph reference／授權與 Host disable 完整復原。 |
+| Migration | Owner 核准 fresh_deployment；既有本機資料保留，歷史全量遷移 N/A；importer compatibility／fresh schema／restart PASS，不能直接切換既有使用者。 |
+| Build／check | 正式 Host/Runtime 與 fixture images、production smoke/native probe、TS/Vite、17 repository checks、diff checks PASS。 |
+| Graph injection contract | Owner 核准 run-local untrusted reference，實際 provider request 驗證完整知識／provenance，system prompt 不變；Core 未改。 |
+| 真 GCS/IAM/PITR 與 Part 2 實雲 | NOT RUN，沒有部署 URL 或付費資源。 |
+
+可接線入口仍為 Graph worker-cli `process/tick/reconcile`、Bot reconcile-cli、Host completion_delivery `--once`、Host 001–005／Runtime 001–007 schema、分權角色與 PG/GCS config。Cloud Run 的可靠工作不能依賴 response 後 timer。成功 turn snapshot、未提交變更遺失窗口、seed 保管／輪替、網路分割窗口與 objects retention 限制見 Part 1 報告。
+
+**本輪未開始 Part 2。** Cloud Tasks/Scheduler、Firebase/Vercel、正式 IAM service identity、SSE replay/cross-instance cancel、真 GCS generation/IAM、備份/PITR 還原、成本／負載驗收皆待後續明確啟動。
+''')
+with (root / 'docs/cloud-native-part1-validation.md').open('a') as stream:
+    stream.write(f'''
+
+## 2026-11-19 最終候選與重現紀錄
+
+Tested SHA `{candidate}`；base `{base}`；source digest `{manifest['sha256']}`。
+實際命令／exit code／elapsed／UTC 起止／log checksum 見 `artifacts/part1-final-20261119/INDEX.md` 與各 step JSON。
+最終使用全新 PG Unix socket cluster（UTF-8，Host 001–005／Runtime 001–007 各一次），PM agui/agui-cloud/dev/test、Node 22.18.0、Chrome 150.0.7871.125。
+
+順序為三個 Docker build → production smoke／完整 restart → 既有 native container probe → fresh PG/migrate → regression（Python workers=1、Vitest maxWorkers=1、retries=0）→ browser 四模式 → repository check → guard contracts → diff checks。各重型階段未重疊。容器 build/scenario 使用現有 container mode 內相同命令拆開記錄，以保留每個 build exit code、JUnit 與 `--basetemp` 診斷。
+
+```bash
+HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j 1 --file-timeout 600 tests/hermes_agui/test_cloud_native_restart.py -m integration --junitxml=/path/to/evidence/container.junit.xml -o junit_logging=all
+HERMES_TEST_WORKERS=1 scripts/cloud_native_part1_check.sh regression
+scripts/cloud_native_part1_check.sh browser
+"$HERMES_PYTHON" scripts/check --base {base} --commit {candidate}
+git diff --check {base} {candidate}
+git diff --check
+```
+
+原 legacy container wrapper 的 probe 直接以候選正式 image 執行，命令保留在 `final-legacy-container-probe.json`；其全部 asserts 與成功 marker 已驗證。正常 Python selector 排除的 integration 由這個 probe 及完整 restart/smoke 覆蓋；browser 預設條件案例由三個指定模式覆蓋。舊失敗與 `89eadbf` 的非最終完整回歸均保存於 attempt 目錄，沒有混作本候選結果。報告追加後僅 docs 改變，source manifest 重新核對一致。
+''')
+print(json.dumps({'candidate': candidate, 'gates': 'G1-G8 PASS', 'runtime': int(runtime[3]), 'python': int(python[2]), 'browser': browser_passes, 'source_digest': manifest['sha256']}))

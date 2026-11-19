@@ -1,0 +1,51 @@
+from pathlib import Path
+import collections,hashlib,json,re,shutil,xml.etree.ElementTree as ET
+out=Path('artifacts/part1-final-20261119'); junit=out/'container.junit.xml'
+tree=ET.parse(junit); suites=tree.findall('.//testsuite')
+assert sum(int(s.get('tests',0)) for s in suites)==2
+assert all(int(s.get(k,0))==0 for s in suites for k in ['failures','errors','skipped'])
+content='\n'.join(s.text or '' for s in tree.findall('.//system-out'))
+receipts=[]
+for name,payload in re.findall(r'container evidence ([^: ]+): (.+)',content):
+ values=[json.loads(v) for v in payload.strip().split('|')]
+ assert len(values)==6
+ row=dict(zip(['id','image','state','readOnlyRoot','tmpfs','mounts'],values));row['name']=name
+ if row not in receipts:receipts.append(row)
+assert len(receipts)==7,len(receipts)
+groups=collections.defaultdict(list)
+for row in receipts:groups[row['name'].rsplit('-',1)[-1]].append(row)
+assert len(groups['pg'])==1
+volumes=set()
+for role in ['host','runtime']:
+ rows=groups[role];assert len(rows)==3 and len({r['id'] for r in rows})==3
+ for r in rows:
+  assert r['readOnlyRoot'] is True
+  assert set(r['tmpfs'])=={'/scratch','/tmp'}
+  mounts={m['Destination']:m for m in r['mounts']}
+  assert set(mounts)=={'/objects','/deployment'},mounts
+  assert mounts['/objects']['Type']=='volume'
+  volumes.add(mounts['/objects']['Name'])
+  assert mounts['/deployment']['Type']=='bind' and not mounts['/deployment']['RW']
+assert len(volumes)==1
+evidence={}
+for label in ['learned profile evidence','restored profile evidence','shared reference evidence','disable evidence']:
+ rows=[]
+ for payload in re.findall(re.escape(label)+r': (.+)',content):
+  row=json.loads(payload)
+  if row not in rows:rows.append(row)
+ assert len(rows)==1,(label,rows)
+ evidence[label]=rows
+learned=evidence['learned profile evidence'][0];restored=evidence['restored profile evidence'][0];shared=evidence['shared reference evidence'][0];disabled=evidence['disable evidence'][0]
+assert learned['nativeSessionIds']==restored['nativeSessionIds'] and learned['toolResults']==restored['toolResults'] and learned['toolResults']>0
+assert {'state.db','memories/MEMORY.md','skills/notebook/SKILL.md'}<=set(learned['files'])
+assert shared['run']==learned['run'] and shared['bot']==learned['bot']
+assert shared['systemPromptUnchanged'] and shared['fullKnowledgeMatched'] and shared['activeRevision']
+assert any(r.startswith(shared['activeRevision']+':') for r in shared['recordIds'])
+assert disabled['state']=='disabled' and disabled['appliedRevision']>0
+manifest=json.loads((out/'source-manifest.json').read_text())
+proof={'candidate':manifest['candidate'],'status':'PASS','tests':[t.get('name') for t in tree.findall('.//testcase')],'receipts':receipts,'evidence':evidence,'app_container_ids_distinct':True,'read_only_roots_and_fresh_tmpfs':True,'shared_external_object_volume':next(iter(volumes)),'deployment_bind_read_only':True,'no_profile_workspace_or_wiki_mount':True,'junit_sha256':hashlib.sha256(junit.read_bytes()).hexdigest()}
+(out/'restart-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+dest=out/'container-diagnostics';dest.mkdir(exist_ok=True)
+for p in Path('/private/tmp/part1-final-restart-c9e7a56').rglob('*'):
+ if p.is_file() and (p.name.endswith('.log') or p.name.endswith('.inspect.txt')):shutil.copyfile(p,dest/p.name)
+print({'candidate':manifest['candidate'],'restart':'PASS','receipts':len(receipts)})

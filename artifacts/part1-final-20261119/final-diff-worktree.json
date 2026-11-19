@@ -1,0 +1,15 @@
+{
+  "label": "final-diff-worktree",
+  "command": [
+    "git",
+    "diff",
+    "--check"
+  ],
+  "started_at": "2026-11-19T09:06:22.480252+00:00",
+  "finished_at": "2026-11-19T09:06:22.549034+00:00",
+  "elapsed_seconds": 0.068,
+  "exit_code": 0,
+  "head": "c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9",
+  "log": "artifacts/part1-final-20261119/final-diff-worktree.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

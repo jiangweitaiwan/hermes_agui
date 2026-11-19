@@ -1,0 +1,4 @@
+{
+  "reason": "Fake model fixture compares multipart user content to a string, and expects Graph reference in cached system prompt. Existing Core intentionally appends run-local untrusted reference to current request only. Stopped only disposable Host to end model retries and preserve traceback; run remains FAIL. Owner subsequently approved reference contract correction.",
+  "action": "docker stop --time 5 agui-part1-91f3eb5a4f98-host"
+}

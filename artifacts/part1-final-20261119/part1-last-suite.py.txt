@@ -1,0 +1,19 @@
+import json,os,subprocess,sys
+from pathlib import Path
+out=Path('artifacts/part1-final-20261119')
+old=out/'attempt-c259c3a'
+py=os.environ['HERMES_PYTHON']
+def step(label,args=None):
+ if args is None:
+  args=json.loads((old/(label+'.json')).read_text())['command']
+ args=[s.replace('part1-final-restart-c259c3a','part1-final-restart-c9e7a56').replace('agui-part1-legacy-c259c3a','agui-part1-legacy-c9e7a56') for s in args]
+ subprocess.run([py,'/private/tmp/part1-record-step.py',label,*args],check=True)
+step('final-diff-candidate',['git','diff','--check','ae7d7ae51eca59c49a79ef47f7d086fb23f0798a',subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()])
+step('final-diff-worktree',['git','diff','--check'])
+collector=subprocess.Popen([py,'/private/tmp/part1-collect-db-c9e7a56.py'])
+try: step('final-container')
+finally: collector.wait(timeout=60)
+for label in ['final-legacy-container-probe','final-migrate','final-regression','final-browser','final-repository-check','final-guard-contracts']:
+ if label=='final-repository-check':
+  args=json.loads((old/(label+'.json')).read_text())['command'];args[-1]=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();step(label,args)
+ else: step(label)
