@@ -54,6 +54,13 @@ mock HTTP。Graph bounds 與 CLI 測試保留原 30/60 秒期限。PG readiness 
 `scripts/ci/RESTORED_GUARDS.md`；TS metrics 由 tracked package manifests 解析同一
 engine，所有適用檔案仍由原測量器掃描，不建立空的 root package。
 
+Owner 於 2026-11-19 核准 Graph 注入依既有 run-local untrusted reference 契約驗收：
+真 LLM request 的當前 user message 副本有獨立、明確標示不可信資料的 reference，
+system prompt 與已存 transcript 不變。Restart fixture 解析 multipart content，先驗證
+分享前 B 不可見，再核對完整知識、Bot/thread、Graph active revision 及原 run provenance；
+可信查詢不含複製知識，fake 回答不能代替 context 證據。Session reference v1 與
+document reference v2 保持原支援範圍；不改 Core、簽章或 ACL。
+
 ```bash
 scripts/cloud_native_part1_check.sh regression
 scripts/cloud_native_part1_check.sh browser

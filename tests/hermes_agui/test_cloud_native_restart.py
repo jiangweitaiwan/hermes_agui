@@ -17,11 +17,14 @@ def test_cloud_native_production_images():
 @pytest.mark.integration
 @pytest.mark.platforms("posix")
 def test_cloud_native_dual_container_restart(tmp_path, native_config):
-    from tests.hermes_agui.cloud_native_scenario import KNOWLEDGE, MEMORY, PROCEDURE, SKILL, create_bots, learn_and_lose_ack, recover, scenario
+    from tests.hermes_agui.cloud_native_scenario import KNOWLEDGE, MEMORY, PROCEDURE, SKILL, assert_shared_reference, create_bots, learn_and_lose_ack, recover, scenario
+
+    private_system = {}
 
     def reply(record):
         messages = record["body"]["messages"]
-        task = next(message["content"] for message in reversed(messages) if message["role"] == "user")
+        content = next(message["content"] for message in reversed(messages) if message["role"] == "user")
+        task = content if isinstance(content, str) else content[0]["text"]
         names = [call["function"]["name"] for message in messages for call in message.get("tool_calls", [])]
         if task == "learn":
             if "memory" not in names:
@@ -39,8 +42,12 @@ def test_cloud_native_dual_container_restart(tmp_path, native_config):
         if task == "memory-check":
             assert MEMORY in str(messages[0])
             return Text("已在新對話載入持久化的原生記憶。")
+        if task == "private PostgreSQL":
+            assert KNOWLEDGE not in str(messages)
+            private_system["b"] = messages[0]
+            return Text("尚未授權分享的資料保持不可見。")
         if task == "retrieve PostgreSQL":
-            assert KNOWLEDGE in str(messages[0])
+            assert_shared_reference(messages, content, private_system["b"], bots[0], evidence, fixture.shared_page)
             return Text("檢索到已授權的共享資料庫知識。")
         raise AssertionError("Unexpected fake-model task")
 
