@@ -1,6 +1,0 @@
-{
-  "exit_code": 0,
-  "result": "[{\"query\":\"retrieve\",\"status\":200,\"pages\":0},{\"query\":\"PostgreSQL\",\"status\":200,\"pages\":2}]",
-  "error": "",
-  "bot": "bot-8ec1063a-55f3-4f8e-bf10-536bb5a1dc90"
-}

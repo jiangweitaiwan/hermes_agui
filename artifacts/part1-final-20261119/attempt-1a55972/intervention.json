@@ -1,4 +1,0 @@
-{
-  "reason": "Unrelated query retrieve returned zero pages; relevant PostgreSQL returned two pages. Fake model system-context assertion failed repeatedly. Stopped only fixture Host to end retries and retain traceback. This attempt is FAIL, not PASS.",
-  "action": "docker stop --time 5 agui-part1-b4b996f97711-host"
-}

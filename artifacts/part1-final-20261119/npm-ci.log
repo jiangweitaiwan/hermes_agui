@@ -1,5 +1,0 @@
-npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
-npm warn deprecated hast@1.0.0: Renamed to rehype
-npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
-
-added 887 packages in 2m
