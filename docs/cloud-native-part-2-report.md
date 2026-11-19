@@ -1,6 +1,10 @@
-# Cloud-native Part 2 前置驗收報告
+# Cloud Native Part 2 — Source 改造報告
 
-> 最新狀態（2026-11-18）：依 owner 指示停止測試；Part 1／Part 2 前置尚未通過。詳本文末段最新紀錄。
+> 最新狀態（2026-11-19）：已交付 Cloud Run source 改造、部署設定與手動操作文件。依使用者更新範圍，L01–L10、C01–C07 均 NOT RUN；沒有 production ready 宣告。詳細變更與局部檢查見本文末「Part 2 Source 交付」。
+
+## 歷史前置驗收紀錄
+
+以下保留各候選當時的判定，並非本次 Source 交付的當前狀態。
 
 查核基準為 `ab24d4adac6c39b7d3074c2d90fad49388775533`，開始時工作樹乾淨。
 依 [Part 1 計畫](CLOUD_NATIVE_PART_1.md)、[Part 1 實作報告](cloud-native-part-1-report.md)、
@@ -116,3 +120,90 @@ Tested code SHA：`c9e7a56d46d4eb70e6ac9f26edb29c0a685796c9`；source digest：`
 可接線入口仍為 Graph worker-cli `process/tick/reconcile`、Bot reconcile-cli、Host completion_delivery `--once`、Host 001–005／Runtime 001–007 schema、分權角色與 PG/GCS config。Cloud Run 的可靠工作不能依賴 response 後 timer。成功 turn snapshot、未提交變更遺失窗口、seed 保管／輪替、網路分割窗口與 objects retention 限制見 Part 1 報告。
 
 **本輪未開始 Part 2。** Cloud Tasks/Scheduler、Firebase/Vercel、正式 IAM service identity、SSE replay/cross-instance cancel、真 GCS generation/IAM、備份/PITR 還原、成本／負載驗收皆待後續明確啟動。
+
+## 2026-11-19 新版 Part 2 起始盤點（未完成）
+
+狀態：**SOURCE NOT READY / CLOUD NOT VALIDATED**。
+實際 HEAD：`0e7eea48af480b73e72090fffd76c2f25553fd11`，與指定 Part 1 基線相同。
+開始時工作樹只有 owner 修改的 `docs/CLOUD_NATIVE_PART_2.md`；保留該修改。
+Part 1 最新驗收已通過；本節不推翻其成果，也不將其歷史 PASS 當作 Part 2 驗收。
+本輪僅完成初步原始碼盤點，沒有完成工作包或執行測試，沒有修改 Storage Layer。
+
+已核對的正式入口與缺口：
+
+- Host：`python -m hermes_agui.server`；目前 CLI port 預設 8000，Docker CMD 固定 8000，尚未完成 PORT 契約。
+- Runtime：`examples/copilotkit/server/index.ts`；已讀取 PORT，但 listener 綁定 127.0.0.1，Host/Origin 僅允許 loopback；delegation/completion 另開 internal port。
+- Host cancel endpoint 使用 adapter.active，尚非跨 instance durable cancel。
+- Runtime image 仍包含 Part 1 fixture；未完成三服務正式 image 驗收。
+
+| 工作包 | 本輪狀態 |
+|---|---|
+| A 正式入口與封裝 | 未完成 |
+| B IAM、Firebase、前端與 ACL | 未完成 |
+| C Cloud Tasks / Worker / reconcile | 未完成 |
+| D durable events / replay / distributed cancel | 未完成 |
+| E 經 parser 與 schema 驗證的手動部署交付包 | 未完成 |
+| L01–L10 最終本地驗收（每一項） | NOT RUN |
+| C01–C07 真實雲端驗收（每一項） | NOT RUN |
+
+盤點命令 `git rev-parse HEAD`、`git merge-base --is-ancestor 0e7eea48af480b73e72090fffd76c2f25553fd11 HEAD` 均退出 0。
+上述判斷來自正式入口原始碼，並非執行結果。本輪沒有 image build、migration、整合、回歸或 browser E2E 的 PASS 證據。
+交付尚未完成，不可依本節部署；後續須完成 A–E，再對同一候選執行 L01–L10。
+
+## 2026-11-19 Part 2 Source 交付（依更新範圍，免執行整合驗收）
+
+本節取代上一節「僅盤點、尚未改造」的當前狀態；歷史紀錄保留。
+使用者明確調整要求為「把 source code 改成 Cloud Run Ready repository，不需要 L01–L10 本地驗收及 C01–C07」。
+因此本次交付是 **Cloud Run source package / ACCEPTANCE NOT RUN / CLOUD NOT VALIDATED**，不宣稱 production ready，也不套用原計畫需要 L01–L10 PASS 才可使用的驗收標籤。
+
+基線及目前 HEAD 均為 `0e7eea48af480b73e72090fffd76c2f25553fd11`，交付為未提交工作樹。
+owner 對 `docs/CLOUD_NATIVE_PART_2.md` 的既有基線修訂保留。Part 1 Storage Layer 的 snapshot／manifest／registry／lease／outbox 架構沒有重新設計。
+
+### Source 變更對照
+
+| 工作包 | 實作與正式接線 |
+|---|---|
+| A | Host CLI 支援 PORT 與範圍驗證；Host image 移除固定 port CMD、health 使用 PORT。Runtime cloud listener 綁 0.0.0.0；internal callbacks 在同 ingress port。精確 Host/Origin allowlist、cloud backend 與 schema readiness、K_SERVICE 缺 cloud config fail closed。Runtime image 移除 Part 1 fixture；新增明確 migration CLI，不在 replica startup 遷移。 |
+| B | Firebase Admin SDK 驗證 browser ID token，再經 server UID→owner/principal/project 映射接回既有 Bot／Graph／run ACL；cloud 不接受 local bearer/cookie login。ADC audience-scoped Google ID token 使用獨立 X-Serverless-Authorization；所有 Runtime→Host 呼叫共用 hostFetch。Host→Runtime delegation/completion 帶獨立 service identity，Runtime 驗簽、issuer/audience/expiry/SA allowlist 後仍檢查業務憑證。Firebase／storage emulator 在 cloud 模式拒絕。前端 email/password、記憶體 token refresh、登出、直接 HTTPS streaming transport、server-backed threads/history、重新連線及取消。 |
+| C | Runtime migration 008 以 trigger 在 job 同交易新增 durable task delivery row；提交後 best-effort CreateTask，失敗保留待 Scheduler reconcile。Worker 使用正式 index.ts --production --worker，處理 process/reconcile endpoint，沿用 compiler/processJob/CAS/lease。Cloud mode 不啟 evolution 或 metrics timer。Tasks payload 僅 schema/jobId，OIDC + 業務 credential；bounded deadline signal。Host completion dispatcher 支援 --audience；提供獨立 Host reconcile CLI 供 Jobs 排程。 |
+| D | Host migration 006 增加 durable scoped event log、attempt/monotonic seq/time/type/payload、user input 投影與 cancel_requested。事件先持久化再串流；replay 有 after 分頁，terminal 防重複。cancel 寫 DB，owner 每兩秒輪詢並沿既有 isolated-process cancel 中止；terminal publication 在鎖內核對 cancel。Host reconcile 收回過期 lease、補遺失 terminal、保留事件 30 天。不自動重播外部工具；durable HITL 無 checkpoint 時明確 409。既有 delegation scope/depth/deadline/correlation 邏輯保留並改走認證 transport。 |
+| E | deploy/gcp 提供 Host YAML、Runtime JSON、三服務 env examples、前端公開 env、分權 grants、手動 staging compose 與 README；cloud-run-deployment.md 提供參數來源、images、migration、手動 gcloud 參考、URL bootstrap、IAM、queue、備份／rollback／retention／pool sizing 與 smoke 操作。沒有 Terraform／CI deploy／實際 provisioning。 |
+
+正式入口：Host `python -m hermes_agui.server`；Runtime `npm start`；Worker `node --import tsx server/index.ts --production --worker`。
+Host migration `python -m hermes_agui.storage.migrate`；Runtime migration `node --import tsx server/storage/migrate-cli.ts`。
+Host completion／reconcile 採獨立 Cloud Run Job 命令供 Scheduler 呼叫，不依賴 response 後 CPU。
+
+### 局部開發檢查與限制
+
+本輪不是最終 integration/regression acceptance。局部檢查結果如下；未執行項目不可由本表推論 PASS。
+
+| 命令／範圍 | 結果 |
+|---|---|
+| `vitest run tests/cloud.test.ts tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism` | PASS：2 files、7 tests。涵蓋正式設定 schema、pg Unix-socket DSN parser、cloud 拒絕 local login/cookie、未授權 service／origin／目的地、Firebase Admin 成功與失敗結果的 ACL 接線、獨立 IAM/business headers、production emulator 拒絕，並保留既有 Runtime HttpAgent transport tests。Firebase/ADC 均 mock，不是雲端驗證。 |
+| `HERMES_PYTHON=/private/tmp/hermes-part1-final-test-env/bin/python scripts/run_tests.sh tests/hermes_agui/test_cloud_config.py` | PASS：2 tests。Host YAML 經正式 parser、預設工具 allowlist、cloud 缺 durable storage／wildcard hosts 拒絕。ADC adapters 被替換為 unit double，沒有啟動 DB/GCS。 |
+| `python -m compileall -q hermes_agui` | PASS，exit 0；僅語法編譯。 |
+| `git diff --check` | PASS，exit 0。 |
+| `npm run build`（CopilotKit） | PASS，exit 0：TypeScript + Vite，9071 modules；Vite 提示部分 chunks 超過 500 kB。不是 image 或 browser 驗收。 |
+| Host 006／Runtime 008 實際 DB migration、grants、備份還原 | NOT RUN，隨使用者免除 L01–L10；SQL 未在真 DB 執行。 |
+| image build／容器啟動、三正式入口整合、browser E2E、完整回歸 | NOT RUN，依使用者更新範圍。 |
+| L01、L02、L03、L04、L05、L06、L07、L08、L09、L10 | 每項均 NOT RUN，使用者明確免執行。 |
+| C01、C02、C03、C04、C05、C06、C07 | 每項均 NOT RUN；沒有真 GCP／Vercel 測試或部署。 |
+
+首次局部 Python runner 因 sandbox process inspection 被拒（exit 1，0 tests）；授權本地 process 存取後同命令 2 PASS。
+首次 Runtime transport unit tests 因 loopback EPERM 失敗，授權 loopback 後同範圍 7 PASS。
+首次 cloud schema unit tests 發現樣板 service-account placeholder 含 underscore，修正後通過；新增 Firebase Admin 及 emulator 測試後再通過最新範圍。
+npm 下載首次 DNS 受限失敗，授權下載後成功更新 package.json／lockfile；沒有聯絡 Firebase service 或取得實際金鑰。
+
+重要限制：歷史 API 是最近 20 回合／最多 2 MiB 的文字事件投影，不重建工具／HITL 完整 UI，也不是原生 transcript 的 SQL 遷移。完整 native transcript 沿用 Part 1 snapshot。
+單 run 事件最多 8 MiB／10000、每頁 1000；保留 30 天。超量應以 replay API 分頁，不能假裝完整歷史已載入。
+斷線 grace=0，停止當前 request-owned run；崩潰後只重讀已提交事件，沒有 Python stack 恢復。取消不能撤銷副作用。
+原生 memory/skills 仍依 Part 1 allowlist；多 Bot 不構成 OS sandbox，不支援不可信 arbitrary code 多租戶。
+Firebase 前端初始 provider 是 email/password；refresh token 只留記憶體，重新整理須重新登入。
+新 DB 用 fresh migrator；既有 Part 1 DB 無 ledger 時必須確認既有版本後僅套增量 006／008，不能直接執行 fresh migrator。
+部署樣板經 schema／parser 的局部驗證，不等於 images、DB grants、IAM 或實際 deployment 已驗證。
+
+完整操作說明與雲端手動待驗步驟見 [cloud-run-deployment.md](cloud-run-deployment.md)。本次未建立 GCP 資源、未修改 IAM/DNS、未部署遠端服務，沒有部署 URL 或容量／成本測量。
+
+補充設定檢查：Compose YAML 首次解析發現 flow-list volume 未加引號，已修正；`docker compose config --quiet` 使用暫存 placeholder env files 驗證退出 0，沒有啟動任何容器。psycopg `conninfo_to_dict` 的 Unix-socket DSN 解析亦通過；這些不代表連線或 migration/grants 已執行。
+
+最終局部補驗：`scripts/run_tests.sh tests/hermes_agui/test_cloud_config.py tests/hermes_agui/test_delegation_bridge.py` 退出 0，2 files／7 tests PASS；新增 service audience/destination 驗證後保留既有 delegation bridge 行為。最終 cloud unit 範圍 5 tests PASS；最後 Python compileall 與 diff whitespace check 均退出 0。

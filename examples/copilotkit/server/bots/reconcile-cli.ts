@@ -1,3 +1,4 @@
+import { configureCloud } from "../cloud";
 import { readFile } from "node:fs/promises";
 import { createBotManagement } from "./application";
 import { loadDeployedBots, loadManagement } from "./deployment";
@@ -7,6 +8,7 @@ import { PostgresBotRegistry } from "../storage/bot-registry";
 async function main() {
   if (!process.env.AGUI_BOTS_CONFIG) throw new Error("AGUI_BOTS_CONFIG is required");
   const deployment = JSON.parse(await readFile(process.env.AGUI_BOTS_CONFIG, "utf8"));
+  configureCloud(deployment.cloud);
   const settings = loadManagement(deployment.management);
   if (!settings) throw new Error("Bot management is required");
   const backend = deployment.storage?.botRegistry ?? "local";

@@ -1,3 +1,4 @@
+import { cloudEnabled } from "./cloud-auth";
 import { Dialog } from "./workspace/Dialog";
 import { BotEditor } from "./BotEditor";
 import { useEffect, useRef, useState } from "react";
@@ -22,7 +23,7 @@ export function BotManagement({ bots, onBots, onOpen }: BotManagementProps) {
   const [editing, setEditing] = useState<BotRecord>();
   async function refresh() {
     const response = await fetch("/api/bots");
-    if (response.status === 401) { setManaged(true); setLogin(true); setEditing(undefined); setShowEditor(false); setDeleting(undefined); setTemplates([]); onBots([]); return; }
+    if (response.status === 401) { setManaged(true); setLogin(!cloudEnabled); if (cloudEnabled) setError("登入已過期或沒有存取權，請登出後重新登入"); setEditing(undefined); setShowEditor(false); setDeleting(undefined); setTemplates([]); onBots([]); return; }
     if (!response.ok) throw new Error("無法載入 Bot 清單");
     const values = await response.json() as (string | BotRecord)[];
     onBots(values.map(bot => typeof bot === "string" ? { id: bot, name: bot, status: "active" } :
@@ -44,7 +45,7 @@ export function BotManagement({ bots, onBots, onOpen }: BotManagementProps) {
     const response = await fetch(path, { method, headers: { "Content-Type": "application/json" },
       body: value === undefined ? undefined : JSON.stringify(value) });
     if (response.status === 401 && path !== "/api/bot-session") {
-      onBots([]); setLogin(true); setShowEditor(false); setEditing(undefined); setDeleting(undefined);
+      onBots([]); setLogin(!cloudEnabled); setShowEditor(false); setEditing(undefined); setDeleting(undefined);
     }
     if (!response.ok) {
       const result = await response.json() as { error?: string };
@@ -65,10 +66,10 @@ export function BotManagement({ bots, onBots, onOpen }: BotManagementProps) {
       <h2>Bot 管理</h2>
       <p role="status">{busy ? "處理中…" : `${bots.length} 個 Bot · ${bots.filter(bot => bot.status === "active").length} 個可對話`}</p>
       <button disabled={busy} onClick={() => { setEditing(undefined); setShowEditor(true); }}>新增 Bot</button>
-      <button disabled={busy} onClick={() => void action(async () => {
+      {!cloudEnabled && <button disabled={busy} onClick={() => void action(async () => {
         await request("/api/bot-session", "DELETE"); onBots([]); setTemplates([]);
         setEditing(undefined); setShowEditor(false); setDeleting(undefined); setToken(""); setLogin(true);
-      })}>登出</button>
+      })}>登出</button>}
       {!bots.length && <p role="status">尚無 Bot，請新增第一個 Bot。</p>}
       <ul>{bots.map(bot => <li key={bot.id}>
         <strong>{bot.name}</strong> · <span>{bot.status}</span>

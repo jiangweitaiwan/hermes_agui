@@ -42,7 +42,7 @@ def stage_evidence(profiles, scope, revision, turn, result):
 
 
 class GraphCompletionDispatcher:
-    def __init__(self, profiles, client, url, token):
+    def __init__(self, profiles, client, url, token, audience=None):
         address = urlsplit(url)
         secure = address.scheme == "https" or (
             address.scheme == "http" and address.hostname in {"localhost", "127.0.0.1", "::1"}
@@ -52,16 +52,27 @@ class GraphCompletionDispatcher:
             raise ValueError("Invalid Runtime Graph completion URL")
         if len(token) < 32 or not token.isascii() or any(not 33 <= ord(c) <= 126 for c in token):
             raise ValueError("Invalid Runtime Graph completion token")
+        if audience is not None:
+            identity = urlsplit(audience)
+            if (address.scheme != "https" or identity.scheme != "https" or identity.netloc != address.netloc
+                    or identity.path not in {"", "/"} or identity.query or identity.fragment):
+                raise ValueError("Completion audience must match its HTTPS destination")
         self.profiles, self.client, self.url, self.token = profiles, client, url, token
+        self.audience = audience
 
     def deliver(self, event):
         if event.evidence_generation is None:
             return
         body = self.profiles.objects.read(_key(self.profiles, event.scope, event.profile_revision),
                                           event.evidence_generation, limit=_MAX_EVIDENCE)
+        headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
+        if self.audience:
+            from hermes_agui.cloud_identity import identity_headers
+
+            headers.update(identity_headers(self.audience))
         response = self.client.post(
             self.url, content=body, follow_redirects=False,
-            headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"},
+            headers=headers,
         )
         if response.status_code != 204:
             raise RuntimeError("Runtime did not acknowledge Graph completion")
@@ -77,6 +88,7 @@ def main():
     parser = argparse.ArgumentParser(description="Dispatch committed Host completions to Graph ingestion")
     parser.add_argument("--prefix", default="profiles")
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--audience", help="Runtime HTTPS service audience for Google identity")
     args = parser.parse_args()
     # Delivery keys use the scope persisted by the writer. The worker handles
     # completions from every scope in its Host database.
@@ -85,7 +97,7 @@ def main():
     with httpx.Client(timeout=10, trust_env=False) as client:
         dispatcher = GraphCompletionDispatcher(
             profiles, client, os.environ["AGUI_GRAPH_COMPLETION_URL"],
-            os.environ["AGUI_GRAPH_COMPLETION_TOKEN"],
+            os.environ["AGUI_GRAPH_COMPLETION_TOKEN"], audience=args.audience,
         )
         try:
             open_host_pool(pool)

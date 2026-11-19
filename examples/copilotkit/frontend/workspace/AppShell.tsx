@@ -28,7 +28,7 @@ export function AppShell() {
         <button key={bot.id} aria-current={selected === bot.id ? "page" : undefined}
           onClick={() => open(bot.id)}>{bot.name}</button>)}</nav>
       <div id="thread-navigation" />
-      <p>對話索引只保留於本頁；重新整理會開啟新對話。</p>
+      <p>雲端模式可重新載入已提交的對話。</p>
     </aside>
     <main className="workspace-content">
       <div hidden={page !== "Bot Manager" && bots.length > 0}>

@@ -23,6 +23,8 @@ class Run:
     bridge: EventBridge | None = None
     delegation_depth: int = 0
     resume_ids: set[str] = field(default_factory=set)
+    durable_ready: asyncio.Event = field(default_factory=asyncio.Event)
+    durable_lease: Any = None
 
 
 class AgentAdapter:
@@ -73,6 +75,8 @@ class AgentAdapter:
         return run
 
     def resume(self, value) -> Run:
+        if self.durable_runs is not None:
+            raise AdmissionError(409, "Durable checkpoint resume is unsupported")
         run = self.active.get(value.thread_id)
         if self.closed or run is None or not run.bridge.paused or run.task.done():
             raise AdmissionError(409, "No resumable interrupt for this thread")
@@ -102,6 +106,7 @@ class AgentAdapter:
         except Exception:  # health: allow BLE001 -- storage errors may contain credential-bearing connection details
             return {"failed": True}
         finally:
+            run.durable_ready.set()
             self.active.pop(run.turn.thread_id, None)
 
     async def _execute_native(self, run: Run, service) -> dict[str, Any]:

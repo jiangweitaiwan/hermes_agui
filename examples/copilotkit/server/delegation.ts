@@ -1,3 +1,4 @@
+import { hostFetch } from "./cloud";
 import type { IngestStore } from "./graph/ingest-store";
 import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import type { RunAgentInput } from "@ag-ui/core";
@@ -70,7 +71,7 @@ export class DelegationCoordinator {
     if (request.signal.aborted) abort();
     const timer = setTimeout(() => controller.abort("timeout"), this.timeout);
     try {
-      const parent = await fetch(parentUrl(source, call), {
+      const parent = await hostFetch(parentUrl(source, call), {
         headers: { Authorization: `Bearer ${source.token}` }, signal: controller.signal,
       });
       if (!parent.ok) { await parent.body?.cancel(); return Response.json({ status: "denied" }); }
@@ -80,7 +81,7 @@ export class DelegationCoordinator {
       // Retain dedup for the entire live parent, even when it outlives the retention window.
       const expired = [...this.records].filter(([id, record]) => id !== key && record.expires < Date.now()).slice(0, 16);
       for (const [id, record] of expired) {
-        const parent = await fetch(record.parentUrl, { headers: { Authorization: `Bearer ${record.sourceToken}` },
+        const parent = await hostFetch(record.parentUrl, { headers: { Authorization: `Bearer ${record.sourceToken}` },
           signal: controller.signal });
         await parent.body?.cancel();
         if ([404, 409].includes(parent.status)) this.records.delete(id);
@@ -132,7 +133,7 @@ export class DelegationCoordinator {
       const observer = this.ingestion ? new RunCompletionObserver(call.targetBotId, target, input, this.ingestion) : undefined;
       if (this.prepare) input = await this.prepare(call.targetBotId, input);
       if (this.bots[call.targetBotId] !== target) return { ...ids, status: "denied" };
-      const response = await fetch(target.agentUrl, {
+      const response = await hostFetch(target.agentUrl, {
         method: "POST", signal,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.token}`,
           "X-Hermes-Delegation": this.settings.token },
@@ -150,7 +151,7 @@ export class DelegationCoordinator {
     finally {
       if (!completed) {
         // Cancellation has its own short deadline; the caller's signal is already aborted.
-        await fetch(`${base(target.agentUrl)}/threads/${path(ids.threadId)}/cancel`, {
+        await hostFetch(`${base(target.agentUrl)}/threads/${path(ids.threadId)}/cancel`, {
           method: "POST", headers: { Authorization: `Bearer ${target.token}` }, signal: AbortSignal.timeout(2000),
         }).then(response => response.body?.cancel()).catch(() => undefined);
       }

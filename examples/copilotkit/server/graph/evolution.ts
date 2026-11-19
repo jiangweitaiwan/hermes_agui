@@ -92,12 +92,12 @@ export class MemoryEvolution {
     }, this.options.pollMs ?? 1000);
     this.timer.unref();
   }
-  async processJob(id: string) {
+  async processJob(id: string, signal = this.controller.signal) {
     if (!(this.queue instanceof PostgresDocumentIngestor)) throw new Error("Durable job storage required");
     await this.refreshAcl(); await this.reconcile();
     const ns = await this.queue.namespaceForJob(id);
     if (!this.ownsNamespace(ns) || !this.authorized(ns)) throw new Error("Job authorization denied");
-    await this.worker.processJob(ns, id, this.controller.signal);
+    await this.worker.processJob(ns, id, signal);
     return this.queue.status(ns, id);
   }
   async tick() {

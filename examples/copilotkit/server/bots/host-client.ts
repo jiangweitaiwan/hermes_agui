@@ -1,3 +1,4 @@
+import { hostFetch } from "../cloud";
 import { Acknowledgement, type ManagementAck, type ManagementOperation } from "./operations";
 import { BotError, type HostSpec } from "./types";
 export interface HostPort {
@@ -18,7 +19,7 @@ export class HermesHostClient implements HostPort {
   private async request(id: string, method: string, suffix = "", body?: HostSpec) {
     let response: Response;
     try {
-      response = await fetch(`${this.endpoint.replace(/\/$/, "")}/internal/bots/${encodeURIComponent(id)}${suffix}`, {
+      response = await hostFetch(`${this.endpoint.replace(/\/$/, "")}/internal/bots/${encodeURIComponent(id)}${suffix}`, {
         method, headers: { authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000),
       });
@@ -37,7 +38,7 @@ export class HermesHostClient implements HostPort {
     const query = method === "GET" ? "?" + new URLSearchParams({ principal, projectId, ownerId: ownerId! }) : "";
     let response: Response;
     try {
-      response = await fetch(`${this.endpoint.replace(/\/$/, "")}/internal/bots/${encodeURIComponent(id)}/operation${query}`, {
+      response = await hostFetch(`${this.endpoint.replace(/\/$/, "")}/internal/bots/${encodeURIComponent(id)}/operation${query}`, {
         method, headers: { authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
         body: method === "PUT" ? JSON.stringify(operation) : undefined, signal: AbortSignal.timeout(15000),
       });

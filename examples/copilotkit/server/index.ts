@@ -1,3 +1,5 @@
+import { boundedText } from "./http-body";
+import { cloudSettings, authenticateBrowser, authenticateService } from "./cloud";
 export {};
 
 // Set before loading CopilotKit, including modules with import-time telemetry.
@@ -16,9 +18,9 @@ const registry = process.env.AGUI_BOTS_CONFIG
   ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
   : undefined;
 const { bootstrap } = await import("./bootstrap");
-const { application, wiki, threadMappings, settings } = await bootstrap(registry);
+const { application, wiki, threadMappings, settings, tasks } = await bootstrap(registry);
 // Local operational counters only; no prompts, identifiers, source text or credentials.
-const metricsTimer = application.evolution ? setInterval(async () => {
+const metricsTimer = application.evolution && !cloudSettings() ? setInterval(async () => {
   const evolution = application.evolution!;
   console.log(JSON.stringify({ graphMemory: { query: evolution.options.provider.metrics,
     worker: evolution.metrics, jobs: await evolution.queue.metrics(), sessions: evolution.sessions.metrics,
@@ -26,12 +28,15 @@ const metricsTimer = application.evolution ? setInterval(async () => {
     embeddings: evolution.options.provider.retrieval?.vectors?.metrics } }));
 }, 60000) : undefined;
 metricsTimer?.unref();
-const runtime = createCopilotNodeHandler(application.runtime);
-const graphApi = createCopilotNodeHandler(async request => {
+const browser = (handler: (request: Request) => Promise<Response>) => createCopilotNodeHandler(async request =>
+  await authenticateBrowser(request) ? handler(request) : new Response(null, { status: 401 }));
+const runtime = browser(application.runtime);
+const graphApi = browser(async request => {
   await application.management?.manager.sync();
   return application.graphApi(request);
 });
-const management = application.management ? createCopilotNodeHandler(application.management.api) : undefined;
+const threads = browser((await import("./thread-api")).threadApi(application, threadMappings));
+const management = application.management ? browser(application.management.api) : undefined;
 const internalRoutes = new Map<string, import("./delegation-http").InternalRoute>();
 if (application.delegation) {
   internalRoutes.set("/internal/delegations", { maxBytes: 20_000, handle: request => application.delegation!.handle(request) });
@@ -41,7 +46,7 @@ if (application.graphCompletion) {
 }
 const internal = internalRoutes.size
   ? (await import("./delegation-http")).createInternalServer(internalRoutes) : undefined;
-if (internal) {
+if (internal && !cloudSettings()) {
   const internalPort = registry.internal?.listenPort ?? registry.delegation?.listenPort ?? 3001;
   if (!Number.isInteger(internalPort) || internalPort < 1 || internalPort > 65535 || internalPort === port) {
     throw new Error("Invalid internal listenPort");
@@ -58,15 +63,43 @@ staticApp.use("/*", serveStatic({ root: "./dist" }));
 staticApp.get("*", serveStatic({ path: "./dist/index.html" }));
 const staticListener = getRequestListener(staticApp.fetch);
 
+const worker = process.argv.includes("--worker");
+if (worker && (!tasks || !application.evolution)) throw new Error("Worker requires cloud tasks and evolution");
+const workerRoute = worker ? createCopilotNodeHandler((await import("./worker-http")).workerHandler(application.evolution!, tasks!, process.env[tasks!.settings.tokenEnv]!, async () => { await application.management?.manager.reconcileNow(); })) : undefined;
+const cloudInternal = createCopilotNodeHandler(async request => {
+  if (!await authenticateService(request)) return new Response(null, { status: 401 });
+  const route = internalRoutes.get(new URL(request.url).pathname);
+  if (!route || request.method !== "POST") return new Response(null, { status: 404 });
+  const body = await boundedText(request, route.maxBytes);
+  if (body === undefined) return new Response(null, { status: 413 });
+  return route.handle(new Request(request, { body }));
+});
 const server = createServer((req, res) => {
-  const expectedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+  const cloud = cloudSettings();
+  if (workerRoute && req.url !== "/health") {
+    void workerRoute(req, res).catch(() => { if (!res.headersSent) res.writeHead(503); res.end(); }); return;
+  }
+  if (cloud && req.url?.startsWith("/internal/")) {
+    void cloudInternal(req, res).catch(() => { if (!res.headersSent) res.writeHead(503); res.end(); }); return;
+  }
+  if (req.url === "/health" && req.method === "GET") { res.writeHead(200, { "Content-Type": "application/json" }).end("{\"status\":\"ok\"}"); return; }
+  const expectedHosts = new Set(cloud?.hosts ?? [`127.0.0.1:${port}`, `localhost:${port}`]);
   const origin = req.headers.origin;
   if (!expectedHosts.has(req.headers.host ?? "") ||
-      (origin && ![...expectedHosts].some(host => origin === `http://${host}`))) {
+      (origin && !(cloud ? cloud.origins.includes(origin) : [...expectedHosts].some(host => origin === `http://${host}`)))) {
     res.writeHead(403).end("Local requests only");
     return;
   }
+  if (cloud && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-CopilotKit-Runtime-Client-GQL-Version");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
+  }
   const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+  if (path.startsWith("/api/threads/")) {
+    void threads(req, res).catch(() => { if (!res.headersSent) res.writeHead(503); res.end(); }); return;
+  }
   if (path === "/api/graph" || path.startsWith("/api/graph/")) {
     void graphApi(req, res).catch(() => {
       if (!res.headersSent) res.writeHead(503, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -96,7 +129,7 @@ const server = createServer((req, res) => {
     void staticListener(req, res);
   }
 });
-server.listen(port, "127.0.0.1", () => console.log(`Hermes chat: http://127.0.0.1:${port}`));
+server.listen(port, cloudSettings() ? "0.0.0.0" : "127.0.0.1", () => console.log(`Hermes chat: http://127.0.0.1:${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     clearInterval(metricsTimer);

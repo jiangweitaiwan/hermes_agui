@@ -30,17 +30,39 @@ class DurableHostRuns:
                                         **options)
         if lease is None:
             return {"failed": True}
+        from hermes_agui.storage.run_events import RunEvents
+
+        await asyncio.to_thread(RunEvents(self.runs.pool).input, lease, turn)
+        run.durable_lease = lease
+        run.durable_ready.set()
         lost = asyncio.Event()
         heartbeat = asyncio.create_task(self._heartbeat(lease, run.stop, lost))
+        cancellation = asyncio.create_task(self._cancellation(lease, run.stop))
         try:
             return await self._run(lease, run, execute_native, lost)
         except Exception:  # health: allow BLE001 -- provider and storage exceptions may expose secrets
             await asyncio.to_thread(self.runs.finish, lease, status="failed", reason="profile_or_run_error")
             return {"failed": True}
         finally:
+            cancellation.cancel()
+            with suppress(asyncio.CancelledError):
+                await cancellation
             heartbeat.cancel()
             with suppress(asyncio.CancelledError):
                 await heartbeat
+
+    async def _cancellation(self, lease, stop):
+        from hermes_agui.storage.run_events import RunEvents
+
+        events = RunEvents(self.runs.pool)
+        try:
+            while not stop.is_set():
+                if await asyncio.to_thread(events.cancelled, lease):
+                    stop.set()
+                    return
+                await asyncio.sleep(2)
+        except Exception:  # health: allow BLE001 -- cancellation authority unavailable must fail closed
+            stop.set()
 
     async def _heartbeat(self, lease, stop, lost):
         try:
@@ -99,6 +121,9 @@ class DurableHostRuns:
             )
             if not committed:
                 return {"interrupted": True}
+            saved = await asyncio.to_thread(self.runs.get, self.scope, run.turn.run_id)
+            if saved is not None and saved.status != "completed":
+                return {saved.status: True}
             return result if status == "completed" else {status: True}
 
     def _configure(self, home):

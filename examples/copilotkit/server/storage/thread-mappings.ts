@@ -75,5 +75,11 @@ export class PostgresThreadMappings implements ThreadMappings {
     return matches ? { status: "existing", ids: existingIds } : { status: "conflict" };
   }
 
+  async list(scope: ThreadScope) {
+    const { rows } = await this.pool.query<{ threadId: string }>(`SELECT browser_thread AS "threadId" FROM hermes_agui_runtime.thread_mappings
+      WHERE (project,principal,bot)=($1,$2,$3) ORDER BY created_at DESC LIMIT 100`, [scope.projectId, scope.principal, scope.botId]);
+    return rows;
+  }
+
   close() { return this.pool.end(); }
 }

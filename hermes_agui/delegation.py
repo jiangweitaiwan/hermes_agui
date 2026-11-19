@@ -17,6 +17,7 @@ class DelegationConfig:
     url: str
     token: str = field(repr=False)
     timeout: float = 60
+    audience: str | None = None
 
     def __post_init__(self):
         parsed = urlsplit(self.url)
@@ -24,6 +25,11 @@ class DelegationConfig:
                 or parsed.fragment or not self.token or not math.isfinite(self.timeout)
                 or not 0 < self.timeout <= 300):
             raise ValueError("Invalid delegation configuration")
+        if self.audience is not None:
+            audience = urlsplit(self.audience)
+            if (parsed.scheme != "https" or audience.scheme != "https" or audience.netloc != parsed.netloc
+                    or audience.path not in {"", "/"} or audience.query or audience.fragment):
+                raise ValueError("Delegation service audience must match its HTTPS destination")
 
 
 @dataclass(frozen=True)
@@ -78,9 +84,14 @@ def _message_bot(args, **_kwargs):
 
 
 async def _request(config, source_token, payload, stop):
+    headers = {"Authorization": f"Bearer {source_token}"}
+    if config.audience:
+        from hermes_agui.cloud_identity import identity_headers
+
+        headers.update(await asyncio.to_thread(identity_headers, config.audience))
     async with httpx.AsyncClient(timeout=config.timeout, trust_env=False) as client:
         request = asyncio.create_task(client.post(config.url, json=payload,
-            headers={"Authorization": f"Bearer {source_token}"}))
+            headers=headers))
         cancelled = asyncio.create_task(stop.wait())
         try:
             done, _ = await asyncio.wait({request, cancelled}, timeout=config.timeout,

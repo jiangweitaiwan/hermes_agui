@@ -1,3 +1,4 @@
+import { cloudSettings, allowedOrigin } from "../cloud";
 import type { BotManager } from "./manager";
 import type { BotAuthentication } from "./auth";
 import { BotError, publicBot, type Identity } from "./types";
@@ -5,6 +6,7 @@ import { BotError, publicBot, type Identity } from "./types";
 /** Origin check supplements authentication for cookie-based browser mutations. */
 export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
+  if (cloudSettings()) return allowedOrigin(origin);
   return !origin || origin === new URL(request.url).origin;
 }
 async function body(request: Request) {

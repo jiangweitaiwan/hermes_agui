@@ -6,7 +6,7 @@ Repository: https://github.com/jiangweitaiwan/hermes_agui.git
 
 本計畫取代原 CLOUD_NATIVE_PART_2.md。Codex 僅在 repository 內改造程式碼、封裝、設定樣板、測試與文件；交付可由使用者手動部署的 Cloud Run Ready repository。不得建立 GCP 資源、執行遠端部署、修改 IAM/DNS、要求真實金鑰或產生雲端費用。所有真實 GCP/Vercel 驗收標記 NOT RUN，交由使用者。不得宣稱 production ready。
 
-以 Part 1 最終驗收 commit 238f1ae40f7783e347e2a1543c273dfe9c60c760 為歷史基線；開始時記錄實際 HEAD，閱讀 CLOUD_NATIVE_PART_1、REMAINING、FINAL_ACCEPTANCE 與最新報告、migration、fixture 和正式入口。若 HEAD 不包含驗收成果或基線有回歸，先報告阻塞，不重寫 storage layer。保留 PostgreSQL registry、lease/fencing、outbox、GCS snapshot/manifest、Graph Memory、Bot manager、原生 skill/memory、local mode 與 AG-UI contract。不得把 snapshot 說成已完成 SQL transcript 遷移。
+以 Part 1 最終驗收 commit 0e7eea48af480b73e72090fffd76c2f25553fd11 為歷史基線；開始時記錄實際 HEAD，閱讀 CLOUD_NATIVE_PART_1、REMAINING、FINAL_ACCEPTANCE 與最新報告、migration、fixture 和正式入口。若 HEAD 不包含驗收成果或基線有回歸，先報告阻塞，不重寫 storage layer。保留 PostgreSQL registry、lease/fencing、outbox、GCS snapshot/manifest、Graph Memory、Bot manager、原生 skill/memory、local mode 與 AG-UI contract。不得把 snapshot 說成已完成 SQL transcript 遷移。
 
 ## 2. 目標架構
 

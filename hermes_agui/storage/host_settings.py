@@ -18,6 +18,9 @@ class HostStorage:
 
     def open(self):
         open_host_pool(self.runs.pool)
+        with self.runs.pool.connection() as connection:
+            connection.execute("SELECT cancel_requested,input FROM hermes_agui_host.runs LIMIT 0")
+            connection.execute("SELECT seq FROM hermes_agui_host.run_events LIMIT 0")
 
     def close(self):
         self.runs.pool.close()
@@ -43,7 +46,7 @@ def open_host_pool(pool):
     pool.open(wait=True, timeout=10)
     with pool.connection() as connection:
         row = connection.execute("SELECT max(version) FROM hermes_agui_host.schema_version").fetchone()
-        if row not in {(3,), (4,), (5,)}:
+        if row not in {(3,), (4,), (5,), (6,)}:
             raise RuntimeError("Apply the Host storage migrations before starting")
 
 

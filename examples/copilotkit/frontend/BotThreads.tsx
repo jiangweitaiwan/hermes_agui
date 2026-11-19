@@ -1,5 +1,6 @@
+import { cloudEnabled } from "./cloud-auth";
 import { createPortal } from "react-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core/v2";
 import { ThreadChat } from "./ThreadChat";
 
@@ -9,9 +10,18 @@ interface BotThreadsProps {
 }
 
 export function BotThreads({ botId, visible }: BotThreadsProps) {
-  const [threads, setThreads] = useState(() => [crypto.randomUUID()]);
+  const [threads, setThreads] = useState<string[]>(() => [crypto.randomUUID()]);
   const [selected, setSelected] = useState(0);
   const [connectionError, setConnectionError] = useState(false);
+
+  useEffect(() => {
+    if (!cloudEnabled) return;
+    void fetch(`/api/threads/${botId}`).then(async response => {
+      if (!response.ok) throw new Error("History unavailable");
+      const values = await response.json() as { threadId: string }[];
+      if (values.length) { setThreads(values.map(value => value.threadId)); setSelected(0); }
+    }).catch(() => setConnectionError(true));
+  }, [botId]);
 
   function newThread() {
     setThreads([...threads, crypto.randomUUID()]);
@@ -19,7 +29,7 @@ export function BotThreads({ botId, visible }: BotThreadsProps) {
   }
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" useSingleEndpoint={false}
+    <CopilotKit runtimeUrl={`${import.meta.env.VITE_RUNTIME_URL ?? ""}/api/copilotkit`} useSingleEndpoint={false}
       enableInspector={false} showIntelligenceIndicator={false}
       renderToolCalls={[{
         name: "*",
@@ -49,7 +59,7 @@ export function BotThreads({ botId, visible }: BotThreadsProps) {
             {threads.map((id, index) => <ThreadChat key={id} botId={botId} threadId={id} visible={selected === index} />)}
           </div>
         </div>
-        <footer>工具由 Hermes 執行；內容依後端公開投影顯示。重新整理會開啟新對話。</footer>
+        <footer>工具由 Hermes 執行；內容依後端公開投影顯示。已提交的對話可從伺服器重新載入。</footer>
       </div>
     </CopilotKit>
   );

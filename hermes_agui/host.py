@@ -46,6 +46,8 @@ def load_host(path: Path):
     from hermes_agui.server import create_host
 
     data = load_yaml_file_readonly(path)
+    if os.environ.get("K_SERVICE") and not data.get("cloud"):
+        raise ValueError("Cloud Run requires explicit cloud settings")
     bots = []
     for item in data.get("bots", []):
         agent = dict(item["agent"])
@@ -67,6 +69,8 @@ def load_host(path: Path):
         settings = dict(data["delegation"])
         settings["token"] = os.environ[settings.pop("token_env")]
         delegation = DelegationConfig(**settings)
+        if data.get("cloud") and delegation.audience is None:
+            raise ValueError("Cloud delegation requires a service audience")
     management = None
     if data.get("management"):
         from hermes_agui.management import ManagementConfig
@@ -89,5 +93,9 @@ def load_host(path: Path):
     from hermes_agui.storage.host_settings import load_storage
 
     storage = load_storage(data.get("storage", {}))
-    return create_host(bots, delegation=delegation, management=management, default_bot=data.get("default_bot"),
+    app = create_host(bots, delegation=delegation, management=management, default_bot=data.get("default_bot"),
                        max_active_runs=data.get("max_active_runs", 8), storage=storage)
+
+    from hermes_agui.cloud_host import configure_cloud_host
+
+    return configure_cloud_host(app, data.get("cloud"), storage)

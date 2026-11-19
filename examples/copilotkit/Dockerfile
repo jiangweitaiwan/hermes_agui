@@ -6,7 +6,6 @@ COPY frontend/ frontend/
 COPY vite.config.ts ./
 RUN npx vite build
 COPY server/ server/
-COPY tests/fixtures/cloud-native-runtime.ts tests/fixtures/cloud-native-runtime.ts
 COPY tsconfig.json ./
 RUN npx tsc --noEmit
 ENV HOME=/tmp/node-home

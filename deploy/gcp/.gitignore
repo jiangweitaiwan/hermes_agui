@@ -1,0 +1,7 @@
+/host.yaml
+/runtime.json
+/host.env
+/runtime.env
+/worker.env
+/frontend.env
+/*.secret

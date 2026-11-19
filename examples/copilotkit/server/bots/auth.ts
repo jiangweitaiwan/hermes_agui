@@ -1,3 +1,4 @@
+import { cloudSettings, cloudIdentity } from "../cloud";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import type { Identity } from "./types";
 export interface UserCredential extends Identity { token: string }
@@ -11,10 +12,11 @@ export class BotAuthentication {
     if (users.some(user => users.some(other => user.ownerId === other.ownerId && user.principal !== other.principal))) {
       throw new Error("An owner must map to one authenticated principal");
     }
-    if (!users.length || users.some(u => !u.token || !u.ownerId || !u.principal || !u.projectId) ||
-      new Set(users.map(u => u.token)).size !== users.length) throw new Error("Configure unique Bot user credentials");
+    if (!users.length || users.some(u => (!cloudSettings() && !u.token) || !u.ownerId || !u.principal || !u.projectId) ||
+      (!cloudSettings() && new Set(users.map(u => u.token)).size !== users.length)) throw new Error("Configure unique Bot user credentials");
   }
   authenticate(request: Request): Identity | undefined {
+    if (cloudSettings()) return cloudIdentity(request);
     const authorization = request.headers.get("authorization") ?? "";
     const user = this.users.find(user => equal(authorization, `Bearer ${user.token}`));
     if (user) return { ownerId: user.ownerId, principal: user.principal, projectId: user.projectId };
@@ -23,6 +25,7 @@ export class BotAuthentication {
     return session && session.expires > Date.now() ? session.identity : undefined;
   }
   logout(request: Request): Response {
+    if (cloudSettings()) return new Response(null, { status: 204 });
     const cookie = request.headers.get("cookie")?.split(";").map(v => v.trim())
       .find(v => v.startsWith("hermes_session="))?.slice(15);
     if (cookie) this.sessions.delete(cookie);
@@ -31,6 +34,7 @@ export class BotAuthentication {
     } });
   }
   login(request: Request, token: string): Response {
+    if (cloudSettings()) return new Response(null, { status: 404 });
     const user = this.users.find(user => equal(token, user.token));
     if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
     for (const [id, session] of this.sessions) if (session.expires < Date.now()) this.sessions.delete(id);

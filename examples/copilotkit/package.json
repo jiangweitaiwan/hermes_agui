@@ -19,6 +19,7 @@
     "@copilotkit/react-core": "1.83.0",
     "@copilotkit/runtime": "1.83.0",
     "@hono/node-server": "1.19.9",
+    "firebase-admin": ">=13.10.0 <14",
     "google-auth-library": ">=10.9.1 <11",
     "hono": "4.11.4",
     "pg": "^8.23.1",

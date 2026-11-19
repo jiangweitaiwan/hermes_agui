@@ -1,3 +1,4 @@
+import { hostFetch } from "./cloud";
 import type { IngestStore } from "./graph/ingest-store";
 import { RunCompletionObserver, type SessionIngestor } from "./graph/session-ingestor";
 import { defer, map, switchMap, tap } from "rxjs";
@@ -25,7 +26,7 @@ export interface RuntimeThreads {
 function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?: RuntimeMemoryMiddleware,
   ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
   const { agentUrl, token } = settings;
-  const agent = new HttpAgent({ url: agentUrl, headers: { Authorization: `Bearer ${token}` } });
+  const agent = new HttpAgent({ url: agentUrl, fetch: hostFetch, headers: { Authorization: `Bearer ${token}` } });
   agent.use((input, next) => defer(async () => {
     if (!threads) return input;
     // The SDK passes the browser thread through to the agent. BotRunner only scopes replay.

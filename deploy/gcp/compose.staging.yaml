@@ -1,0 +1,56 @@
+# Manual staging only: PG is local; GCS/ADC still require the operator's real bucket.
+# No cloud resources are created by this file. Copy/edit .env and config templates first.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: hermes
+      POSTGRES_USER: migration_owner
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?set a disposable staging password}
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U migration_owner -d hermes]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  host:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.agui
+    env_file: host.env
+    command: [--bots-config, /etc/hermes/host.yaml, --host, 0.0.0.0]
+    volumes:
+      - ./host.yaml:/etc/hermes/host.yaml:ro
+      - ${ADC_FILE:?set ADC_FILE}:/etc/google/adc.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /etc/google/adc.json
+    ports: ["8081:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+  runtime:
+    build:
+      context: ../../examples/copilotkit
+    env_file: runtime.env
+    volumes:
+      - ./runtime.json:/app/config/runtime.json:ro
+      - ${ADC_FILE:?set ADC_FILE}:/etc/google/adc.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /etc/google/adc.json
+    ports: ["8082:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+  worker:
+    build:
+      context: ../../examples/copilotkit
+    env_file: worker.env
+    command: [node, --import, tsx, server/index.ts, --production, --worker]
+    volumes:
+      - ./runtime.json:/app/config/runtime.json:ro
+      - ${ADC_FILE:?set ADC_FILE}:/etc/google/adc.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /etc/google/adc.json
+    ports: ["8083:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+volumes:
+  postgres: {}

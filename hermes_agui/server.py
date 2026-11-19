@@ -168,6 +168,12 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
         async def events():
             try:
                 async for event in run.bridge.events(run.task):
+                    if adapter.durable_runs is not None:
+                        from hermes_agui.storage.run_events import RunEvents
+
+                        await run.durable_ready.wait()
+                        if run.durable_lease is not None:
+                            await anyio.to_thread.run_sync(RunEvents(storage.runs.pool).append, run.durable_lease, event)
                     yield encoder.encode(event)
             finally:
                 if not run.bridge.paused:
@@ -201,11 +207,49 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
                 authorize(agent_config.principal, thread_id)
             except PermissionError:
                 raise HTTPException(403, "Thread access denied") from None
+        if adapter.durable_runs is not None:
+            from hermes_agui.storage.run_events import RunEvents
+
+            found = await anyio.to_thread.run_sync(RunEvents(storage.runs.pool).cancel, adapter.durable_runs.scope, thread_id)
+            if not found:
+                raise HTTPException(409, "No active run")
+            return {"status": "cancelling"}
         run = adapter.active.get(thread_id)
         if run is None:
             raise HTTPException(409, "No active run")
         run.stop.set()
         return {"status": "cancelling"}
+
+    @app.get("/bots/{bot_id}/threads/{thread_id}/history")
+    async def history(thread_id: str, target=Depends(authenticate)):
+        _bot_id, bot, adapter = target
+        if adapter.durable_runs is None:
+            raise HTTPException(409, "Durable history unavailable")
+        if bot.authorize:
+            try:
+                bot.authorize(bot.agent.principal, thread_id)
+            except PermissionError:
+                raise HTTPException(403, "Thread access denied") from None
+        from hermes_agui.storage.run_events import RunEvents
+
+        return {"runs": await anyio.to_thread.run_sync(RunEvents(storage.runs.pool).history, adapter.durable_runs.scope, thread_id)}
+
+    @app.get("/bots/{bot_id}/threads/{thread_id}/runs/{run_id}/events")
+    async def replay(thread_id: str, run_id: str, after: int = 0, target=Depends(authenticate)):
+        _bot_id, bot, adapter = target
+        if adapter.durable_runs is None:
+            raise HTTPException(409, "Durable replay unavailable")
+        if after < 0:
+            raise HTTPException(422, "Invalid sequence")
+        if bot.authorize:
+            try:
+                bot.authorize(bot.agent.principal, thread_id)
+            except PermissionError:
+                raise HTTPException(403, "Thread access denied") from None
+        from hermes_agui.storage.run_events import RunEvents
+
+        values = await anyio.to_thread.run_sync(RunEvents(storage.runs.pool).replay, adapter.durable_runs.scope, thread_id, run_id, after)
+        return {"events": values}
 
     return app
 
@@ -223,9 +267,11 @@ def main():
     parser.add_argument("--home", type=Path, default=get_hermes_home())
     parser.add_argument("--cwd", type=Path, default=Path.cwd())
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=os.environ.get("PORT", "8000"))
     parser.add_argument("--bots-config", type=Path)
     args = parser.parse_args()
+    if not 1 <= args.port <= 65535:
+        parser.error("Port must be between 1 and 65535")
     if args.bots_config:
         from hermes_agui.host import load_host
 
@@ -234,6 +280,8 @@ def main():
         return
     if os.environ.get("AGUI_STORAGE_BACKEND", "local") != "local":
         parser.error("Durable storage requires --bots-config")
+    if os.environ.get("K_SERVICE"):
+        parser.error("Cloud Run requires --bots-config with cloud settings")
     token = os.environ.get("AGUI_API_KEY", "")
     if not token:
         parser.error("Set the AGUI_API_KEY secret before starting the server")

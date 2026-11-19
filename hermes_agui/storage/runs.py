@@ -100,6 +100,10 @@ class PostgresRunStore:
         with self.pool.connection() as conn, conn.transaction():
             if not self._lock_lease(conn, lease):
                 return False
+            cancelled = conn.execute("""SELECT cancel_requested FROM hermes_agui_host.runs
+                WHERE (project,principal,bot,run_id)=(%s,%s,%s,%s) FOR UPDATE""", (*scope, lease.run_id)).fetchone()[0]
+            if cancelled:
+                status, profile, reason = "interrupted", None, "cancel_requested"
             if profile is not None:
                 saved = conn.execute("""UPDATE hermes_agui_host.bot_state SET profile=%s::jsonb
                     WHERE (project,principal,bot)=(%s,%s,%s)
