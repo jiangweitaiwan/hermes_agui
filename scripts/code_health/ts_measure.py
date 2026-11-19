@@ -13,10 +13,26 @@ from scripts.code_health.gitio import git
 _SCRIPT = Path(__file__).with_name("ts_units.mjs")
 
 
+def _typescript_packages(repo: Path) -> dict[Path, str]:
+    """Use tracked package manifests, including forks with no root Node package."""
+    paths = git(repo, "ls-files", "-z", "--", "package.json", "*/package.json").split("\0")
+    manifests = {repo / path for path in paths if path}
+    if (repo / "package.json").is_file():
+        manifests.add(repo / "package.json")
+    packages = {}
+    for path in sorted(manifests):
+        manifest = json.loads(path.read_text(encoding="utf-8-sig"))
+        pin = manifest.get("devDependencies", {}).get("typescript")
+        if pin:
+            packages[path.parent] = pin
+    return packages
+
+
 def pinned_typescript(repo: Path) -> str:
-    # The root manifest pins typescript exactly; pnpm-lock.yaml records the same version.
-    manifest = json.loads((repo / "package.json").read_text(encoding="utf-8-sig"))
-    return manifest["devDependencies"]["typescript"]
+    pins = set(_typescript_packages(repo).values())
+    if len(pins) != 1:
+        raise RuntimeError(f"code health needs one consistent TypeScript pin across packages: {sorted(pins)}")
+    return pins.pop()
 
 
 def _version_at(pkg_dir: Path) -> str | None:
@@ -63,7 +79,8 @@ def resolve_typescript(repo: Path) -> Path:
     """Directory of the pinned ``typescript`` package, installing it into a cache if absent."""
     pin = pinned_typescript(repo)
     common = Path(git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
-    for root in (repo, common.parent):
+    for root in dict.fromkeys((repo, *_typescript_packages(repo), common.parent,
+                              *_typescript_packages(common.parent))):
         cand = root / "node_modules" / "typescript"
         if _version_at(cand) == pin:
             return cand

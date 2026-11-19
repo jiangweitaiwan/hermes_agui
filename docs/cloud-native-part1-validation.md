@@ -1,6 +1,6 @@
 # Part 1 收尾驗收與交接操作
 
-本文件配合 `CLOUD_NATIVE_PART_1_REMAINING.md`，只涵蓋 Part 1。所有 DB 指令僅對新建、可丟棄的測試庫執行；不清除或覆寫既有使用者資料。歷史遷移 scope 仍須 owner 明確決定。
+本文件配合 `CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md`，只涵蓋 Part 1。所有 DB 指令僅對新建、可丟棄的測試庫執行；不清除或覆寫既有使用者資料。Owner 於 2026-11-19 核准首次部署採用 `fresh_deployment`：保留既有本機資料，歷史全量遷移 N/A；importer 相容性與新資料重建仍是必要 gate，不代表可直接切換既有使用者。
 
 ## 環境與 migration
 
@@ -28,6 +28,31 @@ Migration owner 依序套用 Host `001`–`005`，再套用 Runtime `001`–`007
 獨立服務角色的可執行 grants 範例見 `tests/hermes_agui/cloud_native_grants.sql`。該檔的角色、密碼僅供全新容器 fixture；正式環境以相同表級權限套用至部署角色，密碼由秘密儲存注入。Host 只獲 Host schema 權限；Runtime 只獲 Runtime schema 權限。`graph_namespaces` 的 UPDATE 權限用於 namespace row lock。Migration owner 不作為正式應用身分。
 
 ## 分開的驗收入口
+
+最終驗收先保存起始 HEAD 與失敗紀錄，聚焦修復後凍結候選 commit；以同一
+候選建立 images、fresh test cluster 與全部證據。歷史比較 base 固定為
+`ae7d7ae51eca59c49a79ef47f7d086fb23f0798a`（目前起點的直接父 commit），
+不能拿候選與自己相比。結果、起止時間、exit code 與 checksum 存在
+`artifacts/part1-final-20261119/`；最終判定見 status JSON 與報告末節。
+
+所有重型階段串行。資源較少時使用既有 runner 的 worker 設定：
+
+```bash
+HERMES_TEST_WORKERS=1 scripts/cloud_native_part1_check.sh regression
+```
+
+先對空庫 migrate 一次；如重新建庫，使用新 socket/cluster，禁止對既有使用者
+資料庫重跑 migration。容器 gate 可先執行以提早發現 Restart 缺陷；其後原始碼
+保持凍結，才依序執行 regression、browser、完整 repository check 與 diff check。
+如果產品、fixture、依賴或 runner 改動，重新凍結候選並重驗必要 suites。
+
+2026-11-19 聚焦診斷：sandbox 的 loopback EPERM 須以正常授權重驗，不得改用
+mock HTTP。Graph bounds 與 CLI 測試保留原 30/60 秒期限。PG readiness 使用
+有界 SQL ping 與容器存活檢查；失敗報告最後錯誤、elapsed、State/Mounts，避免
+完整 inspect 的 Env 洩漏秘密。busy-run lease release 使用 `finish` 的 keyword-only
+參數。Repository checker 恢復的 upstream guard 來源見
+`scripts/ci/RESTORED_GUARDS.md`；TS metrics 由 tracked package manifests 解析同一
+engine，所有適用檔案仍由原測量器掃描，不建立空的 root package。
 
 ```bash
 scripts/cloud_native_part1_check.sh regression

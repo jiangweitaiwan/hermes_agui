@@ -260,7 +260,7 @@ def test_postgres_management_operations_fence_delayed_writes_and_scope(tmp_path,
             held = storage.runs.begin(scope, "busy-thread", "busy-run", uuid4(), 90, managed_revision=revision)
             assert held is not None
             assert apply(disabled).status_code == 409
-            assert storage.runs.finish(held, "failed", "fixture release")
+            assert storage.runs.finish(held, status="failed", reason="fixture release")
             assert apply(disabled).status_code == 200
             assert apply(operation(1)).status_code == 409
             assert apply(operation(3, principal="other")).status_code == 409

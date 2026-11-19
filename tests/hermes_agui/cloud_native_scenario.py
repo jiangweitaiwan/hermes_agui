@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 import subprocess
+import time
 from uuid import uuid4
 
 import httpx
@@ -37,6 +38,35 @@ class ContainerScenario:
         self.runtime_config = {"project": self.project, "hostUrl": "http://host:8000", "port": 3000, "objects": "/objects/graph", "tlsKey": "/deployment/runtime.key", "tlsCert": "/deployment/runtime.crt"}
         self.url = self.host_url = self.database_url = None
 
+    def record_container(self, name):
+        """Save only operational fields; Docker's full inspect includes credentials."""
+        fields = '{{json .Id}}|{{json .Image}}|{{json .State}}|{{json .HostConfig.ReadonlyRootfs}}|{{json .HostConfig.Tmpfs}}|{{json .Mounts}}'
+        receipt = docker("inspect", "--format", fields, name)
+        print(f"container evidence {name}: {receipt}", flush=True)
+        (self.directory.parent / (name + ".inspect.txt")).write_text(receipt, encoding="utf-8")
+
+    def wait_for_database(self):
+        name = self.prefix + "-pg"
+        started = time.monotonic()
+        last_error = None
+
+        def ready():
+            nonlocal last_error
+            assert docker("inspect", "--format", "{{.State.Running}}", name) == "true", docker("logs", name)
+            try:
+                with psycopg.connect(self.database_url, connect_timeout=1) as conn:
+                    return conn.execute("SELECT 1").fetchone() == (1,)
+            except psycopg.OperationalError as error:
+                last_error = str(error).replace(self.database_url, "[redacted DSN]").replace("part1-fixture-only", "[redacted]")
+                return False
+
+        try:
+            wait_until(ready, timeout=40, interval=0.1, what="PostgreSQL container SQL ready")
+        except AssertionError as error:
+            self.record_container(name)
+            raise AssertionError(f"PostgreSQL readiness failed after {time.monotonic() - started:.2f}s; last connection error: {last_error}; logs: {docker('logs', name)}") from error
+        print(f"PostgreSQL SQL ready after {time.monotonic() - started:.2f}s", flush=True)
+
     def create_tls(self):
         from cryptography import x509
         from cryptography.hazmat.primitives import hashes, serialization
@@ -65,13 +95,8 @@ class ContainerScenario:
         self.pg_created = True
         port = docker("port", self.prefix + "-pg", "5432").rsplit(":", 1)[1]
         self.database_url = f"postgresql://postgres:part1-fixture-only@127.0.0.1:{port}/postgres"
-        def database_ready():
-            try:
-                with psycopg.connect(self.database_url, connect_timeout=1):
-                    return True
-            except psycopg.OperationalError:
-                return False
-        wait_until(database_ready, timeout=40, what="PostgreSQL container ready")
+        self.wait_for_database()
+        self.record_container(self.prefix + "-pg")
         with psycopg.connect(self.database_url, autocommit=True) as conn:
             for area in ("hermes_agui/storage/migrations", "examples/copilotkit/server/storage/migrations"):
                 for path in sorted((ROOT / area).glob("*.sql")):
@@ -105,6 +130,7 @@ class ContainerScenario:
                     "-e", "HERMES_HOME=/scratch/launch-profile", "-e", "HERMES_RUNTIME_DIR=/opt/hermes/tools"]
             docker(*args, image, *command, "/deployment/" + filename)
             self.apps.append(name)
+            self.record_container(name)
             published = docker("port", name, str(port)).rsplit(":", 1)[1]
             url = f"http://127.0.0.1:{published}"
             if service == "host":
@@ -129,6 +155,7 @@ class ContainerScenario:
     def close(self):
         self.stop_apps()
         if self.pg_created:
+            (self.directory.parent / (self.prefix + "-pg.log")).write_text(docker("logs", self.prefix + "-pg"), encoding="utf-8")
             docker("rm", "-fv", self.prefix + "-pg")
         if self.volume_created:
             docker("volume", "rm", self.prefix)
@@ -172,7 +199,13 @@ def scenario(directory, native_config, model_url):
     try:
         fixture.initialize()
         yield fixture
-    finally:
+    except BaseException as error:
+        try:
+            fixture.close()
+        except (AssertionError, OSError, subprocess.SubprocessError) as cleanup_error:
+            error.add_note(f"Fixture cleanup also failed: {cleanup_error}")
+        raise
+    else:
         fixture.close()
 
 
@@ -217,6 +250,7 @@ def recover(fixture, bots, evidence):
     assert fixture.snapshot(bot) == snapshot
     assert fixture.dispatch()["id"] == lost["id"]
     assert fixture.sql("SELECT count(*) FROM hermes_agui_runtime.graph_jobs")[0][0] == 1
+    assert fixture.sql("SELECT count(*) FROM hermes_agui_runtime.graph_sources")[0][0] == 1
     assert fixture.sql("SELECT browser_thread,host_thread FROM hermes_agui_runtime.thread_mappings WHERE project=%s AND bot=%s",
                        (fixture.project, bot)) == original_mapping
     assert {row["id"] for row in fixture.request("/api/bots").json()} == {bot, private_bot}
@@ -229,7 +263,11 @@ def recover(fixture, bots, evidence):
     assert fixture.request("/__test/tick", method="POST").status_code == 200
     assert fixture.request(f"/api/graph/{private_bot}/search?q=資料庫").json()["pages"]
     fixture.run(private_bot, "retrieve", "new-thread")
+    assert fixture.request(f"/api/graph/{bot}/pages", owner="other").status_code == 404
+    assert fixture.request(f"/api/graph/{private_bot}/search?q=資料庫", owner="other").status_code == 404
     assert fixture.request(f"/api/bots/{bot}/disable", method="POST").status_code == 204
+    assert fixture.sql("SELECT status,applied_revision FROM hermes_agui_host.managed_bots WHERE project=%s AND bot=%s",
+                       (fixture.project, bot))[0][0] == "disabled"
     denied = fixture.request(f"/api/copilotkit/agent/{bot}/run", method="POST", body={})
     assert denied.status_code == 404
     assert fixture.sql("SELECT status FROM hermes_agui_host.runs WHERE project=%s AND bot=%s AND run_id=%s",

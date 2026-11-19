@@ -30,7 +30,7 @@
 | Graph node/edge/source metadata、搜尋索引 | PostgreSQL | Graph layer |
 | Run metadata、lease、job、outbox | PostgreSQL | 各自 owner，透過契約協作 |
 | Secret | 環境注入/secret reference | 各服務；禁止明文寫入 log、物件與一般 registry |
-| 暫存工具檔、agent object/cache | ephemeral local /tmp 或 process | Hermes |
+| 暫存工具檔、agent object/cache | ephemeral scratch directory（由平台解析）或 process | Hermes |
 
 使用同一 PostgreSQL instance 的獨立 schema/role（邏輯 ownership），不用跨服務直接修改對方的資料表。若現有雙 registry 有一致性問題，保留現有 API，以 provisioning operation ID、狀態機與補償/reconcile 修復，不把 GCS/SQL/HTTP 假裝成單一 ACID transaction。Bot ID 必須搭配經驗證的 tenant/owner/project scope；沿用現有 ACL 語意，不信任客戶端 scope。
 

@@ -25,7 +25,7 @@ PY
     : "${HERMES_AGUI_TEST_DB_SOCKET:?Set the disposable local PostgreSQL Unix socket directory}"
     (cd examples/copilotkit && npm test -- --reporter=dot --maxWorkers=1)
     "$HERMES_PYTHON" -m tests.hermes_agui.postgres_storage_probe
-    HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j 2 tests/hermes_agui
+    HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j "${HERMES_TEST_WORKERS:-2}" tests/hermes_agui
     (cd examples/copilotkit && npm run build && node --import tsx tests/fixtures/wiki-evaluate.ts && node --import tsx tests/fixtures/wiki-evaluate.ts --postgres)
     ;;
   browser)

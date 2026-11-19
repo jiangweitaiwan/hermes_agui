@@ -8,6 +8,14 @@ from tests.fakes.fake_llm_provider import FakeLLMServer, Text, ToolCall
 
 @pytest.mark.integration
 @pytest.mark.platforms("posix")
+def test_cloud_native_production_images():
+    from tests.hermes_agui.cloud_native_smoke import production_image_smoke
+
+    production_image_smoke()
+
+
+@pytest.mark.integration
+@pytest.mark.platforms("posix")
 def test_cloud_native_dual_container_restart(tmp_path, native_config):
     from tests.hermes_agui.cloud_native_scenario import KNOWLEDGE, MEMORY, PROCEDURE, SKILL, create_bots, learn_and_lose_ack, recover, scenario
 
