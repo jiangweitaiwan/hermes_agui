@@ -1,0 +1,29 @@
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test tests/browser/memory-explorer.spec.ts
+
+[2m[WebServer] [22m(node:47221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47221) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:47215) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:47224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47224) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  ✓  1 tests/browser/memory-explorer.spec.ts:5:1 › real scoped Wiki API renders safe Markdown, filters, dashboard and isolates Bots (8.2s)
+(node:47281) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47281) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47281) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  ✓  2 tests/browser/memory-explorer.spec.ts:49:1 › native run publishes durable compiled knowledge to the real explorer (18.0s)
+  ✓  3 tests/browser/memory-explorer.spec.ts:82:1 › UI clears delayed private responses, pages live windows and handles unavailable/denied states (3.2s)
+
+  3 passed (54.4s)

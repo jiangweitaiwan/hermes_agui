@@ -68,3 +68,26 @@ test("production cloud mode rejects Firebase emulator bypass", () => {
   expect(() => configureCloud(deployment.cloud)).toThrow("forbids emulator");
   vi.unstubAllEnvs();
 });
+
+test("public Runtime callback requires the verified service audience and allowlisted identity", async () => {
+  const { OAuth2Client } = await import("google-auth-library");
+  configureCloud(deployment.cloud);
+  const now = Math.floor(Date.now() / 1000);
+  const verify = vi.spyOn(OAuth2Client.prototype, "verifyIdToken").mockImplementation(async options => {
+    expect(options.audience).toBe(deployment.cloud.serviceAudience);
+    if (options.idToken === "wrong-audience") throw new Error("audience rejected");
+    return { getPayload: () => ({ exp: options.idToken === "expired" ? now - 1 : now + 600,
+      iss: options.idToken === "wrong-issuer" ? "https://untrusted.example" : "https://accounts.google.com",
+      email_verified: options.idToken !== "unverified", email: options.idToken === "unlisted" ? "other@example.test" : deployment.cloud.serviceAccounts[0],
+    }) } as any;
+  });
+  const request = (token: string, origin = false) => new Request("https://RUNTIME_SERVICE.run.app/internal/graph/completions", {
+    headers: { "X-Hermes-Service-Identity": token, ...(origin ? { Origin: deployment.cloud.origins[0] } : {}) },
+  });
+  expect(await authenticateService(request("valid"))).toBe(true);
+  for (const token of ["wrong-audience", "expired", "wrong-issuer", "unverified", "unlisted"]) {
+    expect(await authenticateService(request(token))).toBe(false);
+  }
+  expect(await authenticateService(request("valid", true))).toBe(false);
+  expect(verify).toHaveBeenCalledTimes(6);
+});

@@ -1,0 +1,4 @@
+Python 3.14.9
+PostgreSQL 180006
+PostgreSQL 170012
+Staging compose with placeholder env/config and absolute local build contexts: PASS

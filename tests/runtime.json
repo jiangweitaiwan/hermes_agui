@@ -1,0 +1,82 @@
+{
+  "cloud": {
+    "hosts": [
+      "hermes-runtime-746997613973.asia-east1.run.app"
+    ],
+    "origins": [
+      "https://YOUR_APP.vercel.app"
+    ],
+    "firebaseProject": "copilotkit-agui",
+    "members": [
+      {
+        "uid": "APn2KJm9A4hu8XtPVKU2fxsc9cj2",
+        "ownerId": "owner",
+        "principal": "owner",
+        "projectId": "workspace"
+      }
+    ],
+    "serviceAudience": "https://hermes-runtime-746997613973.asia-east1.run.app",
+    "serviceAccounts": [
+      "hermes-host@copilotkit-agui.iam.gserviceaccount.com"
+    ],
+    "hostAudience": "https://hermes-host-746997613973.asia-east1.run.app"
+  },
+  "bots": [],
+  "storage": {
+    "botRegistry": "postgres",
+    "threadMappings": "postgres",
+    "graphCompletions": true
+  },
+  "management": {
+    "hostUrl": "https://hermes-host-746997613973.asia-east1.run.app",
+    "hostTokenEnv": "AGUI_HOST_MANAGEMENT_TOKEN",
+    "users": [
+      {
+        "ownerId": "owner",
+        "principal": "owner",
+        "projectId": "workspace",
+        "tokenEnv": "UNUSED_CLOUD_LOGIN"
+      }
+    ],
+    "templates": [
+      {
+        "id": "assistant",
+        "name": "Assistant",
+        "harness": "hermes",
+        "model": "openai/gpt-4.1-mini",
+        "provider": "openrouter",
+        "toolsets": [
+          "memory",
+          "skills"
+        ],
+        "skills": []
+      }
+    ]
+  },
+  "graph": {
+    "enabled": true,
+    "evolution": {
+      "enabled": true,
+      "compiler": {
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "model": "openai/gpt-4.1-mini",
+        "keyEnv": "OPENROUTER_API_KEY",
+        "timeoutMs": 120000
+      }
+    }
+  },
+  "tasks": {
+    "project": "copilotkit-agui",
+    "location": "asia-east1",
+    "queue": "hermes-memory",
+    "workerUrl": "https://hermes-worker-746997613973.asia-east1.run.app",
+    "serviceAccount": "hermes-tasks@copilotkit-agui.iam.gserviceaccount.com",
+    "tokenEnv": "AGUI_WORKER_TOKEN",
+    "deadlineSeconds": 600
+  },
+  "delegation": {
+    "tokenEnv": "AGUI_DELEGATION_TOKEN",
+    "allow": {},
+    "timeoutMs": 55000
+  }
+}

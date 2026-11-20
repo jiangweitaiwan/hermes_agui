@@ -17,3 +17,5 @@ GRANT SELECT,INSERT,UPDATE ON hermes_agui_runtime.bot_registry,hermes_agui_runti
 GRANT SELECT,INSERT,UPDATE,DELETE ON hermes_agui_runtime.graph_pages,hermes_agui_runtime.graph_embeddings TO fixture_runtime;
 GRANT SELECT,INSERT,DELETE ON hermes_agui_runtime.graph_page_owners,hermes_agui_runtime.graph_edges,
   hermes_agui_runtime.graph_sections TO fixture_runtime;
+GRANT SELECT,INSERT,DELETE ON hermes_agui_host.run_events TO fixture_host;
+GRANT SELECT,INSERT,UPDATE ON hermes_agui_runtime.task_deliveries TO fixture_runtime;

@@ -1,0 +1,20 @@
+
+=== health (failed) ===
+artifacts/part2-final-local-20261120/finish-local.py:46  HX006  <module>
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+
+Allowed by comment (reviewers: check the reasons):
+  artifacts/part2-final-local-20261120/restore-probe.py:23  HX015  <module>  -- disposable offline SQLite fixture; no Hermes session owns this scratch database
+  artifacts/part2-final-local-20261120/restore-probe.py:51  HX015  <module>  -- offline restored snapshot; no active Hermes writer or production profile
+
+code health: 10 files vs 73c86e08be80: 1 blocking, 0 advisory (5.1s)
+
+Each function and file has its own cap: its value on main if it is already over target,
+otherwise the target. New code meets the target; existing code may only go down. Fix the code
+(the `fix:` line is the repo's remedy); a genuine exception takes a reviewed comment on the line,
+`# health: allow <RULE> -- <why>`. Rules and targets: scripts/code_health/config.py.
+Reproduce locally: python scripts/check --only health (every lint check: python scripts/check;
+on every push: python scripts/check --install-hook pre-push).
+
+scripts/check: 2 checks, FAILED: health

@@ -5,10 +5,10 @@ max_active_runs: 4
 storage:
   project: workspace
   prefix: profiles
-  scratch: /tmp
+  scratch: /tmp # no-tmp: ok — fixed Cloud Run container scratch path, never durable storage
   graph_completions: true
 management:
-  root: /tmp/managed
+  root: /tmp/managed # no-tmp: ok — container-local materialization, reconstructed from durable registry and profiles
   token_env: AGUI_HOST_MANAGEMENT_TOKEN
   max_bots: 128
   templates:

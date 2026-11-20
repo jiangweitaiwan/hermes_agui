@@ -1,0 +1,25 @@
+cloud:
+  hosts: [hermes-host-746997613973.asia-east1.run.app, localhost, 0.0.0.0]
+bots: []
+max_active_runs: 4
+storage:
+  project: workspace
+  prefix: profiles
+  scratch: /tmp
+  graph_completions: true
+management:
+  root: /tmp/managed
+  token_env: AGUI_HOST_MANAGEMENT_TOKEN
+  max_bots: 128
+  templates:
+    assistant:
+      model: "openai/gpt-4.1-mini"
+      provider: openrouter
+      api_key_env: OPENROUTER_API_KEY
+      toolsets: [memory, skills]
+      skills: {}
+delegation:
+  url: https://hermes-runtime-746997613973.asia-east1.run.app/internal/delegations
+  audience: https://hermes-runtime-746997613973.asia-east1.run.app
+  token_env: AGUI_DELEGATION_TOKEN
+  timeout: 60

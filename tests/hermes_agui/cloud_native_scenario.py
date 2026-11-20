@@ -128,6 +128,8 @@ class ContainerScenario:
                     "-p", f"127.0.0.1::{port}", "-e", f"AGUI_HOST_DATABASE_URL={internal_db.format(role='host')}",
                     "-e", f"AGUI_RUNTIME_DATABASE_URL={internal_db.format(role='runtime')}", "-e", "AGUI_BOT_CREDENTIAL_SEED=" + "93" * 32,
                     "-e", "HERMES_HOME=/scratch/launch-profile", "-e", "HERMES_RUNTIME_DIR=/opt/hermes/tools"]
+            if service == "runtime":
+                args.extend(["--mount", f"type=bind,src={ROOT / 'examples/copilotkit/tests/fixtures/cloud-native-runtime.ts'},dst=/app/tests/fixtures/cloud-native-runtime.ts,readonly"])
             docker(*args, image, *command, "/deployment/" + filename)
             self.apps.append(name)
             self.record_container(name)

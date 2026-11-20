@@ -1,0 +1,17 @@
+
+> hermes-copilotkit-example@0.1.0 start
+> tsx server/index.ts --production
+
+Hermes chat: http://127.0.0.1:3137
+(node:31) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+npm error path /app
+npm error command failed
+npm error signal SIGTERM
+npm error command sh -c tsx server/index.ts --production
+npm notice
+npm notice New major version of npm available! 10.9.3 -> 12.2.3
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3
+npm notice To update run: npm install -g npm@12.2.3
+npm notice
+npm error A complete log of this run can be found in: /tmp/node-home/.npm/_logs/2026-11-20T15_57_53_803Z-debug-0.log

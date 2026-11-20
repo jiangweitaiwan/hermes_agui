@@ -1,0 +1,28 @@
+
+=== no-tmp (failed) ===
+advisory — _BASELINE in scripts/check_no_tmp_literals.py is stale; regenerate it with --print-baseline (fewer hits than listed is progress, not a failure):
+  website/docs/getting-started/nix-setup.md: listed in _BASELINE but clean (or gone)
+artifacts/part2-final-local-20261120/startup-probe.py:78: args = ["run", "-d", "--name", name, "--network", prefix, "--read-only", "--tmpfs", "/tmp:mode=1777",
+artifacts/part2-final-local-20261120/startup-probe.py:106: result = docker("run", "--rm", "--read-only", "--tmpfs", "/tmp", "-e", "K_SERVICE=local-startup-probe", image, check=False)
+
+2 literal /tmp path(s) flagged. Resolve scratch space through hermes_constants.get_scratch_dir() (or $TMPDIR / tempfile, which Hermes points there), tell the model to do the same in skills and prompts, or mark a deliberate line with `no-tmp: ok — <why>` (same line or the line above). See scripts/check_no_tmp_literals.py.
+
+=== health (failed) ===
+artifacts/part2-final-local-20261120/sdk-double/sitecustomize.py:7  HX005  <module>
+    home/config/env captured at import time
+    fix: resolve it at call time (`get_hermes_home()`, `load_config()`) or key the slot by `hermes_home_key()`; module constants hold the launch profile's value
+
+Allowed by comment (reviewers: check the reasons):
+  artifacts/part2-final-local-20261120/restore-probe.py:23  HX015  <module>  -- disposable offline SQLite fixture; no Hermes session owns this scratch database
+  artifacts/part2-final-local-20261120/restore-probe.py:51  HX015  <module>  -- offline restored snapshot; no active Hermes writer or production profile
+
+code health: 14 files vs 73c86e08be80: 1 blocking, 0 advisory (9.7s)
+
+Each function and file has its own cap: its value on main if it is already over target,
+otherwise the target. New code meets the target; existing code may only go down. Fix the code
+(the `fix:` line is the repo's remedy); a genuine exception takes a reviewed comment on the line,
+`# health: allow <RULE> -- <why>`. Rules and targets: scripts/code_health/config.py.
+Reproduce locally: python scripts/check --only health (every lint check: python scripts/check;
+on every push: python scripts/check --install-hook pre-push).
+
+scripts/check: 17 checks, FAILED: no-tmp, health

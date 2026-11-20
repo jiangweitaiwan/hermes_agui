@@ -1,0 +1,9 @@
+
+=== health (ok) ===
+Allowed by comment (reviewers: check the reasons):
+  artifacts/part2-final-local-20261120/restore-probe.py:23  HX015  <module>  -- disposable offline SQLite fixture; no Hermes session owns this scratch database
+  artifacts/part2-final-local-20261120/restore-probe.py:51  HX015  <module>  -- offline restored snapshot; no active Hermes writer or production profile
+
+code health: 14 files vs 73c86e08be80: 0 blocking, 0 advisory (12.8s)
+
+scripts/check: 17 checks, ok

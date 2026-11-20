@@ -1,0 +1,20 @@
+[
+  {
+    "service": "host",
+    "port": 8137,
+    "readOnlyRoot": true,
+    "image": "sha256:8c41693c62088ad7111bedbf9614042547920295f81ca330fe4440fbe3274519"
+  },
+  {
+    "service": "runtime",
+    "port": 3137,
+    "readOnlyRoot": true,
+    "image": "sha256:71f96d13c5fbfc5fc79c4be0add3b1e6fda5991fc6bb5cdd8d7caedf8019bb0b"
+  },
+  {
+    "service": "worker",
+    "port": 3138,
+    "readOnlyRoot": true,
+    "image": "sha256:71f96d13c5fbfc5fc79c4be0add3b1e6fda5991fc6bb5cdd8d7caedf8019bb0b"
+  }
+]

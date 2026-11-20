@@ -15,15 +15,19 @@ from tests.fakes.fake_llm_provider import FakeLLMServer, Text, ToolCall
 
 
 @pytest.mark.asyncio
-async def test_durable_host_run_rehydrates_native_history(tmp_path, native_config):
+async def test_durable_host_run_rehydrates_native_history(tmp_path, native_config, monkeypatch):
     class RunStore:
         manifest = None
+        pool = object()
 
         def begin(self, scope, thread_id, run_id, attempt, seconds):
             return run_id
 
         def profile(self, scope):
             return self.manifest
+
+        def get(self, scope, run_id):
+            return SimpleNamespace(status="completed")
 
         def renew(self, lease, seconds):
             return True
@@ -44,6 +48,10 @@ async def test_durable_host_run_rehydrates_native_history(tmp_path, native_confi
         ))
 
     store = RunStore()
+    recorded_inputs = []
+    events = SimpleNamespace(input=lambda lease, turn: recorded_inputs.append(turn.text),
+                             cancelled=lambda lease: False)
+    monkeypatch.setattr("hermes_agui.storage.run_events.RunEvents", lambda pool: events)
     scope = BotScope("project", "local-owner", "analyst")
     objects = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
     scratch = tmp_path / "scratch"
@@ -66,7 +74,7 @@ async def test_durable_host_run_rehydrates_native_history(tmp_path, native_confi
                                         scratch=scratch, approved=frozenset({skill_path}))
             run = SimpleNamespace(
                 turn=SimpleNamespace(thread_id="thread", run_id=str(index), text=prompt),
-                stop=asyncio.Event(), bridge=SimpleNamespace(failed=False),
+                stop=asyncio.Event(), bridge=SimpleNamespace(failed=False), durable_ready=asyncio.Event(),
             )
             result = await lifecycle.execute(run, execute_native)
             assert result.get("completed")
@@ -76,6 +84,7 @@ async def test_durable_host_run_rehydrates_native_history(tmp_path, native_confi
             rmtree(config.home)
 
         assert homes[0] != homes[1]
+        assert recorded_inputs == ["keep this history", "continue the thread"]
         contents = [message.get("content") for message in model.main_requests()[-1]["messages"]]
         assert "keep this history" in contents
         assert "before restart" in contents

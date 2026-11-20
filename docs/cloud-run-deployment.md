@@ -1,6 +1,6 @@
 # Cloud Run 手動部署操作
 
-本交付僅修改 repository。依使用者最新指示，L01–L10 與 C01–C07 均 **NOT RUN**；沒有建立 GCP 資源或部署 Vercel，不代表 production ready。下列遠端命令是供操作者閱讀與手動執行的參考，Codex 未執行。
+最新本地結果見 [Part 2 最終驗收](cloud-native-part-2-final-acceptance.md)：images、三正式入口啟動（SDK doubles）、主要回歸與本地 PG17 備份還原通過，完整 L01–L10 閘門尚未通過，結論為 **SOURCE NOT READY / CLOUD NOT VALIDATED**。C01–C07 均 NOT RUN；沒有建立 GCP 資源或部署 Vercel。下列遠端命令供操作者閱讀與手動執行，Codex 未執行。
 
 ## 必填參數
 
@@ -41,7 +41,7 @@ Runtime 呼叫 Host 的 run／管理／delegation parent／cancel／history 都�
 
 Tasks 使用其 `oidcToken` 呼叫 private Worker；`X-Worker-Token` 是額外業務 credential。Scheduler reconcile 也要帶該 header。Worker IAM 只授權 Tasks/Scheduler SA；Host invoker 授予 Runtime SA（Worker 對帳亦需 Host invoker）。Runtime 的公開存取不免除 Firebase／callback 應用驗證。
 
-## Images 與 migration（本地命令，未執行 build）
+## Images 與 migration（本地命令）
 
 ```bash
 # repository root；tag 由操作者指定，不含秘密。
@@ -106,13 +106,13 @@ Tasks adapter POST v2 CreateTask，payload 僅 `{schema:1,jobId}`，OIDC audienc
 
 在 Vercel 對 `examples/copilotkit` 執行 `npm ci`、`npm run build`，output `dist`；只公開 `VITE_RUNTIME_URL` 與 `VITE_FIREBASE_API_KEY`。Firebase 開啟 email/password，使用者帳號由管理員建立；沒有公開註冊路由。JWT 存在記憶體，refresh token 自動更新 ID token，登出清除；刷新頁面需重新登入。Firebase UID 必須由 server config 映射，不能由 client 自報 principal。
 
-瀏覽器直接 HTTPS fetch Runtime；CopilotKit HttpAgent 的 fetch transport 帶 bearer，保留串流 body；沒有 Vercel proxy，因而不依賴 Vercel function timeout。設定 Runtime 精確 CORS allowlist。所有真實 browser／Vercel streaming 測試 **NOT RUN**。
+瀏覽器直接 HTTPS fetch Runtime；CopilotKit HttpAgent 的 fetch transport 帶 bearer，保留串流 body；沒有 Vercel proxy，因而不依賴 Vercel function timeout。設定 Runtime 精確 CORS allowlist。本地 browser／mock auth 結果見驗收報告；連接真 Firebase／Cloud Run／Vercel 的完整 streaming 驗收 **NOT RUN**。
 
 歷史 API 是成功／中斷回合的投影事件與 user input，**不是 SQL transcript 遷移**；原生完整 transcript 仍在 Part 1 snapshot。UI 載入最近 20 回合、最多 2 MiB 的文字投影，工具／HITL 完整畫面不從該投影重建；超量需使用 paged replay API。單 run 最多 8 MiB／10000 事件，事件保留 30 天，原生 snapshot retention 不由此修改。replay 回傳 monotonic `seq`，每頁最多 1000；以 `after` 翻頁及 seq 去重，不假設 AG-UI SDK 支援 Last-Event-ID。重連只讀事件，不重跑外部工具。
 
 run 仍由 HTTP request 持有。斷線 grace 為 0：安全停止並標 interrupted，不保存可續跑 Python stack；不等同持久化 cancelRequested 操作，取消亦不能撤銷既有副作用。owner 崩潰由 Host reconcile 收回過期 lease。Durable HITL 沒有 checkpoint 原語，resume 安全回 409 unsupported。預設只開 memory/skills；多 Bot 並不是 OS sandbox，不支援不可信 arbitrary code 多租戶。
 
-真 IAM/Firebase、SQL/GCS generation、Tasks/Scheduler、OpenRouter、Vercel streaming、scale/recovery、成本與備份還原演練全部 **NOT RUN**。先由操作者驗證合法／錯 audience 身分、跨 owner ACL、重複 task、lease takeover、stream timeout、restore manifest 對帳與 rollback，再考慮導入實際使用者。
+真 IAM/Firebase、Cloud SQL/GCS generation、Tasks/Scheduler、OpenRouter、Vercel streaming、scale/recovery、成本及雲端備份／PITR 還原全部 **NOT RUN**。本地 PG17 dump/restore 不等於真雲驗收。先由操作者驗證合法／錯 audience 身分、跨 owner ACL、重複 task、lease takeover、stream timeout、restore manifest 對帳與 rollback，再考慮導入實際使用者。
 
 ## 操作者 smoke 與雲端待驗項（NOT RUN）
 

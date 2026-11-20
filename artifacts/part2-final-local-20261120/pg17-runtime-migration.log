@@ -1,0 +1,8 @@
+001_threads.sql
+002_delegations.sql
+003_bot_registry.sql
+004_graph_wiki.sql
+005_graph_sources.sql
+006_graph_jobs.sql
+007_bot_operations.sql
+008_task_deliveries.sql

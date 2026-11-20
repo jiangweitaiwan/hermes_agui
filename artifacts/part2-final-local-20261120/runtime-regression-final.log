@@ -1,0 +1,102 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:45243) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+······x····(node:45353) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·······(node:45363) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+····················(node:45369) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:45384) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+x(node:45437) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:45454) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·········(node:45492) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+····················(node:45499) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+········(node:45505) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·········(node:45514) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+········(node:45523) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:45526) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:45532) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·····x(node:45553) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:45571) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:45577) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/postgres-thread-mappings.test.ts > PostgreSQL thread mappings survive Runtime replacement and preserve scope under contention
+Agent execution failed: Error: Runtime thread mapping unavailable
+    at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/server/runtime.ts:37:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+·········(node:45585) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+···········(node:45595) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·····
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/bot-manager.test.ts > a live Runtime reads Bot lifecycle changes committed by another Runtime
+AssertionError: expected '{"version":"1.83.0","agents":{},"audi…' to contain 'registry-runtime-test'
+
+Expected: "registry-runtime-test"
+Received: "{"version":"1.83.0","agents":{},"audioFileTranscriptionEnabled":false,"mode":"sse","threadEndpoints":{"list":false,"inspect":false,"mutations":false,"realtimeMetadata":false},"suggestions":true,"a2uiEnabled":false,"openGenerativeUIEnabled":false,"telemetryDisabled":true}"
+
+ ❯ tests/bot-manager.test.ts:194:41
+    192|   try {
+    193|     await Promise.all([a.ready, b.ready]);
+    194|     expect(await (await info()).text()).toContain(deployedId);
+       |                                         ^
+    195|     const disabled = await a.management!.api(new Request(`http://local…
+    196|       method: "POST", headers,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/graph-browser.test.ts > work bounds, complete keyset traversal and bounded edges
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/graph-browser.test.ts:150:1
+    148|   expect(Object.keys(jobs.jobs[0]).sort()).toEqual(["createdAt", "id",…
+    149| });
+    150| test("work bounds, complete keyset traversal and bounded edges", async…
+       | ^
+    151|   const f = await fixture(false);
+    152|   const inputs = Array.from({ length: 305 }, (_, i) => ({ markdown: md…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/wiki-ingest-cli.test.ts > trusted CLI ingests, compiles, reports, revokes and rebuilds with mock HTTP LLM
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/wiki-ingest-cli.test.ts:13:1
+     11| import { promisify } from "node:util";
+     12| 
+     13| test("trusted CLI ingests, compiles, reports, revokes and rebuilds wit…
+       | ^
+     14|   const root = mkdtempSync(join(realpathSync(tmpdir()), "wiki-cli-"));
+     15|   const seen: any[] = [];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed | 20 passed (23)
+      Tests  3 failed | 130 passed (133)
+   Start at  22:56:56
+   Duration  327.19s (transform 3.05s, setup 0ms, collect 108.93s, tests 185.78s, environment 18ms, prepare 9.66s)
+

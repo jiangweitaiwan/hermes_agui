@@ -1,0 +1,2 @@
+PG17 dump/restore, migration ledgers, profile manifest/generation/checksum and native SQLite recovery: PASS
+External filesystem objects are a contract double; GCS/PITR/image rollback are NOT RUN

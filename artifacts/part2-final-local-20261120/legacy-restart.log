@@ -1,0 +1,18 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/hermes-part1-final-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 1 test files (~2 tests) under ['tests/hermes_agui/test_cloud_native_restart.py']; running with -j 1
+[100.0% |     2/~2 | ✓1 | ✗0] ✓ tests/hermes_agui/test_cloud_native_restart.py (1✓, 391.1s)
+
+=== Summary: 1 files, 1 tests passed, 0 failed (100% complete) in 391.2s (1 workers) ===
+  Durations cached to test_durations.json (1 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   1
+  Total subprocess CPU-wall: 391.1s  (runner wall: 391.2s, parallelism: 1x)
+  P50: 391.07s  P90: 391.07s  P95: 391.07s  P99: 391.07s  Max: 391.07s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+    391.07s  tests/hermes_agui/test_cloud_native_restart.py

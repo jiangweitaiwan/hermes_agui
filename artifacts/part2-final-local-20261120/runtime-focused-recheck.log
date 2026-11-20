@@ -1,0 +1,36 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/bot-manager.test.ts tests/graph-browser.test.ts tests/wiki-ingest-cli.test.ts tests/cloud.test.ts --maxWorkers=1 --no-file-parallelism
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:45643) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-browser.test.ts (11 tests) 26872ms
+   ✓ every endpoint enforces identity, ownership, namespaces and no-store  784ms
+   ✓ bound keyset pagination, Chinese FTS, filters and closed network  505ms
+   ✓ strict input, methods, origin, disabled/unavailable/static and evolution off  677ms
+   ✓ disabled owner reads; deleted sources, mixed pages and policy changes revoke  393ms
+   ✓ without evolution revoked documents cannot reappear; no retrieval or writes  558ms
+   ✓ actual HTTP returns active revision and safe job summaries  409ms
+   ✓ work bounds, complete keyset traversal and bounded edges  19682ms
+   ✓ Browser rejects a revision changed during immutable object reading  493ms
+   ✓ Unicode cursors match SQLite byte ordering and tracked sessions stay revoked with evolution off  448ms
+   ✓ network caps dense edges and rechecks every source owner before returning  2079ms
+   ✓ jobs cap at 50 and health marks full candidate windows partial  835ms
+(node:45681) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-ingest-cli.test.ts (1 test) 37840ms
+   ✓ trusted CLI ingests, compiles, reports, revokes and rebuilds with mock HTTP LLM  37837ms
+(node:45710) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-manager.test.ts (6 tests) 706ms
+   ✓ PostgreSQL registry persists Bot metadata, serializes quota, and restores credentials  361ms
+ ✓ tests/cloud.test.ts (6 tests) 45ms
+
+ Test Files  4 passed (4)
+      Tests  24 passed (24)
+   Start at  23:02:42
+   Duration  81.22s (transform 903ms, setup 0ms, collect 12.16s, tests 65.46s, environment 1ms, prepare 1.38s)
+

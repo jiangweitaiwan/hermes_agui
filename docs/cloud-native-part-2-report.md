@@ -1,6 +1,6 @@
 # Cloud Native Part 2 — Source 改造報告
 
-> 最新狀態（2026-11-19）：已交付 Cloud Run source 改造、部署設定與手動操作文件。依使用者更新範圍，L01–L10、C01–C07 均 NOT RUN；沒有 production ready 宣告。詳細變更與局部檢查見本文末「Part 2 Source 交付」。
+> 最新狀態（2026-11-21）：依使用者要求進行最終本地驗收。完整 Python 95、Runtime 133、前端 build、各 browser 模式、正式 images、三正式入口 cloud-mode 啟動（SDK doubles）、PG17 備份還原及 Part 1 雙容器重建回歸通過。完整 L02–L10 尚缺 Part 2 正式 cloud-mode 整合證據，結論 **SOURCE NOT READY / CLOUD NOT VALIDATED**。詳細範圍、失敗重驗與 log 索引見 [最終本地驗收](cloud-native-part-2-final-acceptance.md)。C01–C07 均 NOT RUN，未部署 GCP／Vercel。
 
 ## 歷史前置驗收紀錄
 

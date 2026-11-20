@@ -1,0 +1,21 @@
+Image migration: hermes-agui:part2 001_host.sql
+002_run_outbox.sql
+003_completion_evidence.sql
+004_managed_bots.sql
+005_management_operations.sql
+006_run_events.sql
+
+Image migration: hermes-runtime:part2 001_threads.sql
+002_delegations.sql
+003_bot_registry.sql
+004_graph_wiki.sql
+005_graph_sources.sql
+006_graph_jobs.sql
+007_bot_operations.sql
+008_task_deliveries.sql
+
+host production command/cloud config/PORT/health/read-only root: PASS
+runtime production command/cloud config/PORT/health/read-only root: PASS
+worker production command/cloud config/PORT/health/read-only root: PASS
+hermes-agui:part2 production without cloud config fails closed: PASS
+hermes-runtime:part2 production without cloud config fails closed: PASS

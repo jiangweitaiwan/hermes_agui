@@ -1,0 +1,36 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/cloud-worker.test.ts tests/cloud-tasks.test.ts --maxWorkers=1 --no-file-parallelism --testTimeout=60000
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:45094) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/cloud-tasks.test.ts (1 test | 1 failed) 54ms
+   × committed jobs survive task enqueue failure and duplicate delivery with minimal payload 51ms
+     → connect ENOENT /private/tmp/part1-c9e7a56-pg/.s.PGSQL.5432
+ ✓ tests/cloud-worker.test.ts (8 tests) 84ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/cloud-tasks.test.ts > committed jobs survive task enqueue failure and duplicate delivery with minimal payload
+Error: connect ENOENT /private/tmp/part1-c9e7a56-pg/.s.PGSQL.5432
+ ❯ node_modules/pg-pool/index.js:45:11
+ ❯ PostgresWikiStore.ready server/graph/postgres-wiki-store.ts:34:5
+     32| 
+     33|   async ready() {
+     34|     await this.pool.query(`SELECT r.generation FROM ${schema}.graph_re…
+       |     ^
+     35|       JOIN ${schema}.graph_pages p USING (ns,page,revision)
+     36|       JOIN ${schema}.graph_namespaces n ON n.id=p.ns
+ ❯ tests/cloud-tasks.test.ts:23:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 8 passed (9)
+   Start at  22:55:18
+   Duration  3.12s (transform 483ms, setup 0ms, collect 1.22s, tests 138ms, environment 7ms, prepare 580ms)
+

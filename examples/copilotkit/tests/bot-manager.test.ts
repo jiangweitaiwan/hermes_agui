@@ -178,7 +178,7 @@ test.skipIf(!databaseUrl)("PostgreSQL registry persists Bot metadata, serializes
 });
 
 test.skipIf(!databaseUrl)("a live Runtime reads Bot lifecycle changes committed by another Runtime", async () => {
-  const deployedId = "registry-runtime-test";
+  const deployedId = `registry-runtime-${randomUUID()}`;
   const open = () => createApplication({
     [deployedId]: { agentUrl: "http://127.0.0.1:1/agent", token: "deployment-token" },
   }, { management: {

@@ -1,0 +1,135 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/hermes-part1-final-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 26 test files (~71 tests) under ['tests/hermes_agui']; running with -j 2
+[  2.8% |     2/~71 | ✓0 | ✗2] ✗ tests/hermes_agui/test_delegation.py (2✗, 153.9s)
+
+  ╔╍ Failed: tests/hermes_agui/test_delegation.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║         self._check_open_getconn()
+  ║     
+  ║         try:
+  ║             return self._getconn_with_check_loop(deadline)
+  ║         # Re-raise the timeout exception presenting the user the global
+  ║         # timeout, not the per-attempt one.
+  ║         except PoolTimeout:
+  ║ >           raise PoolTimeout(
+  ║                 f"couldn't get a connection after {timeout:.2f} sec"
+  ║             ) from None
+  ║ E           psycopg_pool.PoolTimeout: couldn't get a connection after 30.00 sec
+  ║ 
+  ║ /private/tmp/hermes-part1-final-test-env/lib/python3.14/site-packages/psycopg_pool/pool.py:218: PoolTimeout
+  ║ ------------------------------ Captured log call -------------------------------
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ WARNING  psycopg.pool:pool.py:680 error connecting in 'pool-2': connection is bad: connection to server on socket "/private/tmp/hermes-part2-20261120/.s.PGSQL.5432" failed: No such file or directory
+  ║ 	Is the server running locally and accepting connections on that socket?
+  ║ =========================== short test summary info ============================
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_delegation.py::test_bidirectional_native_delegation_and_capacity
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_delegation.py::test_durable_host_delegates_and_redelivers_graph_completion
+  ║ ======================== 2 failed in 135.49s (0:02:15) =========================
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_delegation.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+[  8.5% |     6/~71 | ✓0 | ✗2] ✗ tests/hermes_agui/test_runtime_memory.py (4 tests, 300.8s)
+
+  ╔╍ Failed: tests/hermes_agui/test_runtime_memory.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║ (300s exceeded; process tree SIGKILL'd)
+  ║ ============================= test session starts ==============================
+  ║ platform darwin -- Python 3.14.9, pytest-9.1.1, pluggy-1.7.0
+  ║ rootdir: /Users/jiangwei/desktop/hermes/hermes-agent
+  ║ configfile: pyproject.toml
+  ║ plugins: asyncio-1.4.0, anyio-4.15.1
+  ║ asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+  ║ collected 6 items
+  ║ 
+  ║ ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py . [ 16%]
+  ║ ...F.                                                                    [100%]
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_runtime_memory.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+[  9.9% |     7/~71 | ✓0 | ✗4] ✗ tests/hermes_agui/test_dynamic_runtime.py (2✗, 254.9s)
+
+  ╔╍ Failed: tests/hermes_agui/test_dynamic_runtime.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║                         capture_output=True, text=True, timeout=150, check=False,
+  ║                         env={**os.environ, "COPILOTKIT_TELEMETRY_DISABLED": "true", "DO_NOT_TRACK": "1",
+  ║                              "TEST_BOT_REGISTRY_DATABASE_URL": database_url})
+  ║ >                   assert completed.returncode == 0, completed.stderr
+  ║ E                   AssertionError: (node:44846) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  ║ E                     (Use `node --trace-warnings ...` to show where the warning was created)
+  ║ E                     /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/pg-pool/index.js:45
+  ║ E                         Error.captureStackTrace(err)
+  ║ E                               ^
+  ║ E                     
+  ║ E                     Error: connect ENOENT /private/tmp/hermes-part2-20261120/.s.PGSQL.5432
+  ║ E                         at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/pg-pool/index.js:45:11
+  ║ E                         at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+  ║ E                         at async PostgresBotRegistry.write (/Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/server/storage/bot-registry.ts:135:20) {
+  ║ E                       errno: -2,
+  ║ E                       code: 'ENOENT',
+  ║ E                       syscall: 'connect',
+  ║ E                       address: '/private/tmp/hermes-part2-20261120/.s.PGSQL.5432'
+  ║ E                     }
+  ║ E                     
+  ║ E                     Node.js v22.18.0
+  ║ E                     
+  ║ E                   assert 1 == 0
+  ║ E                    +  where 1 = CompletedProcess(args=['/private/tmp/hermes-agui-node.YVH32P/node-v22.18.0-darwin-x64/bin/node', 'node_modules/tsx/dis...OENT',\n  syscall: 'connect',\n  address: '/private/tmp/hermes-part2-20261120/.s.PGSQL.5432'\n}\n\nNode.js v22.18.0\n").returncode
+  ║ 
+  ║ ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_dynamic_runtime.py:70: AssertionError
+  ║ =========================== short test summary info ============================
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_dynamic_runtime.py::test_managed_runtime_native_delegation_and_persistent_lifecycle[sqlite]
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_dynamic_runtime.py::test_managed_runtime_native_delegation_and_persistent_lifecycle[postgres]
+  ║ ======================== 2 failed in 246.51s (0:04:06) =========================
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_dynamic_runtime.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+[ 14.1% |    10/~71 | ✓1 | ✗6] ✗ tests/hermes_agui/test_runtime_entrypoint.py (1✓ 2✗, 167.8s)
+
+  ╔╍ Failed: tests/hermes_agui/test_runtime_entrypoint.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ /private/tmp/hermes-part1-pm-runtime/python-3.14.9+20261021-darwin-x64/lib/python3.14/http/client.py:554: in _read_next_chunk_size
+  ║     line = self.fp.readline(_MAXLINE + 1)
+  ║            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+  ║ 
+  ║ self = <socket.SocketIO object at 0x10cae6a10>, b = <memory at 0x10c9b5e40>
+  ║ 
+  ║     def readinto(self, b):
+  ║         """Read up to len(b) bytes into the writable buffer *b* and return
+  ║         the number of bytes read.  If the socket is non-blocking and no bytes
+  ║         are available, None is returned.
+  ║     
+  ║         If *b* is non-empty, a 0 return value indicates that the connection
+  ║         was shutdown at the other end.
+  ║         """
+  ║         self._checkClosed()
+  ║         self._checkReadable()
+  ║         if self._timeout_occurred:
+  ║             raise OSError("cannot read from timed out object")
+  ║         try:
+  ║ >           return self._sock.recv_into(b)
+  ║                    ^^^^^^^^^^^^^^^^^^^^^^^
+  ║ E           TimeoutError: timed out
+  ║ 
+  ║ /private/tmp/hermes-part1-pm-runtime/python-3.14.9+20261021-darwin-x64/lib/python3.14/socket.py:729: TimeoutError
+  ║ =========================== short test summary info ============================
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_entrypoint.py::test_runtime_shell_and_history_survive_server_restart
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_entrypoint.py::test_multi_bot_cli_restart_preserves_separate_native_histories
+  ║ =================== 2 failed, 1 passed in 158.67s (0:02:38) ====================
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_runtime_entrypoint.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+

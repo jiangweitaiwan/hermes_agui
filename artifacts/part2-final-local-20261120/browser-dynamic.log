@@ -1,0 +1,22 @@
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test tests/browser/bot-management.spec.ts
+
+[2m[WebServer] [22m(node:47356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47357) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47357) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47357) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+
+Running 2 tests using 1 worker
+
+(node:47359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/bot-management.spec.ts:3:1 › owner creates, chats, edits, disables, enables and soft-deletes a native Bot (27.9s)
+  ✓  2 tests/browser/bot-management.spec.ts:60:1 › workspace handles allowlists, duplicate submit, lifecycle failures, logout and mobile navigation (3.0s)
+
+  2 passed (1.1m)

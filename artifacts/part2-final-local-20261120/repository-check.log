@@ -1,0 +1,41 @@
+
+=== no-tmp (failed) ===
+advisory — _BASELINE in scripts/check_no_tmp_literals.py is stale; regenerate it with --print-baseline (fewer hits than listed is progress, not a failure):
+  website/docs/getting-started/nix-setup.md: listed in _BASELINE but clean (or gone)
+deploy/gcp/compose.staging.yaml:29: tmpfs: [/tmp]
+deploy/gcp/compose.staging.yaml:41: tmpfs: [/tmp]
+deploy/gcp/compose.staging.yaml:54: tmpfs: [/tmp]
+deploy/gcp/host.example.yaml:8: scratch: /tmp
+deploy/gcp/host.example.yaml:11: root: /tmp/managed
+host-config.yaml:8: scratch: /tmp
+host-config.yaml:11: root: /tmp/managed
+
+7 literal /tmp path(s) flagged. Resolve scratch space through hermes_constants.get_scratch_dir() (or $TMPDIR / tempfile, which Hermes points there), tell the model to do the same in skills and prompts, or mark a deliberate line with `no-tmp: ok — <why>` (same line or the line above). See scripts/check_no_tmp_literals.py.
+
+=== health (failed) ===
+artifacts/part2-final-local-20261120/finish-local.py:45  HX006  <module>
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+artifacts/part2-final-local-20261120/restore-probe.py:22  HX015 (advisory)  <module>
+    untracked sqlite3.connect on state.db
+    fix: open it with `hermes_cli.sqlite_safe_read.connect_tracked(..., tracking_path=<the db path>)` so `has_live_connection()` / `offline_file_access()` see the fd; a deliberately offline file (snapshot, scratch copy, quarantined file) takes `# health: allow HX015 -- <why>`
+artifacts/part2-final-local-20261120/restore-probe.py:36  HX006  <module>
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+artifacts/part2-final-local-20261120/restore-probe.py:40  HX006  <module>
+    subprocess/urlopen without timeout
+    fix: pass `timeout=`; an asyncio `proc.communicate()` goes inside `asyncio.wait_for(..., timeout=...)` (a child or socket that never answers hangs forever); after `proc.kill()` reap with `proc.wait()`, never a bare `communicate()` (it blocks while a grandchild holds the pipe)
+artifacts/part2-final-local-20261120/restore-probe.py:49  HX015 (advisory)  <module>
+    untracked sqlite3.connect on state.db
+    fix: open it with `hermes_cli.sqlite_safe_read.connect_tracked(..., tracking_path=<the db path>)` so `has_live_connection()` / `offline_file_access()` see the fd; a deliberately offline file (snapshot, scratch copy, quarantined file) takes `# health: allow HX015 -- <why>`
+
+code health: 10 files vs 73c86e08be80: 3 blocking, 2 advisory (8.6s)
+
+Each function and file has its own cap: its value on main if it is already over target,
+otherwise the target. New code meets the target; existing code may only go down. Fix the code
+(the `fix:` line is the repo's remedy); a genuine exception takes a reviewed comment on the line,
+`# health: allow <RULE> -- <why>`. Rules and targets: scripts/code_health/config.py.
+Reproduce locally: python scripts/check --only health (every lint check: python scripts/check;
+on every push: python scripts/check --install-hook pre-push).
+
+scripts/check: 17 checks, FAILED: no-tmp, health

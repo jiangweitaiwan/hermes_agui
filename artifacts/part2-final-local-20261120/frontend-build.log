@@ -1,0 +1,8 @@
+
+> hermes-copilotkit-example@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v7.1.12 building for production...
+transforming...
+✓ 9071 modules transformed.
+sh: line 1: 45173 Terminated: 15          vite build

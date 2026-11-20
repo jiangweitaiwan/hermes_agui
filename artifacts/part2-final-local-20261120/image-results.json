@@ -1,0 +1,43 @@
+[
+  {
+    "step": "repository-check-final",
+    "command": [
+      "python",
+      "scripts/check"
+    ],
+    "exit": 1,
+    "seconds": 103.58
+  },
+  {
+    "step": "host-build-serial",
+    "command": [
+      "docker",
+      "build",
+      "--platform",
+      "linux/amd64",
+      "-f",
+      "Dockerfile.agui",
+      "-t",
+      "hermes-agui:part2",
+      "."
+    ],
+    "exit": 0,
+    "seconds": 156.98
+  },
+  {
+    "step": "runtime-build-serial",
+    "command": [
+      "docker",
+      "build",
+      "--platform",
+      "linux/amd64",
+      "-f",
+      "examples/copilotkit/Dockerfile",
+      "-t",
+      "hermes-runtime:part2",
+      "examples/copilotkit"
+    ],
+    "exit": 0,
+    "seconds": 472.04
+  }
+]

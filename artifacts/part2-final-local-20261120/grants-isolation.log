@@ -1,0 +1,4 @@
+hermes_host cross-schema SELECT denied: PASS
+hermes_host schema CREATE denied: PASS
+hermes_runtime cross-schema SELECT denied: PASS
+hermes_runtime schema CREATE denied: PASS

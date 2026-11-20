@@ -1,7 +1,8 @@
 # Manual Cloud Run source package
 
 See [deployment instructions](../../docs/cloud-run-deployment.md) for the complete parameter and command reference.
-No deployment automation is included. The source package has not been validated by L01–L10 or real cloud tests.
+No deployment automation is included. See the [latest local acceptance report](../../docs/cloud-native-part-2-final-acceptance.md).
+Images and three entrypoint startup checks pass locally with SDK doubles; the complete L01–L10 gate has not passed. Real cloud tests remain NOT RUN.
 
 | Artifact | Consumer |
 |---|---|
@@ -26,7 +27,8 @@ Backup/restore: freeze new writes; preserve PG consistent backup and every refer
 Restore into isolated DB/bucket, retain original object keys and generations, compare profile manifests/checksums
 and Graph revision pointers before allowing traffic. No object GC is shipped. Keep unreferenced objects at least
 seven days and retain all referenced generations. Never apply a bucket lifecycle rule that removes referenced history.
-Actual restore and rollback drills are NOT RUN.
+Local PG17 dump/restore and profile-manifest checks pass with filesystem object doubles; see the acceptance report.
+Real GCS/PITR restore and image rollback drills remain NOT RUN.
 
 Rollback: new migrations are additive. Roll back image/config only while retaining the expanded schema and
 migration ledger. Do not drop columns/tables or restore an older DB independently of objects. Back up before migration.

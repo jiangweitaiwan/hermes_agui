@@ -1,0 +1,53 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/hermes-part1-final-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 27 test files (~73 tests) under ['tests/hermes_agui']; running with -j 1
+[  2.7% |     2/~73 | ✓2 | ✗0] ✓ tests/hermes_agui/test_delegation.py (2✓, 102.0s)
+[  6.8% |     5/~73 | ✓5 | ✗0] ✓ tests/hermes_agui/test_runtime_entrypoint.py (3✓, 40.1s)
+[ 12.3% |     9/~73 | ✓11 | ✗ 0] ✓ tests/hermes_agui/test_runtime_memory.py (6✓, 69.4s)
+[ 13.7% |    10/~73 | ✓13 | ✗ 0] ✓ tests/hermes_agui/test_dynamic_runtime.py (2✓, 39.7s)
+[ 20.5% |    15/~73 | ✓18 | ✗ 0] ✓ tests/hermes_agui/test_dynamic_host.py (5✓, 28.2s)
+[ 27.4% |    20/~73 | ✓24 | ✗ 0] ✓ tests/hermes_agui/test_human_input.py (6✓, 31.1s)
+[ 35.6% |    26/~73 | ✓31 | ✗ 0] ✓ tests/hermes_agui/test_headless_agent.py (7✓, 28.6s)
+[ 37.0% |    27/~73 | ✓32 | ✗ 0] ✓ tests/hermes_agui/test_graph_evolution.py (1✓, 15.5s)
+[ 43.8% |    32/~73 | ✓40 | ✗ 0] ✓ tests/hermes_agui/test_server.py (8✓, 24.7s)
+[ 49.3% |    36/~73 | ✓44 | ✗ 0] ✓ tests/hermes_agui/test_profile_objects.py (4✓, 23.9s)
+[ 56.2% |    41/~73 | ✓49 | ✗ 0] ✓ tests/hermes_agui/test_multi_bot.py (5✓, 15.6s)
+[ 58.9% |    43/~73 | ✓51 | ✗ 0] ✓ tests/hermes_agui/test_native_capabilities.py (2✓, 13.9s)
+[ 61.6% |    45/~73 | ✓53 | ✗ 0] ✓ tests/hermes_agui/test_session_lifecycle.py (2✓, 12.7s)
+[ 63.0% |    46/~73 | ✓54 | ✗ 0] ✓ tests/hermes_agui/test_native_compression.py (1✓, 13.2s)
+[ 64.4% |    47/~73 | ✓55 | ✗ 0] ✓ tests/hermes_agui/test_native_memory_lifecycle.py (1✓, 10.4s)
+[ 65.8% |    48/~73 | ✓56 | ✗ 0] ✓ tests/hermes_agui/test_profile_import_compatibility.py (1✓, 9.8s)
+[ 69.9% |    51/~73 | ✓59 | ✗ 0] ✓ tests/hermes_agui/test_durable_sessions.py (3✓, 14.3s)
+[ 71.2% |    52/~73 | ✓60 | ✗ 0] ✓ tests/hermes_agui/test_native_context_engine.py (1✓, 13.5s)
+[ 74.0% |    54/~73 | ✓62 | ✗ 0] ✓ tests/hermes_agui/test_cloud_run_events.py (2✓, 2.7s)
+[ 78.1% |    57/~73 | ✓69 | ✗ 0] ✓ tests/hermes_agui/test_http_lifecycle.py (7✓, 3.8s)
+[ 87.7% |    64/~73 | ✓77 | ✗ 0] ✓ tests/hermes_agui/test_event_bridge.py (8✓, 2.1s)
+[ 90.4% |    66/~73 | ✓79 | ✗ 0] ✓ tests/hermes_agui/test_cloud_config.py (2✓, 2.1s)
+[ 93.2% |    68/~73 | ✓89 | ✗ 0] ✓ tests/hermes_agui/test_message_adapter.py (10✓, 1.9s)
+[ 94.5% |    69/~73 | ✓94 | ✗ 0] ✓ tests/hermes_agui/test_delegation_bridge.py (5✓, 1.7s)
+[ 95.9% |    70/~73 | ✓95 | ✗ 0] ✓ tests/hermes_agui/test_execution_manager.py (1✓, 1.5s)
+[ 97.3% |    71/~73 | ✓95 | ✗ 0] ✓ tests/hermes_agui/test_runtime_container.py (1 tests, 0.9s)
+[100.0% |    73/~73 | ✓95 | ✗ 0] ✓ tests/hermes_agui/test_cloud_native_restart.py (2 tests, 0.9s)
+
+=== Summary: 27 files, 95 tests passed, 0 failed (100% complete) in 524.3s (1 workers) ===
+  Durations cached to test_durations.json (27 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   27
+  Total subprocess CPU-wall: 524.2s  (runner wall: 524.3s, parallelism: 1x)
+  P50: 13.46s  P90: 40.12s  P95: 69.45s  P99: 101.98s  Max: 101.98s
+  <1s: 2 files (7%)  <2s: 5 files (19%)
+  Top 10 slowest:
+    101.98s  tests/hermes_agui/test_delegation.py
+     69.45s  tests/hermes_agui/test_runtime_memory.py
+     40.12s  tests/hermes_agui/test_runtime_entrypoint.py
+     39.74s  tests/hermes_agui/test_dynamic_runtime.py
+     31.07s  tests/hermes_agui/test_human_input.py
+     28.61s  tests/hermes_agui/test_headless_agent.py
+     28.23s  tests/hermes_agui/test_dynamic_host.py
+     24.66s  tests/hermes_agui/test_server.py
+     23.93s  tests/hermes_agui/test_profile_objects.py
+     15.56s  tests/hermes_agui/test_multi_bot.py

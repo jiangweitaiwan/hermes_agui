@@ -1,0 +1,35 @@
+
+> hermes-copilotkit-example@0.1.0 test:e2e
+> playwright test
+
+[2m[WebServer] [22m(node:47109) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47110) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47110) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:47110) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(node:47080) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:47118) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47118) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   1 tests/browser/bot-management.spec.ts:3:1 › owner creates, chats, edits, disables, enables and soft-deletes a native Bot
+  ✓   2 tests/browser/bot-management.spec.ts:60:1 › workspace handles allowlists, duplicate submit, lifecycle failures, logout and mobile navigation (3.5s)
+  ✓   3 tests/browser/chat.spec.ts:7:1 › UI streams native turns, observes tools, isolates threads and displays errors (32.7s)
+  ✓   4 tests/browser/chat.spec.ts:81:1 › native clarification and approval resume through the official runtime (3.5s)
+  -   5 tests/browser/cloud-auth.spec.ts:4:1 › cloud login refreshes bearer for direct Runtime requests and logout clears access
+  ✓   6 tests/browser/graph-routing.spec.ts:3:1 › Graph routes return unavailable JSON rather than the workspace SPA (34ms)
+  ✓   7 tests/browser/graph-routing.spec.ts:13:1 › Graph route retains local Host and Origin guards (17ms)
+(node:47118) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+  -   8 tests/browser/memory-explorer.spec.ts:5:1 › real scoped Wiki API renders safe Markdown, filters, dashboard and isolates Bots
+  -   9 tests/browser/memory-explorer.spec.ts:49:1 › native run publishes durable compiled knowledge to the real explorer
+  ✓  10 tests/browser/memory-explorer.spec.ts:82:1 › UI clears delayed private responses, pages live windows and handles unavailable/denied states (2.6s)
+  -  11 tests/browser/multi-bot.spec.ts:3:1 › Bot switching isolates concurrent streams, tools, HITL and errors
+
+  5 skipped
+  6 passed (57.7s)

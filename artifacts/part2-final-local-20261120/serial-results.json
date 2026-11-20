@@ -1,0 +1,92 @@
+[
+  {
+    "step": "runtime-serial",
+    "command": [
+      "npm",
+      "test",
+      "--",
+      "--reporter=dot",
+      "--maxWorkers=1",
+      "--no-file-parallelism"
+    ],
+    "exit": 0,
+    "seconds": 119.38
+  },
+  {
+    "step": "frontend-serial",
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "exit": 0,
+    "seconds": 64.77
+  },
+  {
+    "step": "browser-cloud",
+    "command": [
+      "npm",
+      "run",
+      "test:e2e",
+      "--",
+      "tests/browser/cloud-auth.spec.ts"
+    ],
+    "exit": 0,
+    "seconds": 30.35
+  },
+  {
+    "step": "browser-serial",
+    "command": [
+      "npm",
+      "run",
+      "test:e2e"
+    ],
+    "exit": 0,
+    "seconds": 59.55
+  },
+  {
+    "step": "browser-graph",
+    "command": [
+      "npm",
+      "run",
+      "test:e2e",
+      "--",
+      "tests/browser/memory-explorer.spec.ts"
+    ],
+    "exit": 0,
+    "seconds": 56.35
+  },
+  {
+    "step": "browser-dynamic",
+    "command": [
+      "npm",
+      "run",
+      "test:e2e",
+      "--",
+      "tests/browser/bot-management.spec.ts"
+    ],
+    "exit": 0,
+    "seconds": 70.16
+  },
+  {
+    "step": "browser-multi",
+    "command": [
+      "npm",
+      "run",
+      "test:e2e",
+      "--",
+      "tests/browser/multi-bot.spec.ts"
+    ],
+    "exit": 0,
+    "seconds": 65.42
+  },
+  {
+    "step": "repository-check",
+    "command": [
+      "python",
+      "scripts/check"
+    ],
+    "exit": 1,
+    "seconds": 99.37
+  }
+]

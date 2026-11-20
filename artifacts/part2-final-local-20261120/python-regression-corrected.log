@@ -1,0 +1,196 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/hermes-part1-final-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 27 test files (~73 tests) under ['tests/hermes_agui']; running with -j 1
+[  2.7% |     2/~73 | ✓2 | ✗0] ✓ tests/hermes_agui/test_delegation.py (2✓, 134.0s)
+[  8.2% |     6/~73 | ✓8 | ✗0] ✓ tests/hermes_agui/test_runtime_memory.py (6✓, 78.5s)
+[  9.6% |     7/~73 | ✓10 | ✗ 0] ✓ tests/hermes_agui/test_dynamic_runtime.py (2✓, 69.8s)
+[ 13.7% |    10/~73 | ✓13 | ✗ 0] ✓ tests/hermes_agui/test_runtime_entrypoint.py (3✓, 82.6s)
+[ 20.5% |    15/~73 | ✓19 | ✗ 0] ✓ tests/hermes_agui/test_human_input.py (6✓, 49.3s)
+[ 28.8% |    21/~73 | ✓26 | ✗ 0] ✓ tests/hermes_agui/test_headless_agent.py (7✓, 47.7s)
+[ 31.5% |    23/~73 | ✓28 | ✗ 0] ✓ tests/hermes_agui/test_cloud_run_events.py (2✓, 5.3s)
+[ 38.4% |    28/~73 | ✓33 | ✗ 0] ✓ tests/hermes_agui/test_dynamic_host.py (5✓, 60.9s)
+[ 45.2% |    33/~73 | ✓41 | ✗ 0] ✓ tests/hermes_agui/test_server.py (8✓, 34.7s)
+[ 50.7% |    37/~73 | ✓44 | ✗ 1] ✗ tests/hermes_agui/test_profile_objects.py (3✓ 1✗, 20.7s)
+
+  ╔╍ Failed: tests/hermes_agui/test_profile_objects.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║                 )
+  ║ >               result = await lifecycle.execute(run, execute_native)
+  ║                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ 
+  ║ ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_profile_objects.py:71: 
+  ║ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+  ║ 
+  ║ self = <hermes_agui.storage.host_runs.DurableHostRuns object at 0x10fe6ecf0>
+  ║ run = namespace(turn=namespace(thread_id='thread', run_id='0', text='keep this history'), stop=<asyncio.locks.Event object at 0x10fe6ee40 [unset]>, bridge=namespace(failed=False))
+  ║ execute_native = <function test_durable_host_run_rehydrates_native_history.<locals>.execute_native at 0x10fe9c880>
+  ║ 
+  ║     async def execute(self, run, execute_native):
+  ║         if run.stop.is_set():
+  ║             return {"interrupted": True}
+  ║         turn = run.turn
+  ║         options = {"managed_revision": self.managed_revision} if self.managed_revision else {}
+  ║         lease = await asyncio.to_thread(self.runs.begin, self.scope, turn.thread_id, turn.run_id, uuid4(), 90,
+  ║                                         **options)
+  ║         if lease is None:
+  ║             return {"failed": True}
+  ║         from hermes_agui.storage.run_events import RunEvents
+  ║     
+  ║ >       await asyncio.to_thread(RunEvents(self.runs.pool).input, lease, turn)
+  ║                                           ^^^^^^^^^^^^^^
+  ║ E       AttributeError: 'RunStore' object has no attribute 'pool'
+  ║ 
+  ║ ../../../desktop/hermes/hermes-agent/hermes_agui/storage/host_runs.py:35: AttributeError
+  ║ =========================== short test summary info ============================
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_profile_objects.py::test_durable_host_run_rehydrates_native_history
+  ║ ========================= 1 failed, 3 passed in 17.61s =========================
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_profile_objects.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+[ 57.5% |    42/~73 | ✓49 | ✗ 1] ✓ tests/hermes_agui/test_multi_bot.py (5✓, 27.2s)
+[ 58.9% |    43/~73 | ✓50 | ✗ 1] ✓ tests/hermes_agui/test_graph_evolution.py (1✓, 36.6s)
+[ 61.6% |    45/~73 | ✓52 | ✗ 1] ✓ tests/hermes_agui/test_native_capabilities.py (2✓, 21.7s)
+[ 64.4% |    47/~73 | ✓54 | ✗ 1] ✓ tests/hermes_agui/test_session_lifecycle.py (2✓, 13.6s)
+[ 65.8% |    48/~73 | ✓55 | ✗ 1] ✓ tests/hermes_agui/test_native_compression.py (1✓, 12.4s)
+[ 67.1% |    49/~73 | ✓56 | ✗ 1] ✓ tests/hermes_agui/test_native_memory_lifecycle.py (1✓, 10.9s)
+[ 71.2% |    52/~73 | ✓59 | ✗ 1] ✓ tests/hermes_agui/test_durable_sessions.py (3✓, 9.8s)
+[ 72.6% |    53/~73 | ✓60 | ✗ 1] ✓ tests/hermes_agui/test_native_context_engine.py (1✓, 9.6s)
+[ 74.0% |    54/~73 | ✓61 | ✗ 1] ✓ tests/hermes_agui/test_profile_import_compatibility.py (1✓, 10.2s)
+[ 76.7% |    56/~73 | ✓63 | ✗ 1] ✓ tests/hermes_agui/test_cloud_config.py (2✓, 2.2s)
+[ 78.1% |    57/~73 | ✓68 | ✗ 1] ✓ tests/hermes_agui/test_delegation_bridge.py (5✓, 1.6s)
+[ 82.2% |    60/~73 | ✓75 | ✗ 1] ✓ tests/hermes_agui/test_http_lifecycle.py (7✓, 3.2s)
+[ 91.8% |    67/~73 | ✓83 | ✗ 1] ✓ tests/hermes_agui/test_event_bridge.py (8✓, 2.2s)
+[ 94.5% |    69/~73 | ✓93 | ✗ 1] ✓ tests/hermes_agui/test_message_adapter.py (10✓, 1.8s)
+[ 95.9% |    70/~73 | ✓94 | ✗ 1] ✓ tests/hermes_agui/test_execution_manager.py (1✓, 1.3s)
+[ 98.6% |    72/~73 | ✓94 | ✗ 1] ✓ tests/hermes_agui/test_cloud_native_restart.py (2 tests, 0.8s)
+[100.0% |    73/~73 | ✓94 | ✗ 1] ✓ tests/hermes_agui/test_runtime_container.py (1 tests, 0.9s)
+
+=== Summary: 27 files, 94 tests passed, 1 failed; FAILED: 1 of 27 files (100% complete) in 749.5s (1 workers) ===
+  Durations cached to test_durations.json (26 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   27
+  Total subprocess CPU-wall: 749.3s  (runner wall: 749.5s, parallelism: 1x)
+  P50: 12.35s  P90: 78.46s  P95: 82.57s  P99: 133.98s  Max: 133.98s
+  <1s: 2 files (7%)  <2s: 5 files (19%)
+  Top 10 slowest:
+    133.98s  tests/hermes_agui/test_delegation.py
+     82.57s  tests/hermes_agui/test_runtime_entrypoint.py
+     78.46s  tests/hermes_agui/test_runtime_memory.py
+     69.77s  tests/hermes_agui/test_dynamic_runtime.py
+     60.90s  tests/hermes_agui/test_dynamic_host.py
+     49.34s  tests/hermes_agui/test_human_input.py
+     47.65s  tests/hermes_agui/test_headless_agent.py
+     36.58s  tests/hermes_agui/test_graph_evolution.py
+     34.69s  tests/hermes_agui/test_server.py
+     27.20s  tests/hermes_agui/test_multi_bot.py
+
+=== Failure output ===
+
+--- tests/hermes_agui/test_profile_objects.py ---
+============================= test session starts ==============================
+platform darwin -- Python 3.14.9, pytest-9.1.1, pluggy-1.7.0
+rootdir: /Users/jiangwei/desktop/hermes/hermes-agent
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, anyio-4.15.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 4 items
+
+../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_profile_objects.py F [ 25%]
+...                                                                      [100%]
+
+=================================== FAILURES ===================================
+_______________ test_durable_host_run_rehydrates_native_history ________________
+
+tmp_path = PosixPath('/private/var/tmp/hermes-pytest-501/r-q27v7_ws/pytest-of-jiangwei/pytest-0/test_durable_host_run_rehydrat0')
+native_config = <function native_config.<locals>.build at 0x10fe9cd50>
+
+    @pytest.mark.asyncio
+    async def test_durable_host_run_rehydrates_native_history(tmp_path, native_config):
+        class RunStore:
+            manifest = None
+    
+            def begin(self, scope, thread_id, run_id, attempt, seconds):
+                return run_id
+    
+            def profile(self, scope):
+                return self.manifest
+    
+            def renew(self, lease, seconds):
+                return True
+    
+            def finish(self, lease, *, status, profile=None, expected_revision=None, reason=None,
+                       evidence_generation=None):
+                assert evidence_generation is None
+                assert reason is None, reason
+                assert status == "completed"
+                assert expected_revision == (self.manifest.revision if self.manifest else None)
+                self.manifest = profile
+                return True
+    
+        async def execute_native(run, service):
+            homes.append(service.config.home)
+            return await asyncio.wrap_future(service.submit(
+                run.turn.thread_id, run.turn.text, run_id=run.turn.run_id,
+            ))
+    
+        store = RunStore()
+        scope = BotScope("project", "local-owner", "analyst")
+        objects = ProfileObjects(FilesystemObjects(tmp_path / "objects"))
+        scratch = tmp_path / "scratch"
+        scratch.mkdir()
+        homes = []
+        skill_path = "skills/analyst/SKILL.md"
+        soul = "Use the project notebook."
+        skill = "---\nname: analyst\ndescription: Notebook analysis\n---\nRead the notebook index.\n"
+        with FakeLLMServer([Text("before restart"), ToolCall("skill_view", {"name": "analyst"}),
+                            Text("after restart")]) as model:
+            for index, prompt in enumerate(("keep this history", "continue the thread")):
+                config = replace(native_config(model, name=f"deployment-{index}"),
+                                 api_key="fixture-key")
+                if index == 0:
+                    (config.home / "SOUL.md").write_text(soul, encoding="utf-8")
+                    (config.home / skill_path).parent.mkdir(parents=True, exist_ok=True)
+                    (config.home / skill_path).write_text(skill, encoding="utf-8")
+                bot = SimpleNamespace(agent=config, authorize=None)
+                lifecycle = DurableHostRuns(store, objects, scope, bot,
+                                            scratch=scratch, approved=frozenset({skill_path}))
+                run = SimpleNamespace(
+                    turn=SimpleNamespace(thread_id="thread", run_id=str(index), text=prompt),
+                    stop=asyncio.Event(), bridge=SimpleNamespace(failed=False),
+                )
+>               result = await lifecycle.execute(run, execute_native)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_profile_objects.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <hermes_agui.storage.host_runs.DurableHostRuns object at 0x10fe6ecf0>
+run = namespace(turn=namespace(thread_id='thread', run_id='0', text='keep this history'), stop=<asyncio.locks.Event object at 0x10fe6ee40 [unset]>, bridge=namespace(failed=False))
+execute_native = <function test_durable_host_run_rehydrates_native_history.<locals>.execute_native at 0x10fe9c880>
+
+    async def execute(self, run, execute_native):
+        if run.stop.is_set():
+            return {"interrupted": True}
+        turn = run.turn
+        options = {"managed_revision": self.managed_revision} if self.managed_revision else {}
+        lease = await asyncio.to_thread(self.runs.begin, self.scope, turn.thread_id, turn.run_id, uuid4(), 90,
+                                        **options)
+        if lease is None:
+            return {"failed": True}
+        from hermes_agui.storage.run_events import RunEvents
+    
+>       await asyncio.to_thread(RunEvents(self.runs.pool).input, lease, turn)
+                                          ^^^^^^^^^^^^^^
+E       AttributeError: 'RunStore' object has no attribute 'pool'
+
+../../../desktop/hermes/hermes-agent/hermes_agui/storage/host_runs.py:35: AttributeError
+=========================== short test summary info ============================
+FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_profile_objects.py::test_durable_host_run_rehydrates_native_history
+========================= 1 failed, 3 passed in 17.61s =========================
+
+=== 1 file with test failures ===
+  tests/hermes_agui/test_profile_objects.py  (1 test failed)

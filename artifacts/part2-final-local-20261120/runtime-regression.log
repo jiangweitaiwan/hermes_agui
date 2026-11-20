@@ -1,0 +1,110 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --reporter=dot --maxWorkers=1 --no-file-parallelism
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:41956) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+······x····(node:42759) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:43249) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+····················(node:43345) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·········(node:43535) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+········(node:43661) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+········(node:43970) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+···············x····(node:44151) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:44549) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+x······(node:44771) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·········(node:44830) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+x·(node:44895) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:44916) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:44924) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+······(node:45005) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:45039) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:45063) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/postgres-thread-mappings.test.ts > PostgreSQL thread mappings survive Runtime replacement and preserve scope under contention
+Agent execution failed: Error: Runtime thread mapping unavailable
+    at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/server/runtime.ts:37:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+·········(node:45096) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+·····
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-browser.test.ts > work bounds, complete keyset traversal and bounded edges
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/graph-browser.test.ts:150:1
+    148|   expect(Object.keys(jobs.jobs[0]).sort()).toEqual(["createdAt", "id",…
+    149| });
+    150| test("work bounds, complete keyset traversal and bounded edges", async…
+       | ^
+    151|   const f = await fixture(false);
+    152|   const inputs = Array.from({ length: 305 }, (_, i) => ({ markdown: md…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/wiki-evolution-lifecycle.test.ts > delete revokes learned session/doc/shared knowledge and pending jobs through real application lifecycle
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/wiki-evolution-lifecycle.test.ts:18:58
+     16|   return { claims: [0], conflict: false };
+     17| } };
+     18| test.each(["delete", "project", "policy", "owner-access"])("%s revokes…
+       |                                                          ^
+     19|   const root = mkdtempSync(join(realpathSync(tmpdir()), "wiki-lifecycl…
+     20|   const store = new WikiStore(join(root, "wiki")), provider = new Wiki…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/wiki-evolution-runtime.test.ts > standard run → durable queue → compiler → next thread → authorized B sharing smoke
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/wiki-evolution-runtime.test.ts:14:37
+     12| 
+     13| const finding = "Research finding: PostgreSQL write ahead logging prov…
+     14| test.each(["standard", "delegation"])("%s run → durable queue → compil…
+       |                                     ^
+     15|   const received: any[] = [];
+     16|   const server = createServer(async (req, res) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/wiki-evolution.test.ts > A learns; B sees nothing until explicit original-source sharing; C never sees it; revoke withdraws mixed pages and shared copies
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/wiki-evolution.test.ts:125:1
+    123| });
+    124| 
+    125| test("A learns; B sees nothing until explicit original-source sharing;…
+       | ^
+    126|   const { store, queue, sessions } = setup();
+    127|   const provider = new WikiGraphProvider(store);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  4 failed | 17 passed (21)
+      Tests  4 failed | 119 passed (123)
+   Start at  22:46:57
+   Duration  506.60s (transform 6.15s, setup 0ms, collect 214.13s, tests 234.18s, environment 16ms, prepare 22.40s)
+

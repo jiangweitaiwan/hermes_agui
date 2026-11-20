@@ -1,0 +1,50 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/hermes-part1-final-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 27 test files (~73 tests) under ['tests/hermes_agui']; running with -j 2
+[  4.1% |     3/~73 | ✓3 | ✗0] ✓ tests/hermes_agui/test_runtime_entrypoint.py (3✓, 102.3s)
+[  6.8% |     5/~73 | ✓4 | ✗1] ✗ tests/hermes_agui/test_delegation.py (1✓ 1✗, 128.7s)
+
+  ╔╍ Failed: tests/hermes_agui/test_delegation.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║ ../../../desktop/hermes/hermes-agent/hermes_agui/storage/completion_delivery.py:66: in deliver
+  ║     body = self.profiles.objects.read(_key(self.profiles, event.scope, event.profile_revision),
+  ║ ../../../desktop/hermes/hermes-agent/hermes_agui/storage/objects.py:41: in read
+  ║     with self._path(key).open("rb") as stream:
+  ║          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ /private/tmp/hermes-part1-pm-runtime/python-3.14.9+20261021-darwin-x64/lib/python3.14/pathlib/__init__.py:771: in open
+  ║     return io.open(self, mode, buffering, encoding, errors, newline)
+  ║            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+  ║ 
+  ║ args = (PosixPath('/private/var/tmp/hermes-pytest-501/r-fnxd0wix/pytest-of-jiangwei/pytest-0/test_durable_host_delegates_an0/...d909ccf2ed9d97f83ef5e0b8896ad3adfde4e3b/f7c90168a3c243819d8affdf2b985b06/completion.json'), 'rb', -1, None, None, None)
+  ║ kwargs = {}
+  ║ 
+  ║     @wraps(original)
+  ║     def guarded(*args, **kwargs):
+  ║         for index, (parameter, descriptor) in enumerate(parameters):
+  ║             value = args[index] if index < len(args) else kwargs.get(parameter)
+  ║             self.check(value, dir_fd=kwargs.get(descriptor) if descriptor else None, metadata=metadata,
+  ║                        destructive=destructive(args, kwargs) if callable(destructive) else destructive)
+  ║ >       return original(*args, **kwargs)
+  ║                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ E       FileNotFoundError: [Errno 2] No such file or directory: '/private/var/tmp/hermes-pytest-501/r-fnxd0wix/pytest-of-jiangwei/pytest-0/test_durable_host_delegates_an0/objects/profiles/057d20217230682692bb73871d909ccf2ed9d97f83ef5e0b8896ad3adfde4e3b/f7c90168a3c243819d8affdf2b985b06/completion.json'
+  ║ 
+  ║ ../../../desktop/hermes/hermes-agent/tests/home_io_guard.py:189: FileNotFoundError
+  ║ ----------------------------- Captured stdout call -----------------------------
+  ║ 🔧 Routed deferred tool 'message_bot' through 'tool_call'
+  ║ 🔧 Routed deferred tool 'message_bot' through 'tool_call'
+  ║ =========================== short test summary info ============================
+  ║ FAILED ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_delegation.py::test_durable_host_delegates_and_redelivers_graph_completion
+  ║ =================== 1 failed, 1 passed in 125.93s (0:02:05) ====================
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_delegation.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+[ 12.3% |     9/~73 | ✓10 | ✗ 1] ✓ tests/hermes_agui/test_runtime_memory.py (6✓, 87.5s)
+[ 13.7% |    10/~73 | ✓12 | ✗ 1] ✓ tests/hermes_agui/test_dynamic_runtime.py (2✓, 63.9s)
+[ 20.5% |    15/~73 | ✓17 | ✗ 1] ✓ tests/hermes_agui/test_dynamic_host.py (5✓, 39.6s)
+[ 27.4% |    20/~73 | ✓23 | ✗ 1] ✓ tests/hermes_agui/test_human_input.py (6✓, 40.2s)
+[ 28.8% |    21/~73 | ✓24 | ✗ 1] ✓ tests/hermes_agui/test_graph_evolution.py (1✓, 25.1s)
+[ 37.0% |    27/~73 | ✓31 | ✗ 1] ✓ tests/hermes_agui/test_headless_agent.py (7✓, 37.4s)
