@@ -3,7 +3,7 @@ import type { Provenance } from "./provenance";
 import type { RawSource } from "./ingest-queue";
 
 export interface SourceInput { sourceId?: string; title: string; content: string }
-export interface SourceOrigin { provenance: Provenance; classification: string; evidence?: RawSource["evidence"] }
+export interface SourceOrigin { provenance: Provenance; classification: string; referenceTime?: RawSource["referenceTime"]; evidence?: RawSource["evidence"] }
 /** Source versions reference immutable objects. Implementations serialize writes with Wiki publication. */
 export interface SourceStore {
   put(namespace: Namespace, input: SourceInput, origin?: SourceOrigin): Promise<RawSource>;

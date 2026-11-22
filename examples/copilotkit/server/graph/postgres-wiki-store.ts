@@ -151,7 +151,10 @@ export class PostgresWikiStore implements RetrievalStore, EmbeddingStore {
       (SELECT count(*)::integer FROM ${schema}.graph_pages) AS pages,
       (SELECT count(*)::integer FROM ${schema}.graph_revisions) AS revisions,
       (SELECT count(*)::integer FROM ${schema}.graph_sections) AS sections,
-      (SELECT count(*)::integer FROM ${schema}.graph_edges) AS edges`);
+      (SELECT count(*)::integer FROM ${schema}.graph_edges) AS edges,
+      (SELECT count(*)::integer FROM ${schema}.graph_subjects) AS subjects,
+      (SELECT count(*)::integer FROM ${schema}.graph_fact_edges) AS fact_edges,
+      (SELECT count(*)::integer FROM ${schema}.graph_edge_evidence) AS edge_evidence`);
     return { schema: 1, ...rows[0] };
   }
 

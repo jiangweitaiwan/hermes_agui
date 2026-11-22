@@ -12,7 +12,7 @@ export function sensitive(text: string) {
 }
 export interface Completion {
   namespace: Namespace; threadId: string; runId: string; messageId: string;
-  user: string; assistants: { id: string; text: string }[];
+  referenceTime?: RawSource["referenceTime"]; user: string; assistants: { id: string; text: string }[];
 }
 export class SessionIngestor<Q extends IngestStore = DocumentIngestor> {
   readonly metrics = { accepted: 0, skipped: 0, errors: 0, resumeSkipped: 0 };
@@ -37,7 +37,7 @@ export class SessionIngestor<Q extends IngestStore = DocumentIngestor> {
     const provenance = { botId: ns.botId, threadId: value.threadId, runId: value.runId };
     const key = `session:${digest(JSON.stringify(provenance))}`;
     const id = this.queue.enqueue(ns, { title: `Session ${digest(key).slice(0, 24)}`, content, mime: "text/plain", idempotencyKey: key },
-        { provenance, classification: "user-stated / assistant-unverified", knowledgeHash: digest(JSON.stringify([user.trim(), answer.trim()])), evidence: { user, confirmed, assistants: assistants.map(a => a.text) } });
+        { provenance, ...(value.referenceTime ? {referenceTime:value.referenceTime} : {}), classification: "user-stated / assistant-unverified", knowledgeHash: digest(JSON.stringify([user.trim(), answer.trim()])), evidence: { user, confirmed, assistants: assistants.map(a => a.text) } });
     this.metrics.accepted++; return id as ReturnType<Q["enqueue"]>;
   }
   private skip(): undefined { this.metrics.skipped++; return undefined; }
@@ -48,7 +48,7 @@ export class SessionIngestor<Q extends IngestStore = DocumentIngestor> {
       if (!source.provenance || sensitive(source.content)) throw new Error("Source unavailable or sensitive");
       return this.queue.enqueue({ ...ns, visibility: "project_shared" }, {
         title: source.title, content: source.content, mime: "text/plain", idempotencyKey: `share:${sourceId}:${source.version}`,
-      }, { provenance: source.provenance, classification: source.classification!, ...(source.evidence ? { evidence: source.evidence } : {}) });
+      }, { provenance: source.provenance, ...(source.referenceTime ? {referenceTime:source.referenceTime} : {}), classification: source.classification!, ...(source.evidence ? { evidence: source.evidence } : {}) });
     };
     const source = this.queue.latestSource(ns, sourceId);
     return (source instanceof Promise ? source.then(share) : share(source)) as ReturnType<Q["enqueue"]>;
@@ -70,7 +70,7 @@ export class RunCompletionObserver {
     if (!settings.memory || last?.role !== "user" || typeof last.content !== "string" || Buffer.byteLength(last.content) > 16384) return;
     this.completion = { namespace: { principal: settings.memory.principal, projectId: settings.memory.projectId,
       botId, visibility: "bot_private" }, threadId: input.threadId, runId: input.runId,
-      messageId: last.id, user: last.content, assistants: [] };
+      referenceTime: {instant:new Date().toISOString(),timezone:"UTC"}, messageId: last.id, user: last.content, assistants: [] };
   }
   event(event: any) {
     if (!this.completion || this.invalid) return;

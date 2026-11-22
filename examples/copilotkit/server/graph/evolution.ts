@@ -9,16 +9,16 @@ import { WikiGraphProvider } from "./provider";
 import { SessionIngestor } from "./session-ingestor";
 import { NamespaceSchema, type Namespace } from "./types";
 
-export interface EvolutionOptions { provider: WikiGraphProvider<WikiStore | PostgresWikiStore>; compiler: CompilerLLM; pollMs?: number }
+export interface EvolutionOptions { provider: WikiGraphProvider<WikiStore | PostgresWikiStore>; compiler: CompilerLLM; pollMs?: number; graphCompilerVersion?: "v1" | "v2" }
 export function loadEvolution(provider: unknown, config: unknown): EvolutionOptions | undefined {
   if (!config || (config as any).enabled === false) return undefined;
-  const value = z.object({ enabled: z.literal(true), pollMs: z.number().int().min(100).max(60000).default(1000),
+  const value = z.object({ enabled: z.literal(true), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), pollMs: z.number().int().min(100).max(60000).default(1000),
     compiler: z.object({ baseUrl: z.string().url(), model: z.string().min(1), keyEnv: z.string().min(1),
       timeoutMs: z.number().int().positive().max(120000).optional(), maxTokens: z.number().int().positive().max(8192).optional(),
     }).strict(),
   }).strict().parse(config);
   if (!(provider instanceof WikiGraphProvider)) return undefined; // unavailable store stays fail soft
-  return { provider, compiler: new OpenAICompilerLLM(value.compiler), pollMs: value.pollMs };
+  return { provider, compiler: new OpenAICompilerLLM(value.compiler), pollMs: value.pollMs, graphCompilerVersion: value.graphCompilerVersion };
 }
 export class MemoryEvolution {
   readonly queue: DocumentIngestor | PostgresDocumentIngestor;
@@ -34,7 +34,7 @@ export class MemoryEvolution {
     this.queue = options.provider.store instanceof WikiStore ? new DocumentIngestor(options.provider.store)
       : new PostgresDocumentIngestor(options.provider.store);
     this.sessions = new SessionIngestor(this.queue, authorized);
-    this.worker = new WikiCompiler(this.queue, options.compiler);
+    this.worker = new WikiCompiler(this.queue, options.compiler,120000,options.graphCompilerVersion);
     if (this.queue instanceof DocumentIngestor) this.queue.store.transaction(() => this.backfillOwnership(this.queue as DocumentIngestor));
     options.provider.beforeQuery = async () => { await this.refreshAcl(); await this.reconcile(); };
   }

@@ -606,3 +606,32 @@ Graph browser fixture 使用真實 Application、BotAuthentication、WikiStore�
 原生 Hermes fake-model Host 與 mock compiler；慢回應／分頁／權限錯誤另用明確標示的 route mock。
 這不代表已驗證真實外部 provider 的 compiler 品質、embedding 效能或大型知識庫 SLA。
 完整結果、限制與 rollback 見 [Part 3 完成報告](../../docs/frontend-workspace-part-3.md)。
+
+### Graph Memory V2 write pipeline (Part 1)
+
+`graph.evolution.graphCompilerVersion` accepts `"v1"` (default) or `"v2"`.
+The trusted ingestion CLI config accepts the same `graphCompilerVersion` key at its root.
+V2 preserves the existing queue, lease fencing, immutable Wiki revisions, namespace ACLs,
+PostgreSQL and GCS object adapters. Apply Runtime migration `009_graph_memory_v2.sql`
+and the updated grants with your normal administrator rollout **before** starting this version;
+the application never runs PostgreSQL DDL. No production migration or deployment is part of acceptance.
+
+Use a fresh namespace for V2 acceptance. The first successful publication pins a namespace's
+compiler version; changing the flag does not silently recompile already completed V1 jobs.
+Changing a namespace's compiler version requires an explicit administrator migration/rebuild plan.
+Disabling evolution stops ingestion/compilation; it does not erase immutable historical records.
+
+Subjects retain permanent IDs independently of their Wiki Page IDs. An evidenced component can
+share its parent's Wiki page with a stable section key. New identities get minimal profile sections;
+events and mutable state use separate fact edges. A known subject receiving only an event produces
+no unnecessary Wiki revision. Event time never falls back to ingestion time. Host completion delivery
+persists the original Run creation timestamp in `referenceTime`; legacy completion records remain
+valid and leave relative dates unresolved. Trusted internal callers can provide `{instant,timezone}`;
+source text cannot select namespace, credentials or tools.
+
+Full source-level edge and attribute evidence is stored independently of the bounded 20-source
+Wiki frontmatter window. Revocation synchronously invalidates source evidence and clears affected
+edge vectors. A mixed-source Wiki is safely withdrawn and surviving-source jobs are queued to rebuild
+it; their evidence and immutable Wiki history remain stored. Rebuild can temporarily remove that Wiki
+from V1 search. V2 Runtime retrieval, temporal latest views, embedding indexing and browser UI are
+Part 2 and are intentionally not enabled here. Part 1 storage lookups are available to acceptance tests.

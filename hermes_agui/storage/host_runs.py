@@ -78,6 +78,7 @@ class DurableHostRuns:
         stop.set()
 
     async def _run(self, lease, run, execute_native, lost):
+        source_run = await asyncio.to_thread(self.runs.get, self.scope, run.turn.run_id)
         manifest = await asyncio.to_thread(self.runs.profile, self.scope)
         with TemporaryDirectory(prefix="agui-run-", dir=self.scratch) as directory:
             home = Path(directory).resolve()
@@ -111,6 +112,7 @@ class DurableHostRuns:
                 if self.graph_completions and self.bot.server.runtime_memory_key:
                     generation = await asyncio.to_thread(
                         stage_evidence, self.profiles, self.scope, profile.revision, run.turn, result,
+                        reference_time=source_run.created_at if source_run is not None else None,
                     )
                 if run.stop.is_set():
                     status, profile = "interrupted", None

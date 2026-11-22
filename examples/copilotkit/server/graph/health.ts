@@ -33,6 +33,8 @@ export function wikiHealth(queue: DocumentIngestor, namespace: Namespace) {
   const oldest = store.db.prepare(`SELECT min(created) AS t FROM completion_times WHERE ns=? AND job IN
     (SELECT id FROM ingest_jobs WHERE ns=? AND state IN ('pending','running'))`).get(ns, ns)?.t;
   result.lagMs = oldest ? Math.max(0, Date.now() - Number(oldest)) : 0;
-  return result;
+  const count = (table: string) => Number(store.db.prepare(`SELECT count(*) AS n FROM ${table} WHERE ns=?`).get(ns)?.n ?? 0);
+  return {...result,subjects:count("graph_subjects"),factEdges:count("graph_fact_edges"),events:count("graph_events"),
+    edgeEvidence:count("graph_edge_evidence"),attributeEvidence:count("graph_subject_attribute_evidence"),edgeEmbeddings:count("graph_edge_embeddings")};
 }
 export function scopedReindex(store: WikiStore, ns: Namespace) { store.reindex(ns); }

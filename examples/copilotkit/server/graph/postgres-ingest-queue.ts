@@ -1,3 +1,5 @@
+import { readSubjects, readAttributes, postgresGraphConnection, writeGraph } from "./v2-store";
+import type { GraphPublication } from "./v2-types";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { UploadSchema, type Job } from "./ingest-queue";
@@ -21,8 +23,18 @@ function leaseDuration(ms: number) {
 export class PostgresDocumentIngestor implements IngestStore {
   readonly sources: PostgresSourceStore;
   constructor(readonly store: PostgresWikiStore) { this.sources = new PostgresSourceStore(store); }
+  async graphSubjects(ns: Namespace) {
+    const client = await this.store.pool.connect();
+    try { return await readSubjects(postgresGraphConnection(client),namespaceKey(ns)); } finally { client.release(); }
+  }
+  async graphAttributes(ns: Namespace,page: string) {
+    const client = await this.store.pool.connect();
+    try { return await readAttributes(postgresGraphConnection(client),namespaceKey(ns),page); } finally { client.release(); }
+  }
   async ready() {
     await this.sources.ready();
+    await this.store.pool.query(`SELECT s.subject_id,e.edge_id,a.attribute_id FROM ${schema}.graph_subjects s
+      JOIN ${schema}.graph_fact_edges e ON e.ns=s.ns JOIN ${schema}.graph_subject_attribute_evidence a ON a.ns=s.ns LIMIT 0`);
     await this.store.pool.query(`SELECT j.id,k.key,h.hash FROM ${schema}.graph_jobs j
       JOIN ${schema}.graph_ingest_keys k ON k.job=j.id JOIN ${schema}.graph_session_knowledge h ON h.job=j.id LIMIT 0`);
   }
@@ -31,7 +43,7 @@ export class PostgresDocumentIngestor implements IngestStore {
     if (origin && SessionSourceSchema.parse(origin.provenance).botId !== ns.botId) throw new Error("Source outside owning scope");
     if (Buffer.byteLength(input.content) > 1048576 || input.content.includes("\0")) throw new Error("Invalid document size/text");
     const hash = digest(input.content);
-    const fingerprint = digest(JSON.stringify([input.sourceId ?? null, hash, input.title, input.mime, origin ?? null]));
+    const fingerprint = digest(JSON.stringify([input.sourceId ?? null, hash, input.title, input.mime, origin ? {...origin,referenceTime:undefined} : null]));
     const object = await this.store.objects.create(`sources/${key}/${randomUUID()}.md`, Buffer.from(input.content));
     const originalNs = origin && ns.visibility === "project_shared"
       ? { ...ns, visibility: "bot_private" as const, botId: origin.provenance.botId } : undefined;
@@ -126,10 +138,17 @@ export class PostgresDocumentIngestor implements IngestStore {
     }
     return results;
   }
-  async publish(ns: Namespace, job: Job, inputs: Publication[], check: () => void) {
+  async publish(ns: Namespace, job: Job, publication: Publication[] | GraphPublication, check: () => void) {
     if (job.ns !== namespaceKey(ns)) throw new Error("Job scope mismatch");
+    const inputs = Array.isArray(publication) ? publication : publication.pages;
+    const raw = !Array.isArray(publication) ? await this.source(job) : undefined;
     const complete = async (client: PoolClient) => {
       check();
+      const mode = await client.query(`SELECT version FROM ${schema}.graph_compiler_namespaces WHERE ns=$1`,[job.ns]);
+      const version = Array.isArray(publication) ? "v1" : "v2";
+      if (mode.rows[0] && mode.rows[0].version !== version) throw new Error("Namespace compiler version conflict");
+      await client.query(`INSERT INTO ${schema}.graph_compiler_namespaces VALUES ($1,$2) ON CONFLICT DO NOTHING`,[job.ns,version]);
+      if (!Array.isArray(publication)) await writeGraph(postgresGraphConnection(client),job.ns,publication,raw!);
       const source = await client.query<{ bot: string }>(`SELECT bot FROM ${schema}.graph_sources WHERE ns=$1 AND id=$2 AND version=$3`, [job.ns, job.source, job.version]);
       await this.store.authorizePublication?.(client, ns, source.rows.map(row => row.bot));
       const result = await client.query(`UPDATE ${schema}.graph_jobs j SET state='completed',token=NULL,lease=NULL,error=NULL

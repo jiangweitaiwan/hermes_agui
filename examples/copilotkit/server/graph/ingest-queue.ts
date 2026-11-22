@@ -1,4 +1,7 @@
-import type { IngestStore, Publication } from "./ingest-store";
+import { v2SqliteSchema } from "./v2-sqlite-schema";
+import { readSubjects, readAttributes, sqliteGraphConnection, writeGraphSqlite } from "./v2-store";
+import type { GraphPublication } from "./v2-types";
+import type { IngestStore, IngestOrigin, Publication } from "./ingest-store";
 import { parsePage, terms } from "./markdown";
 import { SessionSourceSchema, type Provenance } from "./provenance";
 import { randomUUID } from "node:crypto";
@@ -15,7 +18,7 @@ export interface Job {
   id: string; ns: string; source: string; version: number; state: string; attempt: number;
   token: string | null; lease: number; available: number; error: string | null;
 }
-export interface RawSource { id: string; ns: string; version: number; hash: string; title: string; content: string; deleted: number; botId?: string; provenance?: Provenance; classification?: string; evidence?: { user: string; confirmed: boolean; assistants: string[] } }
+export interface RawSource { id: string; ns: string; version: number; hash: string; title: string; content: string; deleted: number; botId?: string; provenance?: Provenance; classification?: string; referenceTime?: import("./temporal-resolver").ReferenceTime; evidence?: { user: string; confirmed: boolean; assistants: string[] } }
 
 /** Only server-resolved namespaces enter this service. No browser/LLM scope is accepted. */
 export class DocumentIngestor implements IngestStore {
@@ -38,15 +41,19 @@ export class DocumentIngestor implements IngestStore {
       provenance TEXT NOT NULL, classification TEXT NOT NULL, PRIMARY KEY(ns,source));
       CREATE TABLE IF NOT EXISTS ingest_keys (ns TEXT NOT NULL, key TEXT NOT NULL, fingerprint TEXT NOT NULL,
       job TEXT NOT NULL REFERENCES ingest_jobs(id), PRIMARY KEY(ns,key));`);
+    store.db.exec(v2SqliteSchema);
   }
-  enqueue(namespace: Namespace, value: unknown, origin?: { provenance: Provenance; classification: string; knowledgeHash?: string; evidence?: RawSource["evidence"] }): string {
+  graphSubjects(ns: Namespace) { return readSubjects(sqliteGraphConnection(this.store.db),namespaceKey(ns)); }
+  graphAttributes(ns: Namespace, page: string) { return readAttributes(sqliteGraphConnection(this.store.db),namespaceKey(ns),page); }
+  enqueue(namespace: Namespace, value: unknown, origin?: { provenance: Provenance; classification: string; knowledgeHash?: string; referenceTime?: RawSource["referenceTime"]; evidence?: RawSource["evidence"] }): string {
     if (origin) SessionSourceSchema.parse(origin.provenance);
     const ns = namespaceKey(NamespaceSchema.parse(namespace));
     const input = UploadSchema.parse(value);
     if (Buffer.byteLength(input.content) > 1048576 || input.content.includes("\0")) throw new Error("Invalid document size/text");
     const hash = digest(input.content);
-    const fingerprint = digest(JSON.stringify([input.sourceId ?? null, hash, input.title, input.mime, origin ?? null]));
+    const fingerprint = digest(JSON.stringify([input.sourceId ?? null, hash, input.title, input.mime, origin ? {...origin,referenceTime:undefined} : null]));
     return this.store.transaction(() => {
+      this.store.db.prepare("INSERT OR IGNORE INTO namespaces VALUES (?,?)").run(ns,JSON.stringify(namespace));
       const prior = this.store.db.prepare("SELECT * FROM ingest_keys WHERE ns=? AND key=?").get(ns, input.idempotencyKey);
       if (prior) {
         if (prior.fingerprint !== fingerprint) throw new Error("Idempotency conflict");
@@ -78,9 +85,7 @@ export class DocumentIngestor implements IngestStore {
           .run(id, ns, version, hash, input.title, input.content);
         this.store.db.prepare("INSERT OR IGNORE INTO source_owners VALUES (?,?,?)").run(ns, id, namespace.botId);
         this.store.db.prepare("INSERT INTO source_versions VALUES (?,?,?,?)").run(ns, id, version, namespace.botId);
-        if (origin?.evidence) this.store.db.prepare("INSERT INTO session_evidence VALUES (?,?,?)").run(ns, id, JSON.stringify(origin.evidence));
-        if (origin) this.store.db.prepare("INSERT INTO session_origins VALUES (?,?,?,?)")
-          .run(ns, id, JSON.stringify(origin.provenance), origin.classification);
+        this.recordOrigin(ns,id,version,origin);
         this.store.db.prepare("INSERT INTO ingest_jobs(id,ns,source,version,state) VALUES (?,?,?,?, 'pending')").run(job, ns, id, version);
       }
       this.store.db.prepare("INSERT OR IGNORE INTO namespaces VALUES (?,?)").run(ns, JSON.stringify(namespace));
@@ -89,6 +94,12 @@ export class DocumentIngestor implements IngestStore {
       this.store.db.prepare("INSERT INTO ingest_keys VALUES (?,?,?,?)").run(ns, input.idempotencyKey, fingerprint, job);
       return job;
     });
+  }
+  private recordOrigin(ns: string, id: string, version: number, origin?: IngestOrigin) {
+    if (origin?.referenceTime) this.store.db.prepare("INSERT INTO graph_source_times VALUES (?,?,?,?,?)").run(ns,id,version,origin.referenceTime.instant,origin.referenceTime.timezone);
+    if (origin?.evidence) this.store.db.prepare("INSERT INTO session_evidence VALUES (?,?,?)").run(ns, id, JSON.stringify(origin.evidence));
+    if (origin) this.store.db.prepare("INSERT INTO session_origins VALUES (?,?,?,?)")
+      .run(ns, id, JSON.stringify(origin.provenance), origin.classification);
   }
   current(ns: Namespace, page: string) {
     const row = this.store.active(namespaceKey(ns), page);
@@ -103,9 +114,16 @@ export class DocumentIngestor implements IngestStore {
         return { id: page.id, title: page.title, body: page.body.slice(0, 4000) };
       });
   }
-  publish(ns: Namespace, job: Job, inputs: Publication[], check: () => void) {
+  publish(ns: Namespace, job: Job, publication: Publication[] | GraphPublication, check: () => void) {
+    if (job.ns !== namespaceKey(ns)) throw new Error("Job scope mismatch");
+    const inputs = Array.isArray(publication) ? publication : publication.pages;
     const complete = () => {
       check();
+      const mode = this.store.db.prepare("SELECT version FROM graph_compiler_namespaces WHERE ns=?").get(job.ns);
+      const version = Array.isArray(publication) ? "v1" : "v2";
+      if (mode && mode.version !== version) throw new Error("Namespace compiler version conflict");
+      this.store.db.prepare("INSERT OR IGNORE INTO graph_compiler_namespaces VALUES (?,?)").run(job.ns,version);
+      if (!Array.isArray(publication)) writeGraphSqlite(this.store.db,job.ns,publication,this.source(job));
       for (const input of inputs) for (const source of parsePage(input.markdown).sources) {
         if (!this.store.sourceValid(namespaceKey(ns), source)) throw new Error("Revoked provenance");
       }
@@ -156,8 +174,9 @@ export class DocumentIngestor implements IngestStore {
     const versionOwner = this.store.db.prepare("SELECT bot FROM source_versions WHERE ns=? AND source=? AND version=?").get(job.ns, job.source, job.version);
     if (!versionOwner && owners.length > 1) throw new Error("Ambiguous historical source owner; reimport required");
     const owner = versionOwner ?? owners[0];
+    const time = this.store.db.prepare("SELECT instant,timezone FROM graph_source_times WHERE ns=? AND source_id=? AND source_version=?").get(job.ns,job.source,job.version);
     const evidence = this.store.db.prepare("SELECT content FROM session_evidence WHERE ns=? AND source=?").get(job.ns, job.source);
-    return { ...source, ...(evidence ? { evidence: JSON.parse(String(evidence.content)) } : {}), ...(owner ? { botId: String(owner.bot) } : {}), ...(origin ? { provenance: SessionSourceSchema.parse(JSON.parse(String(origin.provenance))), classification: String(origin.classification) } : {}) } as unknown as RawSource;
+    return { ...source, ...(time ? { referenceTime: {instant:String(time.instant),timezone:String(time.timezone)} } : {}), ...(evidence ? { evidence: JSON.parse(String(evidence.content)) } : {}), ...(owner ? { botId: String(owner.bot) } : {}), ...(origin ? { provenance: SessionSourceSchema.parse(JSON.parse(String(origin.provenance))), classification: String(origin.classification) } : {}) } as unknown as RawSource;
   }
   complete(job: Job) {
     this.source(job);
@@ -229,6 +248,19 @@ export class DocumentIngestor implements IngestStore {
       if (!this.store.db.prepare("SELECT 1 FROM document_sources WHERE ns=? AND id=?").get(key, sourceId)) throw new Error("Unknown source in namespace");
       this.store.db.prepare("UPDATE document_sources SET deleted=1 WHERE ns=? AND id=?").run(key, sourceId);
       this.store.db.prepare("UPDATE ingest_jobs SET state='cancelled',token=NULL WHERE ns=? AND source=?").run(key, sourceId);
+      this.store.db.prepare(`DELETE FROM graph_edge_embeddings WHERE ns=? AND edge_id IN
+        (SELECT edge_id FROM graph_edge_evidence WHERE ns=? AND source_id=?)`).run(key,key,sourceId);
+      const affected = this.store.db.prepare(`SELECT DISTINCT s.wiki_page_id FROM graph_subject_attribute_evidence a
+        JOIN graph_subjects s ON s.ns=a.ns AND s.subject_id=a.subject_id WHERE a.ns=? AND a.source_id=?`).all(key,sourceId);
+      for (const row of affected) {
+        this.withdraw(key,String(row.wiki_page_id));
+        this.store.db.prepare(`UPDATE ingest_jobs SET state='pending',attempt=0,token=NULL,available=0,error=NULL
+          WHERE ns=? AND source<>? AND EXISTS (SELECT 1 FROM graph_subject_attribute_evidence a
+            JOIN graph_subjects s ON s.ns=a.ns AND s.subject_id=a.subject_id
+            JOIN document_sources d ON d.ns=a.ns AND d.id=a.source_id AND d.version=a.source_version
+            WHERE a.ns=ingest_jobs.ns AND a.source_id=ingest_jobs.source AND a.source_version=ingest_jobs.version
+              AND s.wiki_page_id=? AND NOT d.deleted)`).run(key,sourceId,row.wiki_page_id);
+      }
       for (const row of this.store.db.prepare("SELECT page FROM pages WHERE ns=?").all(key)) {
         const page = this.store.read(this.store.active(key, String(row.page))!);
         if (!page.sources.some(s => "kind" in s ? s.sourceId === sourceId : this.sessionSource(key, s) === sourceId)) continue;

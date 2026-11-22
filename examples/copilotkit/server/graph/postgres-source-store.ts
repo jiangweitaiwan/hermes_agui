@@ -1,3 +1,5 @@
+import { revokeGraph } from "./v2-revoke";
+import { postgresGraphConnection } from "./v2-store";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { z } from "zod";
@@ -62,6 +64,7 @@ export class PostgresSourceStore implements SourceStore {
       (ns,id,version,title,hash,object_key,generation,size,bot) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
     [ns, id, version, input.title, object.hash, object.key, object.generation, object.size, namespace.botId]);
     await client.query(`INSERT INTO ${schema}.graph_source_owners VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, [ns, id, namespace.botId]);
+    if (origin?.referenceTime) await client.query(`INSERT INTO ${schema}.graph_source_times VALUES ($1,$2,$3,$4,$5)`,[ns,id,version,origin.referenceTime.instant,origin.referenceTime.timezone]);
     if (origin) await client.query(`INSERT INTO ${schema}.graph_session_origins VALUES ($1,$2,$3,$4,$5)`,
       [ns, id, JSON.stringify(origin.provenance), origin.classification, origin.evidence ? JSON.stringify(origin.evidence) : null]);
     return { id, version };
@@ -83,7 +86,8 @@ export class PostgresSourceStore implements SourceStore {
     const valid = await this.wiki.sourceValid(row.ns, { kind: "document", botId: row.bot, sourceId: row.id,
       version: row.version, hash: row.hash, title: row.title });
     if (!valid || digest(content) !== row.hash) throw new Error("Source revoked or corrupt");
-    return { id: row.id, ns: row.ns, version: row.version, hash: row.hash, title: row.title, content, deleted: 0, botId: row.bot,
+    const time = await this.wiki.pool.query<{instant:string;timezone:string}>(`SELECT instant,timezone FROM ${schema}.graph_source_times WHERE ns=$1 AND source_id=$2 AND source_version=$3`,[row.ns,row.id,row.version]);
+    return { ...(time.rows[0] ? {referenceTime:time.rows[0]} : {}), id: row.id, ns: row.ns, version: row.version, hash: row.hash, title: row.title, content, deleted: 0, botId: row.bot,
       ...(row.provenance ? { provenance: SessionSourceSchema.parse(row.provenance), classification: row.classification! } : {}),
       ...(row.evidence ? { evidence: row.evidence } : {}) };
   }
@@ -118,6 +122,14 @@ export class PostgresSourceStore implements SourceStore {
       if (!rows.length) throw new Error("Unknown source in namespace");
       if (namespace.visibility === "bot_private" && rows.some(row => row.bot !== namespace.botId)) throw new Error("Source outside owning scope");
       await client.query(`UPDATE ${schema}.graph_sources SET deleted=true WHERE ns=$1 AND id=$2`, [ns, id]);
+      const pages = await revokeGraph(postgresGraphConnection(client),ns,id);
+      await client.query(`DELETE FROM ${schema}.graph_pages WHERE ns=$1 AND page=ANY($2::text[])`,[ns,pages]);
+      await client.query(`DELETE FROM ${schema}.graph_edges WHERE ns=$1 AND target=ANY($2::text[])`,[ns,pages]);
+      await client.query(`UPDATE ${schema}.graph_jobs j SET state='pending',attempt=0,token=NULL,lease=NULL,available=clock_timestamp(),error=NULL
+        WHERE j.ns=$1 AND j.source<>$2 AND EXISTS (SELECT 1 FROM ${schema}.graph_subject_attribute_evidence a
+          JOIN ${schema}.graph_subjects s ON s.ns=a.ns AND s.subject_id=a.subject_id
+          JOIN ${schema}.graph_sources d ON d.ns=a.ns AND d.id=a.source_id AND d.version=a.source_version
+          WHERE a.ns=j.ns AND a.source_id=j.source AND a.source_version=j.version AND s.wiki_page_id=ANY($3::text[]) AND NOT d.deleted)`,[ns,id,pages]);
       // Provenance is indexed at publication, so withdrawal never downloads objects under SQL locks.
       const withdrawn = await client.query<{ page: string }>(`DELETE FROM ${schema}.graph_pages p WHERE p.ns=$1 AND EXISTS (
         SELECT 1 FROM ${schema}.graph_revision_provenance r WHERE r.ns=p.ns AND r.page=p.page AND r.revision=p.revision

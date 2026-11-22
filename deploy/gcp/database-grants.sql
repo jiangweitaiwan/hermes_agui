@@ -18,3 +18,10 @@ GRANT SELECT,INSERT,DELETE ON hermes_agui_runtime.graph_page_owners,hermes_agui_
 
 GRANT SELECT,INSERT,DELETE ON hermes_agui_host.run_events TO hermes_host;
 GRANT SELECT,INSERT,UPDATE ON hermes_agui_runtime.task_deliveries TO hermes_runtime;
+
+-- Runtime 009: immutable identities, facts and evidence; vectors are replaceable indexes.
+GRANT SELECT,INSERT ON hermes_agui_runtime.graph_subjects,hermes_agui_runtime.graph_subject_aliases,
+  hermes_agui_runtime.graph_events,hermes_agui_runtime.graph_fact_edges,hermes_agui_runtime.graph_edge_evidence,
+  hermes_agui_runtime.graph_subject_attribute_evidence,hermes_agui_runtime.graph_compiler_namespaces,
+  hermes_agui_runtime.graph_source_times TO hermes_runtime;
+GRANT SELECT,INSERT,UPDATE,DELETE ON hermes_agui_runtime.graph_edge_embeddings TO hermes_runtime;

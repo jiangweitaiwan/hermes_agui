@@ -13,7 +13,7 @@ import { WikiStore, safePath, namespaceKey } from "./wiki-store";
 import { DocumentIngestor } from "./ingest-queue";
 import { OpenAICompilerLLM, WikiCompiler, WORKER_SHUTDOWN } from "./compiler";
 
-const Config = z.object({ namespace: NamespaceSchema, embedding: EmbeddingConfig.optional(), compiler: z.object({
+const Config = z.object({ namespace: NamespaceSchema, graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EmbeddingConfig.optional(), compiler: z.object({
   baseUrl: z.string().url(), model: z.string().min(1), keyEnv: z.string().min(1),
   timeoutMs: z.number().int().positive().max(120000).optional(), maxTokens: z.number().int().positive().max(8192).optional(),
 }).strict().optional() }).strict();
@@ -29,7 +29,7 @@ function jsonFile(filename: string, limit: number) {
  */
 async function work(queue: DocumentIngestor | PostgresDocumentIngestor, config: z.infer<typeof Config>, jobId?: string) {
   if (!config.compiler) throw new Error("Compiler configuration required");
-  const worker = new WikiCompiler(queue, new OpenAICompilerLLM(config.compiler));
+  const worker = new WikiCompiler(queue, new OpenAICompilerLLM(config.compiler),120000,config.graphCompilerVersion);
   const controller = new AbortController(), cancel = () => controller.abort(WORKER_SHUTDOWN);
   process.once("SIGINT", cancel); process.once("SIGTERM", cancel);
   try { return { processedJobId: await (jobId ? worker.processJob(config.namespace, jobId, controller.signal) : worker.runNext(config.namespace, controller.signal)) ?? null }; }

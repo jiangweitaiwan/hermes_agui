@@ -8,6 +8,7 @@ const id = z.string().min(1).max(512);
 const bounded = (limit: number) => z.string().refine(text => Buffer.byteLength(text) <= limit);
 const completion = z.object({
   namespace: NamespaceSchema.extend({ visibility: z.literal("bot_private") }),
+  referenceTime: z.object({instant:z.string().datetime(),timezone:z.string().max(100).refine(zone=>{try{new Intl.DateTimeFormat("en",{timeZone:zone});return true;}catch{return false;}})}).strict().optional(),
   threadId: id, runId: id, messageId: id, user: bounded(16384),
   assistants: z.tuple([z.object({ id: z.literal("final"), text: bounded(65536) }).strict()]),
 }).strict();

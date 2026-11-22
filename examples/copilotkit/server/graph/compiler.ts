@@ -1,3 +1,4 @@
+import { compileV2 } from "./compiler-v2";
 import { z } from "zod";
 import { stringify } from "yaml";
 import { namespaceKey } from "./wiki-store";
@@ -70,7 +71,7 @@ function validateBudget(value: number, maximum: number) {
 }
 
 export class WikiCompiler {
-  constructor(readonly queue: IngestStore, readonly llm: CompilerLLM, readonly timeoutMs = 120000) {}
+  constructor(readonly queue: IngestStore, readonly llm: CompilerLLM, readonly timeoutMs = 120000, readonly graphCompilerVersion: "v1" | "v2" = "v1") {}
   async runNext(namespace: Namespace, signal = new AbortController().signal): Promise<string | undefined> {
     return this.process(namespace, null, signal);
   }
@@ -98,6 +99,11 @@ export class WikiCompiler {
     renew();
     try {
       const source = await this.queue.source(job);
+      if (this.graphCompilerVersion === "v2") {
+        const publication = await compileV2(this.queue, { json: (stage,data,signal) => this.call(stage,data,signal) }, ns,source,combined);
+        await this.queue.publish(ns,job,publication,() => combined.throwIfAborted());
+        return job.id;
+      }
       const claims = await this.analyze(source, combined);
       const generation = Generation.parse(await this.call("generation", {
         schema: '{pages:[{id,title,type,tags:[],related:[],claims:[zero-based claim indices]}]}',

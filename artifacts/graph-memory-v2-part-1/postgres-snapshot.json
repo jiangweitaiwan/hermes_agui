@@ -1,0 +1,821 @@
+{
+  "mockLLM": true,
+  "backend": "local PostgreSQL + filesystem mock GCS",
+  "namespaceKey": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+  "tables": {
+    "graph_subjects": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "identity_key": "person:bob",
+        "wiki_page_id": "wiki_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "parent_subject_id": null,
+        "section_key": "section_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "data": {
+          "type": "person",
+          "aliases": [],
+          "subjectId": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+          "sectionKey": "section_3bcb1a8f6b3aa135315f227ff5dd8812",
+          "wikiPageId": "wiki_3bcb1a8f6b3aa135315f227ff5dd8812",
+          "identityKey": "person:bob",
+          "canonicalName": "Bob"
+        },
+        "canonical_name": "Bob",
+        "subject_type": "person",
+        "created_at": "2026-11-22T12:39:03.956Z",
+        "updated_at": "2026-11-22T12:39:03.956Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "identity_key": "role:ai 助理",
+        "wiki_page_id": "wiki_551b400b479d4ce609eb43b752d5e4e8",
+        "parent_subject_id": null,
+        "section_key": "section_551b400b479d4ce609eb43b752d5e4e8",
+        "data": {
+          "type": "role",
+          "aliases": [],
+          "subjectId": "subject_551b400b479d4ce609eb43b752d5e4e8",
+          "sectionKey": "section_551b400b479d4ce609eb43b752d5e4e8",
+          "wikiPageId": "wiki_551b400b479d4ce609eb43b752d5e4e8",
+          "identityKey": "role:ai 助理",
+          "canonicalName": "AI 助理"
+        },
+        "canonical_name": "AI 助理",
+        "subject_type": "role",
+        "created_at": "2026-11-22T12:39:03.982Z",
+        "updated_at": "2026-11-22T12:39:03.982Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "identity_key": "document:事後檢討文件",
+        "wiki_page_id": "wiki_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "parent_subject_id": null,
+        "section_key": "section_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "data": {
+          "type": "document",
+          "aliases": [],
+          "subjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+          "sectionKey": "section_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+          "wikiPageId": "wiki_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+          "identityKey": "document:事後檢討文件",
+          "canonicalName": "事後檢討文件"
+        },
+        "canonical_name": "事後檢討文件",
+        "subject_type": "document",
+        "created_at": "2026-11-22T12:39:03.985Z",
+        "updated_at": "2026-11-22T12:39:03.985Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "identity_key": "person:alice",
+        "wiki_page_id": "wiki_bc2ce38e6a0c5811785c2cd238b41041",
+        "parent_subject_id": null,
+        "section_key": "section_bc2ce38e6a0c5811785c2cd238b41041",
+        "data": {
+          "type": "person",
+          "aliases": [],
+          "subjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+          "sectionKey": "section_bc2ce38e6a0c5811785c2cd238b41041",
+          "wikiPageId": "wiki_bc2ce38e6a0c5811785c2cd238b41041",
+          "identityKey": "person:alice",
+          "canonicalName": "Alice"
+        },
+        "canonical_name": "Alice",
+        "subject_type": "person",
+        "created_at": "2026-11-22T12:39:03.954Z",
+        "updated_at": "2026-11-22T12:39:03.954Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "identity_key": "system:搜尋推薦服務",
+        "wiki_page_id": "wiki_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "parent_subject_id": null,
+        "section_key": "section_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "data": {
+          "type": "system",
+          "aliases": [],
+          "subjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "sectionKey": "section_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "wikiPageId": "wiki_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "identityKey": "system:搜尋推薦服務",
+          "canonicalName": "搜尋推薦服務"
+        },
+        "canonical_name": "搜尋推薦服務",
+        "subject_type": "system",
+        "created_at": "2026-11-22T12:39:03.966Z",
+        "updated_at": "2026-11-22T12:39:03.966Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "identity_key": "component:featurehub 的存取層",
+        "wiki_page_id": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "parent_subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "section_key": "section_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "data": {
+          "type": "component",
+          "aliases": [],
+          "subjectId": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+          "sectionKey": "section_2ef40e0131a8e49d9ec05dd15a0fde34",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "component:featurehub 的存取層",
+          "canonicalName": "FeatureHub 的存取層",
+          "parentSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6"
+        },
+        "canonical_name": "FeatureHub 的存取層",
+        "subject_type": "component",
+        "created_at": "2026-11-22T12:39:03.218Z",
+        "updated_at": "2026-11-22T12:39:03.218Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "identity_key": "component:featurehub 的快取",
+        "wiki_page_id": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "parent_subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "section_key": "section_835a00c57f7bc593a48098fab903e1ac",
+        "data": {
+          "type": "component",
+          "aliases": [],
+          "subjectId": "subject_835a00c57f7bc593a48098fab903e1ac",
+          "sectionKey": "section_835a00c57f7bc593a48098fab903e1ac",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "component:featurehub 的快取",
+          "canonicalName": "FeatureHub 的快取",
+          "parentSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6"
+        },
+        "canonical_name": "FeatureHub 的快取",
+        "subject_type": "component",
+        "created_at": "2026-11-22T12:39:03.210Z",
+        "updated_at": "2026-11-22T12:39:03.210Z"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "identity_key": "system:featurehub",
+        "wiki_page_id": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "parent_subject_id": null,
+        "section_key": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+        "data": {
+          "type": "system",
+          "aliases": [],
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "system:featurehub",
+          "canonicalName": "FeatureHub"
+        },
+        "canonical_name": "FeatureHub",
+        "subject_type": "system",
+        "created_at": "2026-11-22T12:39:03.203Z",
+        "updated_at": "2026-11-22T12:39:03.203Z"
+      }
+    ],
+    "graph_subject_aliases": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "alias_normalized": "featurehub",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "alias_normalized": "featurehub 的快取",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "alias_normalized": "featurehub 的存取層",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "alias_normalized": "featurehub",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "alias_normalized": "featurehub 的快取",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "alias_normalized": "featurehub 的存取層",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "alias_normalized": "alice",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "alias_normalized": "bob",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "alias_normalized": "搜尋推薦服務",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "alias_normalized": "featurehub",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "alias_normalized": "featurehub 的快取",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "alias_normalized": "ai 助理",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "subject_id": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "alias_normalized": "事後檢討文件",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1
+      }
+    ],
+    "graph_events": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "certain",
+            "occurredFrom": "2026-11-03T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/3"
+          },
+          "title": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "summary": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高"
+        }
+      }
+    ],
+    "graph_fact_edges": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_4eb6fc5321a14315b7aa3cc2d8972422ad172e3a89d4b9c8e22d08e86822c4b3",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "from_subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "to_subject_id": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "relation": "caused_degradation",
+        "fact_kind": "event",
+        "state_slot_key": null,
+        "occurred_from": "2026-10-26T00:00:00.000Z",
+        "semantic_hash": "4eb6fc5321a14315b7aa3cc2d8972422ad172e3a89d4b9c8e22d08e86822c4b3",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "certain",
+            "occurredTo": "2026-11-01T00:00:00.000Z",
+            "occurredFrom": "2026-10-26T00:00:00.000Z",
+            "timePrecision": "week",
+            "originalTimeText": "上週"
+          },
+          "edgeId": "edge_4eb6fc5321a14315b7aa3cc2d8972422ad172e3a89d4b9c8e22d08e86822c4b3",
+          "status": "active",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "factKind": "event",
+          "relation": "caused_degradation",
+          "certainty": "reported",
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T12:39:03.616Z",
+          "attribution": "user_stated",
+          "description": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+          "toSubjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "semanticHash": "4eb6fc5321a14315b7aa3cc2d8972422ad172e3a89d4b9c8e22d08e86822c4b3",
+          "fromSubjectId": "subject_835a00c57f7bc593a48098fab903e1ac"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "from_subject_id": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "to_subject_id": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "relation": "reported_issue",
+        "fact_kind": "event",
+        "state_slot_key": null,
+        "occurred_from": "2026-11-03T00:00:00.000Z",
+        "semantic_hash": "c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "certain",
+            "occurredFrom": "2026-11-03T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/3"
+          },
+          "edgeId": "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+          "status": "active",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "factKind": "event",
+          "relation": "reported_issue",
+          "certainty": "reported",
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T12:39:03.615Z",
+          "attribution": "user_stated",
+          "description": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+          "toSubjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "semanticHash": "c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+          "fromSubjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "from_subject_id": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "to_subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "relation": "rolled_back",
+        "fact_kind": "event",
+        "state_slot_key": null,
+        "occurred_from": "2026-11-04T00:00:00.000Z",
+        "semantic_hash": "7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "certain",
+            "occurredFrom": "2026-11-04T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "隔天"
+          },
+          "edgeId": "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+          "status": "active",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "factKind": "event",
+          "relation": "rolled_back",
+          "certainty": "reported",
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T12:39:03.616Z",
+          "attribution": "user_stated",
+          "description": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+          "toSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "semanticHash": "7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+          "fromSubjectId": "subject_3bcb1a8f6b3aa135315f227ff5dd8812"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_8be55cd9bf8f504fdccd499fd0bb1f4848a017618166c254f4dfb4190ec69d7d",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "from_subject_id": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "to_subject_id": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "relation": "drafted",
+        "fact_kind": "event",
+        "state_slot_key": null,
+        "occurred_from": null,
+        "semantic_hash": "8be55cd9bf8f504fdccd499fd0bb1f4848a017618166c254f4dfb4190ec69d7d",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "uncertain",
+            "timePrecision": "relative",
+            "originalTimeText": "會後"
+          },
+          "edgeId": "edge_8be55cd9bf8f504fdccd499fd0bb1f4848a017618166c254f4dfb4190ec69d7d",
+          "status": "active",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "factKind": "event",
+          "relation": "drafted",
+          "certainty": "reported",
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T12:39:03.617Z",
+          "attribution": "user_stated",
+          "description": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+          "toSubjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+          "semanticHash": "8be55cd9bf8f504fdccd499fd0bb1f4848a017618166c254f4dfb4190ec69d7d",
+          "fromSubjectId": "subject_551b400b479d4ce609eb43b752d5e4e8"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_d50e6b565d4fa7a57c90ee98e5d1397867af28a0f24c0f841bbd3be214f0fd50",
+        "event_id": "event_755e27dff988ecb7d5018ab414629d01",
+        "from_subject_id": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "to_subject_id": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "relation": "delivered_to",
+        "fact_kind": "event",
+        "state_slot_key": null,
+        "occurred_from": null,
+        "semantic_hash": "d50e6b565d4fa7a57c90ee98e5d1397867af28a0f24c0f841bbd3be214f0fd50",
+        "data": {
+          "time": {
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "timezone": "Asia/Taipei",
+            "confidence": "uncertain",
+            "timePrecision": "relative",
+            "originalTimeText": "會後"
+          },
+          "edgeId": "edge_d50e6b565d4fa7a57c90ee98e5d1397867af28a0f24c0f841bbd3be214f0fd50",
+          "status": "active",
+          "eventId": "event_755e27dff988ecb7d5018ab414629d01",
+          "factKind": "event",
+          "relation": "delivered_to",
+          "certainty": "reported",
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T12:39:03.617Z",
+          "attribution": "user_stated",
+          "description": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+          "toSubjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+          "semanticHash": "d50e6b565d4fa7a57c90ee98e5d1397867af28a0f24c0f841bbd3be214f0fd50",
+          "fromSubjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332"
+        }
+      }
+    ],
+    "graph_edge_evidence": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "quote_hash": "25c093f57c243a13c7cccac94798264f8b449294fff0337033bda2d47f09883d",
+        "data": {
+          "quote": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+          "position": 0,
+          "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+          "quoteHash": "25c093f57c243a13c7cccac94798264f8b449294fff0337033bda2d47f09883d",
+          "attribution": "user_stated",
+          "sourceVersion": 1
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_4eb6fc5321a14315b7aa3cc2d8972422ad172e3a89d4b9c8e22d08e86822c4b3",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "quote_hash": "fe1d3dbbd66682f07bf7e6f7dcf2fdfe7a9a3d0658c74d181fbd0eb7c00e79d6",
+        "data": {
+          "quote": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+          "position": 17,
+          "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+          "quoteHash": "fe1d3dbbd66682f07bf7e6f7dcf2fdfe7a9a3d0658c74d181fbd0eb7c00e79d6",
+          "attribution": "user_stated",
+          "sourceVersion": 1
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "quote_hash": "329b89ce5d1328330fe5b2f57997c50e645285e8e96d0a50b17c6eedb15809b3",
+        "data": {
+          "quote": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+          "position": 52,
+          "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+          "quoteHash": "329b89ce5d1328330fe5b2f57997c50e645285e8e96d0a50b17c6eedb15809b3",
+          "attribution": "user_stated",
+          "sourceVersion": 1
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_8be55cd9bf8f504fdccd499fd0bb1f4848a017618166c254f4dfb4190ec69d7d",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "quote_hash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+        "data": {
+          "quote": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+          "position": 85,
+          "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+          "quoteHash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+          "attribution": "user_stated",
+          "sourceVersion": 1
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "edge_id": "edge_d50e6b565d4fa7a57c90ee98e5d1397867af28a0f24c0f841bbd3be214f0fd50",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "quote_hash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+        "data": {
+          "quote": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+          "position": 85,
+          "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+          "quoteHash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+          "attribution": "user_stated",
+          "sourceVersion": 1
+        }
+      }
+    ],
+    "graph_subject_attribute_evidence": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_8610e01d1bdef9fc468dda5087992ebe7b96a8a41a8190aa43a113618e7fd65b",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "data": {
+          "kind": "component_property",
+          "text": "本機快取使用 TTL",
+          "evidence": {
+            "quote": "FeatureHub 的本機快取使用 TTL",
+            "position": 0,
+            "sourceId": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+            "quoteHash": "66a48c0bc7050ce3ac8e96e86ed24263f69cc828a5fc4118944be1b2ff77a2c1",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_835a00c57f7bc593a48098fab903e1ac",
+          "attributeId": "attr_8610e01d1bdef9fc468dda5087992ebe7b96a8a41a8190aa43a113618e7fd65b"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_b3e21e6f2dad8f29e0423ef2df77398eb648fbf2bcd9c753ee231c4ee4857901",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "data": {
+          "kind": "component_property",
+          "text": "存取層支援版本回滾",
+          "evidence": {
+            "quote": "FeatureHub 的存取層支援版本回滾",
+            "position": 23,
+            "sourceId": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+            "quoteHash": "e38f5aaf951c59838d6e73562933f21bb437a371f6138af402b616eadeaebf30",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+          "attributeId": "attr_b3e21e6f2dad8f29e0423ef2df77398eb648fbf2bcd9c753ee231c4ee4857901"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_c18371d9f4fa64687bfe447cf0ea5257516216018fc51b9c6dd452d128583ce6",
+        "subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "FeatureHub",
+          "evidence": {
+            "quote": "FeatureHub",
+            "position": 0,
+            "sourceId": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+            "quoteHash": "740e7ebf223c3946626cb434dec8134a0dc3cf86262065f0b0317e6ca14f33a7",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "attributeId": "attr_c18371d9f4fa64687bfe447cf0ea5257516216018fc51b9c6dd452d128583ce6"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_50cfce3f37c7dd1853b24832d966b43204cd0003e0b09cfefcea93c217bf0be0",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "FeatureHub 的快取",
+          "evidence": {
+            "quote": "FeatureHub 的本機快取",
+            "position": 0,
+            "sourceId": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+            "quoteHash": "018154214b2611b55f4622f725704c02d0256a8d3a41e6898893e2246628c646",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_835a00c57f7bc593a48098fab903e1ac",
+          "attributeId": "attr_50cfce3f37c7dd1853b24832d966b43204cd0003e0b09cfefcea93c217bf0be0"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_dbecf2ca31fedc4b70b5d80c10bab9619306a9e79cfb0d3ea9331b86f97d034f",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "FeatureHub 的存取層",
+          "evidence": {
+            "quote": "FeatureHub 的存取層",
+            "position": 23,
+            "sourceId": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+            "quoteHash": "e5520df6d9495a45557687b735b4fea7601cff7cc67c18a881f6b2a707b46259",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+          "attributeId": "attr_dbecf2ca31fedc4b70b5d80c10bab9619306a9e79cfb0d3ea9331b86f97d034f"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_8610e01d1bdef9fc468dda5087992ebe7b96a8a41a8190aa43a113618e7fd65b",
+        "subject_id": "subject_835a00c57f7bc593a48098fab903e1ac",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1,
+        "data": {
+          "kind": "component_property",
+          "text": "本機快取使用 TTL",
+          "evidence": {
+            "quote": "FeatureHub 的本機快取使用 TTL",
+            "position": 0,
+            "sourceId": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+            "quoteHash": "66a48c0bc7050ce3ac8e96e86ed24263f69cc828a5fc4118944be1b2ff77a2c1",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_835a00c57f7bc593a48098fab903e1ac",
+          "attributeId": "attr_8610e01d1bdef9fc468dda5087992ebe7b96a8a41a8190aa43a113618e7fd65b"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_b3e21e6f2dad8f29e0423ef2df77398eb648fbf2bcd9c753ee231c4ee4857901",
+        "subject_id": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1,
+        "data": {
+          "kind": "component_property",
+          "text": "存取層支援版本回滾",
+          "evidence": {
+            "quote": "FeatureHub 的存取層支援版本回滾",
+            "position": 23,
+            "sourceId": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+            "quoteHash": "e38f5aaf951c59838d6e73562933f21bb437a371f6138af402b616eadeaebf30",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_2ef40e0131a8e49d9ec05dd15a0fde34",
+          "attributeId": "attr_b3e21e6f2dad8f29e0423ef2df77398eb648fbf2bcd9c753ee231c4ee4857901"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_8b57aee7ffe01e2b04bd7155f060fd988817c310ce5f24b47cbdb70928ffd5ba",
+        "subject_id": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "Alice",
+          "evidence": {
+            "quote": "Alice",
+            "position": 9,
+            "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+            "quoteHash": "3bc51062973c458d5a6f2d8d64a023246354ad7e064b1e4e009ec8a0699a3043",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+          "attributeId": "attr_8b57aee7ffe01e2b04bd7155f060fd988817c310ce5f24b47cbdb70928ffd5ba"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_edf5e6b0fdb4d4ce82c9f0565114d21e72ef1736ef49fe0999abb036805ead05",
+        "subject_id": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "Bob",
+          "evidence": {
+            "quote": "Bob",
+            "position": 55,
+            "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+            "quoteHash": "cd9fb1e148ccd8442e5aa74904cc73bf6fb54d1d54d333bd596aa9bb4bb4e961",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+          "attributeId": "attr_edf5e6b0fdb4d4ce82c9f0565114d21e72ef1736ef49fe0999abb036805ead05"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_923d5e2d92101b421d2ab3d9051f383c7ea8c36aebf56e851ba8b497c9f51ee1",
+        "subject_id": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "搜尋推薦服務",
+          "evidence": {
+            "quote": "搜尋推薦服務",
+            "position": 19,
+            "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+            "quoteHash": "abe09acc0d5824d7fda4cff37363e392966465ea230802c513c1be8a0e5d8ab8",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+          "attributeId": "attr_923d5e2d92101b421d2ab3d9051f383c7ea8c36aebf56e851ba8b497c9f51ee1"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_fa2c48930d5c3d32f2a3909fd631c4666826d8d0104b8af9e2d7c1b7ea55a6de",
+        "subject_id": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "AI 助理",
+          "evidence": {
+            "quote": "AI 助理",
+            "position": 89,
+            "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+            "quoteHash": "37e942a05a52db19f9a49c5cebebc7fbf433530db33808526d2ae6d5e93feb7d",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_551b400b479d4ce609eb43b752d5e4e8",
+          "attributeId": "attr_fa2c48930d5c3d32f2a3909fd631c4666826d8d0104b8af9e2d7c1b7ea55a6de"
+        }
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "attribute_id": "attr_5a449b137c0af1e8cae4bdf49aa23a0049cf8e6b3f53de4295b669abfa14b02c",
+        "subject_id": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "data": {
+          "kind": "background",
+          "text": "事後檢討文件",
+          "evidence": {
+            "quote": "事後檢討文件",
+            "position": 97,
+            "sourceId": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+            "quoteHash": "60cd884c7a55c0524a7c097dd54e55474c4c68c41d43cfa7d0dbed5ef6d60e48",
+            "attribution": "user_stated",
+            "sourceVersion": 1
+          },
+          "subjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+          "attributeId": "attr_5a449b137c0af1e8cae4bdf49aa23a0049cf8e6b3f53de4295b669abfa14b02c"
+        }
+      }
+    ],
+    "graph_source_times": [
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "source_id": "1127b4a1-82aa-43a9-ae23-e2ae3d8fbdf9",
+        "source_version": 1,
+        "instant": "2026-11-03T08:00:00.000Z",
+        "timezone": "Asia/Taipei"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "source_id": "f36bde24-522f-4df5-bf09-24b483cf6ca2",
+        "source_version": 1,
+        "instant": "2026-11-03T08:00:00.000Z",
+        "timezone": "Asia/Taipei"
+      },
+      {
+        "ns": "3b50a925a9bc28feb882dc140d6bb582e7bbbf18117580872a3626f49bbe97a2",
+        "source_id": "8605e4c6-eee2-4d99-bb72-c8f73409c801",
+        "source_version": 1,
+        "instant": "2026-11-03T08:00:00.000Z",
+        "timezone": "Asia/Taipei"
+      }
+    ]
+  }
+}

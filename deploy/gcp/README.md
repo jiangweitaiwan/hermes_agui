@@ -11,7 +11,7 @@ Images and three entrypoint startup checks pass locally with SDK doubles; the co
 | `host.env.example` | Host and Host one-shot jobs |
 | `runtime.env.example` / `worker.env.example` | Node Runtime / Worker |
 | `frontend.env.example` | Vercel Vite build; public values only |
-| `database-grants.sql` | Schema owner, after Host 001–006 and Runtime 001–008 |
+| `database-grants.sql` | Schema owner, after Host 001–006 and Runtime 001–009 |
 | `compose.staging.yaml` | Optional operator-run staging composition; NOT RUN |
 
 Copy examples to `host.yaml`, `runtime.json`, `host.env`, `runtime.env`, `worker.env`; replace all placeholders.
@@ -45,3 +45,6 @@ long work needs chunking or a separate Jobs design.
 
 Never print environment dumps, tokens, service credentials, prompt bodies or connection URLs in logs. Restrict log
 access and inspect redacted job/run status. The SDK and provider transports must not be put in verbose wire-log mode.
+
+Graph Memory V2 adds Runtime `009_graph_memory_v2.sql` and immutable fact/evidence grants.
+Review and apply through the existing schema-owner process; app startup does not run migrations.

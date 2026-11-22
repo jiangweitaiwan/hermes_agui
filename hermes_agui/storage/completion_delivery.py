@@ -22,7 +22,7 @@ def _key(profiles, scope, revision):
     return f"{profiles.prefix}/{scope.object_namespace()}/{revision}/completion.json"
 
 
-def stage_evidence(profiles, scope, revision, turn, result):
+def stage_evidence(profiles, scope, revision, turn, result, *, reference_time=None):
     answer = result.get("final_response")
     if not isinstance(answer, str) or not answer.strip():
         return None
@@ -38,6 +38,15 @@ def stage_evidence(profiles, scope, revision, turn, result):
         "runId": turn.run_id, "threadId": turn.thread_id, "messageId": turn.message_id,
         "user": turn.text, "assistants": [{"id": "final", "text": answer}],
     }
+    if reference_time is not None:
+        if reference_time.utcoffset() is None:
+            raise ValueError("Source reference time must include timezone")
+        from datetime import UTC
+
+        payload["referenceTime"] = {
+            "instant": reference_time.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            "timezone": "UTC",
+        }
     return profiles.objects.create(_key(profiles, scope, revision), json.dumps(payload).encode())
 
 
