@@ -1,0 +1,13 @@
+
+=== no-tmp (failed) ===
+advisory — _BASELINE in scripts/check_no_tmp_literals.py is stale; regenerate it with --print-baseline (fewer hits than listed is progress, not a failure):
+  website/docs/getting-started/nix-setup.md: listed in _BASELINE but clean (or gone)
+host-config.yaml:8: scratch: /tmp
+host-config.yaml:11: root: /tmp/managed
+
+2 literal /tmp path(s) flagged. Resolve scratch space through hermes_constants.get_scratch_dir() (or $TMPDIR / tempfile, which Hermes points there), tell the model to do the same in skills and prompts, or mark a deliberate line with `no-tmp: ok — <why>` (same line or the line above). See scripts/check_no_tmp_literals.py.
+
+=== health (ok) ===
+code health: 29 files vs 933d967945cf: 0 blocking, 0 advisory (12.5s)
+
+scripts/check: 17 checks, FAILED: no-tmp

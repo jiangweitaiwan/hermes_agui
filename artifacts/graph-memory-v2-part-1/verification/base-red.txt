@@ -1,0 +1,35 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/graph-v2.test.ts --reporter=verbose
+
+
+ RUN  v3.2.4 /private/tmp/graph-v2-base-red/examples/copilotkit
+
+(node:73282) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v2.test.ts [ tests/graph-v2.test.ts ]
+Error: Cannot find module '../server/graph/compiler-v2' imported from '/private/tmp/graph-v2-base-red/examples/copilotkit/tests/graph-v2.test.ts'
+ ❯ tests/graph-v2.test.ts:9:1
+      7| import { DocumentIngestor } from "../server/graph/ingest-queue";
+      8| import { WikiCompiler } from "../server/graph/compiler";
+      9| import { compileV2 } from "../server/graph/compiler-v2";
+       | ^
+     10| import { activeEdges, sqliteGraphConnection } from "../server/graph/v2…
+     11| import { resolveTime } from "../server/graph/temporal-resolver";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'ERR_MODULE_NOT_FOUND' }
+Caused by: Error: Failed to load url ../server/graph/compiler-v2 (resolved id: ../server/graph/compiler-v2) in /private/tmp/graph-v2-base-red/examples/copilotkit/tests/graph-v2.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../../../../Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/vite/dist/node/chunks/config.js:26036:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:39:38
+   Duration  4.52s (transform 999ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 837ms)
+

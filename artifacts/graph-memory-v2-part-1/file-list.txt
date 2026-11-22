@@ -3,6 +3,14 @@ artifacts/graph-memory-v2-part-1/file-list.txt
 artifacts/graph-memory-v2-part-1/fixture-a-standalone.json
 artifacts/graph-memory-v2-part-1/fixture-a.json
 artifacts/graph-memory-v2-part-1/postgres-snapshot.json
+artifacts/graph-memory-v2-part-1/verification/base-red.txt
+artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt
+artifacts/graph-memory-v2-part-1/verification/build.txt
+artifacts/graph-memory-v2-part-1/verification/check.txt
+artifacts/graph-memory-v2-part-1/verification/health-final.txt
+artifacts/graph-memory-v2-part-1/verification/python-environment-build.txt
+artifacts/graph-memory-v2-part-1/verification/python.txt
+artifacts/graph-memory-v2-part-1/verification/vitest-full.txt
 artifacts/graph-memory-v2-part-1/wiki_3bcb1a8f6b3aa135315f227ff5dd8812.md
 artifacts/graph-memory-v2-part-1/wiki_551b400b479d4ce609eb43b752d5e4e8.md
 artifacts/graph-memory-v2-part-1/wiki_a5dfa73c96c6b0f6707ba2dc0f6d9332.md

@@ -60,7 +60,7 @@ Host 從原始 RunRecord.created_at 將 referenceTime 寫入不可變 Completion
 - `fixture-a.json`：先匯入 Fixture B 的穩定元件特性，再匯入 A 的中間資料、Rows 與 Bob 的 storage lookup 結果。
 - `featurehub.md`：Fixture B→A 的 FeatureHub Wiki，保留 TTL／存取層設計，沒有把回滾事故寫入 Profile。
 - `postgres-snapshot.json`：隔離 PostgreSQL 的實際 Subject/Alias/Event/Fact/Evidence/Source Time Rows（Mock 資料）。
-- `test-results/`：完整測試、Build、Lint、基準重現及 code health 日誌。
+- `verification/`：完整測試、Build、Lint、基準重現及 code health 日誌。
 - `file-list.txt`：本次實際修改／新增檔案完整清單。
 
 預期／實際核心關係：Alice→搜尋推薦服務 `reported_issue`；FeatureHub 快取→搜尋推薦服務 `caused_degradation`；Bob→FeatureHub `rolled_back`；AI 助理→事後檢討文件 `drafted`；文件→Alice `delivered_to`。沒有 Bob→Alice 的代寫報告 Edge。五條 Edge 共用事故 Event。
