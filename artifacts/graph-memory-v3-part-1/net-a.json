@@ -1,0 +1,469 @@
+{
+  "mockLLM": true,
+  "result": {
+    "query": {
+      "subjects": [
+        {
+          "ref": "bob",
+          "name": "Bob"
+        }
+      ],
+      "narratives": [
+        {
+          "ref": "incident",
+          "text": "搜尋推薦服務延遲",
+          "subjectRefs": [
+            "bob"
+          ],
+          "intent": "explain_cause",
+          "time": {
+            "kind": "unspecified"
+          }
+        }
+      ],
+      "temporal": {
+        "kind": "history"
+      }
+    },
+    "temporal": {
+      "kind": "history",
+      "confidence": "certain"
+    },
+    "subjects": [
+      {
+        "subjectId": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "canonicalName": "Bob",
+        "type": "person",
+        "wikiPageId": "wiki_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "sectionKey": "section_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "identityKey": "person:bob",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "canonicalName": "FeatureHub",
+        "type": "system",
+        "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+        "identityKey": "system:featurehub",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_ffadb6916d0afd8df7e241f4601fd8f9",
+        "canonicalName": "FeatureHub 的快取",
+        "type": "component",
+        "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "parentSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "sectionKey": "section_ffadb6916d0afd8df7e241f4601fd8f9",
+        "identityKey": "component:featurehub 的快取:subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "canonicalName": "搜尋推薦服務",
+        "type": "system",
+        "wikiPageId": "wiki_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "sectionKey": "section_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "identityKey": "system:搜尋推薦服務",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "canonicalName": "Alice",
+        "type": "person",
+        "wikiPageId": "wiki_bc2ce38e6a0c5811785c2cd238b41041",
+        "sectionKey": "section_bc2ce38e6a0c5811785c2cd238b41041",
+        "identityKey": "person:alice",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "canonicalName": "事後檢討文件",
+        "type": "document",
+        "wikiPageId": "wiki_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "sectionKey": "section_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "identityKey": "document:事後檢討文件",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      },
+      {
+        "subjectId": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "canonicalName": "AI 助理",
+        "type": "role",
+        "wikiPageId": "wiki_551b400b479d4ce609eb43b752d5e4e8",
+        "sectionKey": "section_551b400b479d4ce609eb43b752d5e4e8",
+        "identityKey": "role:ai 助理",
+        "aliases": [],
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        }
+      }
+    ],
+    "wikiSections": [
+      {
+        "pageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+        "sectionKey": "563d67cb40a5456197b20ca7ea80778fe8b03297a9347e53adae12d928bcba21",
+        "revision": "50fc4e7f-e2c4-4a46-9a3b-796089a3f082",
+        "text": "- 存取層支援版本回滾\n- FeatureHub 的存取層",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "036c8c9347a67bd67cec0f94b100d63585bd0f2b335ded5496de7e4306a4334b"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "edgeId": "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "fromSubjectId": "subject_3bcb1a8f6b3aa135315f227ff5dd8812",
+        "toSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+        "relation": "rolled_back",
+        "description": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+        "factKind": "event",
+        "time": {
+          "occurredFrom": "2026-11-04T00:00:00.000Z",
+          "timePrecision": "day",
+          "originalTimeText": "隔天",
+          "timezone": "Asia/Taipei",
+          "anchor": "2026-11-03T00:00:00.000Z",
+          "confidence": "certain"
+        },
+        "observedAt": "2026-11-03T08:00:00.000Z",
+        "recordedAt": "2026-11-22T20:07:30.803Z",
+        "certainty": "reported",
+        "status": "active",
+        "attribution": "user_stated",
+        "semanticHash": "7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "0d2c331d001c2d67a03cc54b41ce1157b2f44dc555307d4b249406679ae9d04d"
+        ],
+        "view": "history",
+        "seedScore": 0.024206349206349204,
+        "role": "seed",
+        "querySeeds": [
+          "incident"
+        ]
+      },
+      {
+        "edgeId": "edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166",
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "fromSubjectId": "subject_ffadb6916d0afd8df7e241f4601fd8f9",
+        "toSubjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "relation": "caused_degradation",
+        "description": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+        "factKind": "event",
+        "time": {
+          "occurredFrom": "2026-10-26T00:00:00.000Z",
+          "occurredTo": "2026-11-01T00:00:00.000Z",
+          "timePrecision": "week",
+          "originalTimeText": "上週",
+          "timezone": "Asia/Taipei",
+          "anchor": "2026-11-03T00:00:00.000Z",
+          "confidence": "certain"
+        },
+        "observedAt": "2026-11-03T08:00:00.000Z",
+        "recordedAt": "2026-11-22T20:07:30.803Z",
+        "certainty": "reported",
+        "status": "active",
+        "attribution": "user_stated",
+        "semanticHash": "8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "e7e42bf0a03dc61ea6c1cd5e1f51efc07b9b9e403743d33f0a3cf94abc57f3e6"
+        ],
+        "view": "history",
+        "seedScore": 0.01639344262295082,
+        "role": "seed",
+        "querySeeds": [
+          "incident"
+        ]
+      },
+      {
+        "edgeId": "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "fromSubjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "toSubjectId": "subject_d1c5bacf2c07a82f7f5709120dfdb6cb",
+        "relation": "reported_issue",
+        "description": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+        "factKind": "event",
+        "time": {
+          "occurredFrom": "2026-11-03T00:00:00.000Z",
+          "timePrecision": "day",
+          "originalTimeText": "11/3",
+          "timezone": "Asia/Taipei",
+          "anchor": "2026-11-03T00:00:00.000Z",
+          "confidence": "certain"
+        },
+        "observedAt": "2026-11-03T08:00:00.000Z",
+        "recordedAt": "2026-11-22T20:07:30.803Z",
+        "certainty": "reported",
+        "status": "active",
+        "attribution": "user_stated",
+        "semanticHash": "c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "7c800429ae0df2e5c3c3258170f92903949690ca7a7e38b50327227b2395659f"
+        ],
+        "view": "history",
+        "seedScore": 0.016129032258064516,
+        "role": "seed",
+        "querySeeds": [
+          "incident"
+        ]
+      },
+      {
+        "edgeId": "edge_90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b",
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "fromSubjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "toSubjectId": "subject_bc2ce38e6a0c5811785c2cd238b41041",
+        "relation": "delivered_to",
+        "description": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+        "factKind": "event",
+        "time": {
+          "timePrecision": "relative",
+          "originalTimeText": "會後",
+          "timezone": "Asia/Taipei",
+          "anchor": "2026-11-03T00:00:00.000Z",
+          "confidence": "uncertain"
+        },
+        "observedAt": "2026-11-03T08:00:00.000Z",
+        "recordedAt": "2026-11-22T20:07:30.804Z",
+        "certainty": "reported",
+        "status": "active",
+        "attribution": "user_stated",
+        "semanticHash": "90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "d5e19c4ab7c989ddb69ff31d8ec979ba3b7a1f7de6c61a58706ad5b718385329"
+        ],
+        "view": "uncertain",
+        "seedScore": 0,
+        "role": "supporting",
+        "querySeeds": []
+      },
+      {
+        "edgeId": "edge_9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b",
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "fromSubjectId": "subject_551b400b479d4ce609eb43b752d5e4e8",
+        "toSubjectId": "subject_a5dfa73c96c6b0f6707ba2dc0f6d9332",
+        "relation": "drafted",
+        "description": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+        "factKind": "event",
+        "time": {
+          "timePrecision": "relative",
+          "originalTimeText": "會後",
+          "timezone": "Asia/Taipei",
+          "anchor": "2026-11-03T00:00:00.000Z",
+          "confidence": "uncertain"
+        },
+        "observedAt": "2026-11-03T08:00:00.000Z",
+        "recordedAt": "2026-11-22T20:07:30.804Z",
+        "certainty": "reported",
+        "status": "active",
+        "attribution": "user_stated",
+        "semanticHash": "9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "evidenceRefs": [
+          "d5e19c4ab7c989ddb69ff31d8ec979ba3b7a1f7de6c61a58706ad5b718385329"
+        ],
+        "view": "uncertain",
+        "seedScore": 0,
+        "role": "supporting",
+        "querySeeds": []
+      }
+    ],
+    "events": [
+      {
+        "eventId": "event_106c848f71bb478f9d2656764299de6c",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "edgeIds": [
+          "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+          "edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166",
+          "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+          "edge_90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b",
+          "edge_9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b"
+        ]
+      }
+    ],
+    "provenance": [
+      {
+        "ref": "0d2c331d001c2d67a03cc54b41ce1157b2f44dc555307d4b249406679ae9d04d",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "source": {
+          "botId": "a",
+          "threadId": "incident",
+          "runId": "incident"
+        },
+        "evidence": {
+          "sourceId": "c79d5389-9c0f-4363-a52a-dab4a189fc6b",
+          "sourceVersion": 1,
+          "quote": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+          "quoteHash": "329b89ce5d1328330fe5b2f57997c50e645285e8e96d0a50b17c6eedb15809b3",
+          "position": 52,
+          "attribution": "user_stated"
+        }
+      },
+      {
+        "ref": "e7e42bf0a03dc61ea6c1cd5e1f51efc07b9b9e403743d33f0a3cf94abc57f3e6",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "source": {
+          "botId": "a",
+          "threadId": "incident",
+          "runId": "incident"
+        },
+        "evidence": {
+          "sourceId": "c79d5389-9c0f-4363-a52a-dab4a189fc6b",
+          "sourceVersion": 1,
+          "quote": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+          "quoteHash": "fe1d3dbbd66682f07bf7e6f7dcf2fdfe7a9a3d0658c74d181fbd0eb7c00e79d6",
+          "position": 17,
+          "attribution": "user_stated"
+        }
+      },
+      {
+        "ref": "7c800429ae0df2e5c3c3258170f92903949690ca7a7e38b50327227b2395659f",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "source": {
+          "botId": "a",
+          "threadId": "incident",
+          "runId": "incident"
+        },
+        "evidence": {
+          "sourceId": "c79d5389-9c0f-4363-a52a-dab4a189fc6b",
+          "sourceVersion": 1,
+          "quote": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+          "quoteHash": "25c093f57c243a13c7cccac94798264f8b449294fff0337033bda2d47f09883d",
+          "position": 0,
+          "attribution": "user_stated"
+        }
+      },
+      {
+        "ref": "d5e19c4ab7c989ddb69ff31d8ec979ba3b7a1f7de6c61a58706ad5b718385329",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "source": {
+          "botId": "a",
+          "threadId": "incident",
+          "runId": "incident"
+        },
+        "evidence": {
+          "sourceId": "c79d5389-9c0f-4363-a52a-dab4a189fc6b",
+          "sourceVersion": 1,
+          "quote": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+          "quoteHash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+          "position": 85,
+          "attribution": "user_stated"
+        }
+      },
+      {
+        "ref": "036c8c9347a67bd67cec0f94b100d63585bd0f2b335ded5496de7e4306a4334b",
+        "namespace": {
+          "principal": "v3-test",
+          "projectId": "test",
+          "botId": "a",
+          "visibility": "bot_private"
+        },
+        "source": {
+          "botId": "a",
+          "threadId": "profile",
+          "runId": "profile"
+        }
+      }
+    ],
+    "partial": false,
+    "warnings": []
+  }
+}

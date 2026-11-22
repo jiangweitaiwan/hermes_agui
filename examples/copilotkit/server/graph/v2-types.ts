@@ -15,6 +15,7 @@ export const EvidenceSchema = z.object({ sourceId: z.string().uuid(), sourceVers
 export const EventSchema = z.object({ eventId: id, title: text, summary: text, time: TimeSchema }).strict();
 export const EdgeSchema = z.object({ edgeId: id, eventId: id.optional(), fromSubjectId: id, toSubjectId: id,
   relation: z.enum(["reported_issue", "caused_degradation", "rolled_back", "restored", "drafted", "delivered_to", "deployed_version", "related_to"]),
+  relationType: z.enum(["action", "state", "association"]).optional(), relationLabel: z.string().trim().min(1).max(80).optional(),
   description: text, factKind: z.enum(["event", "state"]), stateSlotKey: z.string().min(1).max(512).optional(), time: TimeSchema,
   observedAt: z.string().datetime().optional(), recordedAt: z.string().datetime(),
   certainty: z.enum(["reported", "inferred", "disputed"]), status: z.enum(["active", "superseded", "disputed", "retracted"]),

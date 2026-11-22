@@ -1,0 +1,4 @@
+replay 1: 009_graph_memory_v2.sql passed
+replay 1: 010_graph_fact_tokens.sql passed
+replay 2: 009_graph_memory_v2.sql passed
+replay 2: 010_graph_fact_tokens.sql passed

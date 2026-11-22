@@ -1,0 +1,13 @@
+{
+  "mockLLM": true,
+  "result": {
+    "v2Key": "[\"mock\",2,\"1\"]",
+    "v3Key": "[\"mock\",2,\"1\",\"edge-narrative-v3\"]",
+    "v3Metrics": {
+      "indexed": 5,
+      "failures": 2,
+      "queries": 4,
+      "lexical": 0
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "mockLLM": true,
+  "baseCommit": "476004ac214573a8e7f4be6fed087cefb374ee07",
+  "fullSuite": {
+    "files": 30,
+    "passed": 170,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 231.97
+  },
+  "build": "passed",
+  "typecheck": "passed",
+  "codeHealth": {
+    "blocking": 0,
+    "advisory": 0
+  },
+  "scriptsCheck": {
+    "total": 17,
+    "passed": 16,
+    "failed": [
+      "pre-existing no-tmp (7 findings)"
+    ]
+  },
+  "fixtureA": {
+    "seedCount": 3,
+    "supportingCount": 2,
+    "edgeRecall": 1,
+    "incidentPrecision": 1,
+    "evidenceRecall": 1,
+    "netBytes": 11433
+  },
+  "gcpDeployed": false,
+  "part2Started": false
+}

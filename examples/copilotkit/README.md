@@ -666,3 +666,28 @@ Scans fail closed at 64 subject candidates, 128 Event/slot siblings, 96 active e
 The browser scans at most 300 initial candidates per window and caps expanded reads at 512; Runtime expansion caps reads at 256.
 Larger datasets require a database-native vector backend or narrower namespace/query. Revoked sources and disabled source owners cannot contribute V2 facts;
 existing V1 disabled-owner browsing semantics are preserved. No new GraphMemoryPort/AG-UI fields or core model tools are introduced.
+
+### Graph Memory V3 structured reads (Part 1)
+
+Server registry `graph.retrievalMode` accepts `v2` (default) or `v3`, independently
+of `graph.evolution.graphCompilerVersion`. V3 requires an explicit server-owned
+`graph.queryParser: { baseUrl, model, keyEnv, timeoutMs?, maxTokens? }`; only the
+secret is read from `keyEnv`. No browser-supplied namespace or persistent IDs are
+accepted. V2 namespaces must already have been published by the V2 compiler.
+
+Trusted backend consumers can call `createGraphMemory().structuredQuery(scope,
+message, reference?)` and `validateNet(scope, net)` using a scope issued by that
+same adapter. The optional reference is a trusted `{instant, timezone}`; missing
+years/anchors remain uncertain. Keep the original issued Net object for
+revalidation; serialized or fabricated Nets are rejected. Query parser failures
+return `fallback` without producing facts. This Part does not inject Nets into
+Hermes or change the existing `query(text, limit)` or Graph Browser behavior.
+
+For vector backfill, pass `retrievalMode: "v3"` in the existing Graph ingest CLI
+server config and run its `vectors` command. Edge batches remain 32, resume
+missing rows on restart, and use an independent `edge-narrative-v3` template key.
+V2 Edge rows remain available. Until backfill completes, lexical retrieval stays
+available. No SQL migration is needed: optional `relationType`/`relationLabel`
+and all Net objects use the existing JSON payloads or in-memory structures.
+Older strict-schema readers should be upgraded before enabling new relation
+fields; rollback reads require omitting those optional fields from new writes.

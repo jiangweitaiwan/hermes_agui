@@ -1,0 +1,23 @@
+Initial branch: codex/graph-memory-v2
+Initial HEAD and requested base: 476004ac214573a8e7f4be6fed087cefb374ee07
+Existing user changes, excluded from implementation commits:
+ D docs/CLOUD_NATIVE_PART_1.md
+ D docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md
+ D docs/CLOUD_NATIVE_PART_1_REMAINING.md
+ D docs/CLOUD_NATIVE_PART_2.md
+ D docs/cloud-native-part-1-report.md
+ D docs/cloud-native-part-2-final-acceptance.md
+ D docs/cloud-native-part-2-report.md
+ D docs/cloud-native-part1-status.json
+ D docs/cloud-native-part1-validation.md
+ D docs/cloud-run-deployment.md
+ M host-config.yaml
+ M tests/runtime.json
+?? GRAPH_MEMORY_V2_IMPLEMENTATION_PLAN.md
+?? docs/GRAPH_MEMORY_V3_OVERVIEW.md
+?? docs/GRAPH_MEMORY_V3_PART_1.md
+?? docs/GRAPH_MEMORY_V3_PART_2.md
+Node: compatible local 22.18.0 (default 18 is unsupported; another system Node fails dyld)
+Python checks: repository .venv Python 3.14.6
+PostgreSQL: isolated freshly initialized local PostgreSQL 16.15 on loopback port 55449
+No production credentials, external models or GCP deployment used.

@@ -1,0 +1,32 @@
+pass 1: 001_threads.sql passed
+pass 1: 002_delegations.sql passed
+pass 1: 003_bot_registry.sql passed
+pass 1: 004_graph_wiki.sql passed
+pass 1: 005_graph_sources.sql passed
+pass 1: 006_graph_jobs.sql passed
+pass 1: 007_bot_operations.sql passed
+pass 1: 008_task_deliveries.sql passed
+pass 1: 009_graph_memory_v2.sql passed
+pass 1: 010_graph_fact_tokens.sql passed
+error: schema "hermes_agui_runtime" already exists
+    at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/pg/lib/client.js:694:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /private/tmp/graph-v3-migrate.cjs:2:265 {
+  length: 108,
+  severity: 'ERROR',
+  code: '42P06',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'pg_namespace.c',
+  line: '64',
+  routine: 'NamespaceCreate'
+}

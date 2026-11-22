@@ -1,3 +1,5 @@
+import type { MemoryNet, NetResult } from "./graph/memory-net";
+import type { ReferenceTime } from "./graph/temporal-resolver";
 import { ProvenanceSchema, type Provenance } from "./graph/provenance";
 /** Server-only graph adapter contract. Native SQLite remains conversation authority. */
 export interface GraphScope {
@@ -25,7 +27,10 @@ export interface GraphMemoryPort {
   write(scope: GraphScope, entry: GraphEntry, signal: AbortSignal): Promise<GraphWriteResult>;
 }
 export interface GraphMemoryOptions {
-  provider?: GraphMemoryPort;
+  provider?: GraphMemoryPort & {structured?: {
+    query(scope:GraphScope,message:string,signal:AbortSignal,reference?:ReferenceTime):Promise<NetResult>;
+    validateNet(scope:GraphScope,net:MemoryNet,signal:AbortSignal):Promise<NetResult>;
+  }};
   /** Deployment ACL is namespace-based; callers need no synthetic run/thread identity. */
   authorize: (scope: Pick<GraphScope, "principal" | "projectId" | "botId">, operation: "query" | "write") => boolean;
   timeoutMs?: number;
@@ -87,6 +92,22 @@ export function createGraphMemory(options: GraphMemoryOptions) {
         principal: hit.principal, projectId: hit.projectId,
         source: structuredClone(hit.source), ...(hit.sources ? { sources: structuredClone(hit.sources) } : {}),
       })) };
+    },
+    /** Trusted runtime adapter only; no browser route accepts plans or Nets. */
+    async structuredQuery(scope:GraphScope, message:string, reference?:ReferenceTime):Promise<NetResult> {
+      if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
+      if(!bounded(message,4096))return {status:"rejected",reason:"invalid_request"};
+      if(!options.provider?.structured)return {status:"disabled"};
+      const result=await invoke(signal=>options.provider!.structured!.query(scope,message,signal,reference));
+      if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
+      return result;
+    },
+    async validateNet(scope:GraphScope,net:MemoryNet):Promise<NetResult> {
+      if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
+      if(!options.provider?.structured)return {status:"disabled"};
+      const result=await invoke(signal=>options.provider!.structured!.validateNet(scope,net,signal));
+      if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
+      return result;
     },
     async write(scope: GraphScope, entry: GraphEntry): Promise<GraphWriteResult> {
       if (!allowed(scope, "write")) return { status: "rejected", reason: "unauthorized" };

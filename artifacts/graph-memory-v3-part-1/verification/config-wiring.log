@@ -1,0 +1,16 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-config.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:87864) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-config.test.ts (1 test) 1380ms
+   ✓ registry provider defaults V2; explicit V3 model uses real HTTP adapter and trusted scope gate  1376ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:04:20
+   Duration  3.51s (transform 653ms, setup 0ms, collect 1.50s, tests 1.38s, environment 1ms, prepare 150ms)

@@ -1,3 +1,7 @@
+import { RetrievalConfig } from "./query-config";
+import { QueryParser } from "./query-parser";
+import { OpenAICompilerLLM } from "./compiler";
+import { StructuredRetriever } from "./structured-retriever";
 import { V2RetrievalStore } from "./v2-retrieval-store";
 import { EdgeRetriever } from "./edge-retriever";
 import { EdgeVectorIndex } from "./edge-embedding";
@@ -15,6 +19,7 @@ export class WikiGraphProvider<T extends WikiStore | PostgresWikiStore = WikiSto
   readonly facts: V2RetrievalStore;
   readonly edgeRetriever: EdgeRetriever;
   readonly edgeVectors?: EdgeVectorIndex;
+  structured?: StructuredRetriever;
   beforeQuery?: () => void | Promise<void>;
   readonly metrics = { queries: 0, hits: 0, errors: 0, totalMs: 0, lastMs: 0 };
   constructor(readonly store: T, timeoutMs = 2000, readonly retrieval: ConstructorParameters<typeof WikiRetriever>[2] = {}) {
@@ -62,6 +67,7 @@ export class WikiGraphProvider<T extends WikiStore | PostgresWikiStore = WikiSto
 export function loadWiki(options?: WikiOptions): (GraphMemoryPort & { close(): void }) | undefined {
   if (!options?.enabled) return undefined;
   if (!options.dataRoot) throw new Error("Wiki dataRoot required");
+  const config = RetrievalConfig.parse(options);
   const timeout = options.timeoutMs ?? 2000;
   if (!Number.isInteger(timeout) || timeout < 1 || timeout > 30000) throw new Error("Invalid wiki timeout");
   let store: WikiStore | undefined;
@@ -70,7 +76,11 @@ export function loadWiki(options?: WikiOptions): (GraphMemoryPort & { close(): v
     store.cleanup();
     const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
     const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
-    return new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
+      new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
+      encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());
+    return provider;
   } catch {
     store?.close();
     return { query: async () => ({ status: "unavailable" }), write: async () => ({ status: "disabled" }), close() {} };
@@ -80,6 +90,7 @@ export function loadWiki(options?: WikiOptions): (GraphMemoryPort & { close(): v
 /** Cloud startup is fail-fast and never opens wiki.sqlite or an application-local Markdown root. */
 export async function loadDurableWiki(options?: WikiOptions) {
   if (!options?.enabled) return undefined;
+  const config = RetrievalConfig.parse(options);
   const timeout = options.timeoutMs ?? 2000;
   if (!Number.isInteger(timeout) || timeout < 1 || timeout > 30000) throw new Error("Invalid wiki timeout");
   const objects = new GcsGraphObjects(process.env.AGUI_GCS_BUCKET ?? "");
@@ -89,6 +100,10 @@ export async function loadDurableWiki(options?: WikiOptions) {
     await store.ready();
     const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
     const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
-    return new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
+      new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
+      encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());
+    return provider;
   } catch (error) { await store.close(); throw error; }
 }

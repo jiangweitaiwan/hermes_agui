@@ -1,0 +1,34 @@
+import {test,expect} from "vitest";
+import {randomUUID} from "node:crypto";
+import {mkdtempSync,realpathSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {PostgresWikiStore} from "../server/graph/postgres-wiki-store";
+import {PostgresDocumentIngestor} from "../server/graph/postgres-ingest-queue";
+import {FilesystemGraphObjects} from "../server/graph/objects";
+import {WikiGraphProvider} from "../server/graph/provider";
+import {WikiCompiler} from "../server/graph/compiler";
+import {QueryParser} from "../server/graph/query-parser";
+import {StructuredRetriever} from "../server/graph/structured-retriever";
+import {createGraphMemory} from "../server/graph-memory";
+import {meeting,profile,fixtureModel} from "./fixtures/graph-v2/model";
+import {EdgeVectorIndex} from "../server/graph/edge-embedding";
+const url=process.env.HERMES_AGUI_TEST_RUNTIME_DATABASE_URL;
+test.skipIf(!url)("PG V3 parity: authorized Net, wiki sections, vector version separation, revoke and Bot disable",async()=>{
+ const root=mkdtempSync(join(realpathSync(tmpdir()),"graph-v3-pg-"));
+ const store=new PostgresWikiStore(url!,new FilesystemGraphObjects(root)),queue=new PostgresDocumentIngestor(store);
+ try{
+ await queue.ready();const ns={principal:randomUUID(),projectId:"test",botId:"a",visibility:"bot_private" as const};
+ const provider=new WikiGraphProvider(store,10000);provider.structured=new StructuredRetriever(provider.facts,provider.retriever,new QueryParser({json:async()=>({subjects:[{ref:"bob",name:"Bob"}],narratives:[{ref:"incident",text:"搜尋推薦服務延遲 回滾",subjectRefs:["bob"],intent:"explain_cause",time:{kind:"unspecified"}}],temporal:{kind:"history"}})}));
+ const worker=new WikiCompiler(queue,fixtureModel(),120000,"v2");
+ const add=async(content:string,key:string)=>{const id=await queue.enqueue(ns,{title:key,content,mime:"text/plain",idempotencyKey:key},{provenance:{botId:"a",threadId:key,runId:key},classification:"user-stated",referenceTime:{instant:"2026-11-03T08:00:00.000Z",timezone:"Asia/Taipei"},evidence:{user:content,confirmed:false,assistants:[]}});await worker.processJob(ns,id);return id;};
+ await add(profile,"profile");const job=await add(meeting,"meeting");
+ const memory=createGraphMemory({provider,authorize:()=>true,timeoutMs:10000});const scope=memory.scope({...ns,threadId:"q",runId:"q"});
+ const result=await memory.structuredQuery(scope,"Bob 搜尋推薦服務延遲 回滾");expect(result.status).toBe("ok");if(result.status!=="ok")throw new Error("No Net");
+ expect(result.net.edges).toHaveLength(5);expect(result.net.events).toHaveLength(1);expect(result.net.wikiSections.some(s=>s.text.includes("支援版本回滾"))).toBe(true);
+ const encoder={model:"mock",dimension:2,version:"1",async embed(texts:string[]){return texts.map(()=>[1,0]);}};
+ const v2=new EdgeVectorIndex(provider.facts,encoder),v3=new EdgeVectorIndex(provider.facts,encoder,"v3");await v2.update(ns,new AbortController().signal);expect(await v3.search(ns,"event",new AbortController().signal)).toEqual([]);await v3.update(ns,new AbortController().signal);expect(await v3.search(ns,"event",new AbortController().signal)).toHaveLength(5);
+ provider.facts.retained=()=>false;expect(await memory.validateNet(scope,result.net)).toMatchObject({status:"ok",net:{edges:[],wikiSections:[]}});provider.facts.retained=()=>true;
+ await queue.revoke(ns,(await queue.status(ns,job)).source);expect(await memory.validateNet(scope,result.net)).toMatchObject({status:"ok",net:{edges:[]}});
+ }finally{await store.close();rmSync(root,{recursive:true,force:true});}
+});

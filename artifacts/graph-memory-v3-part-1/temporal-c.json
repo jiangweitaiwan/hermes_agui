@@ -1,0 +1,714 @@
+{
+  "mockLLM": true,
+  "result": [
+    {
+      "query": {
+        "subjects": [
+          {
+            "ref": "hub",
+            "name": "FeatureHub"
+          }
+        ],
+        "narratives": [],
+        "temporal": {
+          "kind": "current"
+        }
+      },
+      "temporal": {
+        "kind": "current",
+        "confidence": "certain"
+      },
+      "subjects": [
+        {
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "canonicalName": "FeatureHub",
+          "type": "system",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "system:featurehub",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "canonicalName": "v2",
+          "type": "value",
+          "wikiPageId": "wiki_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "sectionKey": "section_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "identityKey": "value:v2",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        }
+      ],
+      "wikiSections": [],
+      "edges": [
+        {
+          "edgeId": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v2",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-12T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/12",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:32.996Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "a5101371a724841f6a0212fb1902069c4cbb48c50deaa2e2c93b8347caebc771"
+          ],
+          "view": "latest",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470"
+          ]
+        }
+      ],
+      "provenance": [
+        {
+          "ref": "a5101371a724841f6a0212fb1902069c4cbb48c50deaa2e2c93b8347caebc771",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "e743e1c2-0d4b-4ee2-9002-57380fb617c3",
+            "sourceVersion": 1,
+            "quote": "11/12 FeatureHub 目前部署 v2",
+            "quoteHash": "42f6bdb6731205cf9d97b54597d025c07c34e29771730586108ec96c7b20403d",
+            "position": 25,
+            "attribution": "user_stated"
+          }
+        }
+      ],
+      "partial": false,
+      "warnings": []
+    },
+    {
+      "query": {
+        "subjects": [
+          {
+            "ref": "hub",
+            "name": "FeatureHub"
+          }
+        ],
+        "narratives": [],
+        "temporal": {
+          "kind": "history"
+        }
+      },
+      "temporal": {
+        "kind": "history",
+        "confidence": "certain"
+      },
+      "subjects": [
+        {
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "canonicalName": "FeatureHub",
+          "type": "system",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "system:featurehub",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "canonicalName": "v1",
+          "type": "value",
+          "wikiPageId": "wiki_5ef675b53ebd4841e13261f6a0ab22d6",
+          "sectionKey": "section_5ef675b53ebd4841e13261f6a0ab22d6",
+          "identityKey": "value:v1",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "canonicalName": "v2",
+          "type": "value",
+          "wikiPageId": "wiki_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "sectionKey": "section_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "identityKey": "value:v2",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        }
+      ],
+      "wikiSections": [],
+      "edges": [
+        {
+          "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v1",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-05T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/05",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:33.280Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "72d7179b131a818661d4551c2664f0e0d1b5d64890333a1e9b6d14b6ebf63259"
+          ],
+          "view": "history",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        },
+        {
+          "edgeId": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v2",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-12T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/12",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:33.280Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "4680e5972988fe520b4d346f93467571863fb3961b6579639d20a4d2f640b781"
+          ],
+          "view": "history",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de"
+          ]
+        },
+        {
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470"
+          ]
+        }
+      ],
+      "provenance": [
+        {
+          "ref": "72d7179b131a818661d4551c2664f0e0d1b5d64890333a1e9b6d14b6ebf63259",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "ba66bdf9-0bf0-46c9-ad80-44945d66ab78",
+            "sourceVersion": 1,
+            "quote": "11/05 FeatureHub 目前部署 v1",
+            "quoteHash": "2e81d6593f22f0da07bf853fe590d719e2b53c3d45ce825d9c8bbf1dc007ba09",
+            "position": 0,
+            "attribution": "user_stated"
+          }
+        },
+        {
+          "ref": "4680e5972988fe520b4d346f93467571863fb3961b6579639d20a4d2f640b781",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "ba66bdf9-0bf0-46c9-ad80-44945d66ab78",
+            "sourceVersion": 1,
+            "quote": "11/12 FeatureHub 目前部署 v2",
+            "quoteHash": "42f6bdb6731205cf9d97b54597d025c07c34e29771730586108ec96c7b20403d",
+            "position": 25,
+            "attribution": "user_stated"
+          }
+        }
+      ],
+      "partial": false,
+      "warnings": []
+    },
+    {
+      "query": {
+        "subjects": [
+          {
+            "ref": "hub",
+            "name": "FeatureHub"
+          }
+        ],
+        "narratives": [],
+        "temporal": {
+          "kind": "as_of",
+          "originalText": "2026-11-06"
+        }
+      },
+      "temporal": {
+        "kind": "as_of",
+        "originalText": "2026-11-06",
+        "timezone": "UTC",
+        "from": "2026-11-06T00:00:00.000Z",
+        "to": "2026-11-06T23:59:59.999Z",
+        "confidence": "certain"
+      },
+      "subjects": [
+        {
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "canonicalName": "FeatureHub",
+          "type": "system",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "system:featurehub",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "canonicalName": "v1",
+          "type": "value",
+          "wikiPageId": "wiki_5ef675b53ebd4841e13261f6a0ab22d6",
+          "sectionKey": "section_5ef675b53ebd4841e13261f6a0ab22d6",
+          "identityKey": "value:v1",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        }
+      ],
+      "wikiSections": [],
+      "edges": [
+        {
+          "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v1",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-05T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/05",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:33.571Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "0a2440fece92d869298f99288483046e7745813af3829d46c07d4b08cba1b9e1"
+          ],
+          "view": "latest",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de"
+          ]
+        }
+      ],
+      "provenance": [
+        {
+          "ref": "0a2440fece92d869298f99288483046e7745813af3829d46c07d4b08cba1b9e1",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "eec1e584-9363-4103-8000-4849060ab7ec",
+            "sourceVersion": 1,
+            "quote": "11/05 FeatureHub 目前部署 v1",
+            "quoteHash": "2e81d6593f22f0da07bf853fe590d719e2b53c3d45ce825d9c8bbf1dc007ba09",
+            "position": 0,
+            "attribution": "user_stated"
+          }
+        }
+      ],
+      "partial": false,
+      "warnings": []
+    },
+    {
+      "query": {
+        "subjects": [
+          {
+            "ref": "hub",
+            "name": "FeatureHub"
+          }
+        ],
+        "narratives": [],
+        "temporal": {
+          "kind": "unknown"
+        }
+      },
+      "temporal": {
+        "kind": "unknown",
+        "confidence": "uncertain"
+      },
+      "subjects": [
+        {
+          "subjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "canonicalName": "FeatureHub",
+          "type": "system",
+          "wikiPageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "section_d9a80cbcf2abc012fc6190c154a3eec6",
+          "identityKey": "system:featurehub",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "canonicalName": "v1",
+          "type": "value",
+          "wikiPageId": "wiki_5ef675b53ebd4841e13261f6a0ab22d6",
+          "sectionKey": "section_5ef675b53ebd4841e13261f6a0ab22d6",
+          "identityKey": "value:v1",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        },
+        {
+          "subjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "canonicalName": "v2",
+          "type": "value",
+          "wikiPageId": "wiki_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "sectionKey": "section_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "identityKey": "value:v2",
+          "aliases": [],
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          }
+        }
+      ],
+      "wikiSections": [],
+      "edges": [
+        {
+          "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v1",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-05T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/05",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:33.876Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "0b41e221960b4b91c93700e11f7c6358a7ec9d868a66725eb7296f9df9d3eab9"
+          ],
+          "view": "uncertain",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        },
+        {
+          "edgeId": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+          "toSubjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+          "relation": "deployed_version",
+          "description": "FeatureHub 目前部署 v2",
+          "factKind": "state",
+          "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+          "time": {
+            "occurredFrom": "2026-11-12T00:00:00.000Z",
+            "timePrecision": "day",
+            "originalTimeText": "11/12",
+            "timezone": "Asia/Taipei",
+            "anchor": "2026-11-03T00:00:00.000Z",
+            "confidence": "certain"
+          },
+          "observedAt": "2026-11-03T08:00:00.000Z",
+          "recordedAt": "2026-11-22T20:07:33.877Z",
+          "certainty": "reported",
+          "status": "active",
+          "attribution": "user_stated",
+          "semanticHash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "evidenceRefs": [
+            "c56b3b16da7283a25171b89656c90b1d0798009ff8de40659e1d8ed4cef80a8f"
+          ],
+          "view": "uncertain",
+          "seedScore": 0.008333333333333333,
+          "role": "seed",
+          "querySeeds": [
+            "subject"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de"
+          ]
+        },
+        {
+          "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "edgeIds": [
+            "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470"
+          ]
+        }
+      ],
+      "provenance": [
+        {
+          "ref": "0b41e221960b4b91c93700e11f7c6358a7ec9d868a66725eb7296f9df9d3eab9",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "12f7ef6b-42ce-48d3-b484-e43da557aff2",
+            "sourceVersion": 1,
+            "quote": "11/05 FeatureHub 目前部署 v1",
+            "quoteHash": "2e81d6593f22f0da07bf853fe590d719e2b53c3d45ce825d9c8bbf1dc007ba09",
+            "position": 0,
+            "attribution": "user_stated"
+          }
+        },
+        {
+          "ref": "c56b3b16da7283a25171b89656c90b1d0798009ff8de40659e1d8ed4cef80a8f",
+          "namespace": {
+            "principal": "v3-test",
+            "projectId": "test",
+            "botId": "a",
+            "visibility": "bot_private"
+          },
+          "source": {
+            "botId": "a",
+            "threadId": "state",
+            "runId": "state"
+          },
+          "evidence": {
+            "sourceId": "12f7ef6b-42ce-48d3-b484-e43da557aff2",
+            "sourceVersion": 1,
+            "quote": "11/12 FeatureHub 目前部署 v2",
+            "quoteHash": "42f6bdb6731205cf9d97b54597d025c07c34e29771730586108ec96c7b20403d",
+            "position": 25,
+            "attribution": "user_stated"
+          }
+        }
+      ],
+      "partial": false,
+      "warnings": []
+    }
+  ]
+}

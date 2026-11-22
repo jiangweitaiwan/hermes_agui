@@ -1,0 +1,29 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-query.test.ts
+
+
+ RUN  v3.2.4 /private/tmp/graph-v3-base-red/examples/copilotkit
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v3-query.test.ts [ tests/graph-v3-query.test.ts ]
+Error: Cannot find module '../server/graph/query-parser' imported from '/private/tmp/graph-v3-base-red/examples/copilotkit/tests/graph-v3-query.test.ts'
+ ❯ tests/graph-v3-query.test.ts:2:1
+      1| import {test,expect} from "vitest";
+      2| import {QueryParser} from "../server/graph/query-parser";
+       | ^
+      3| import {resolveQueryTime} from "../server/graph/query-temporal-resolve…
+      4| import {RetrievalConfig} from "../server/graph/query-config";
+
+Caused by: Error: Failed to load url ../server/graph/query-parser (resolved id: ../server/graph/query-parser) in /private/tmp/graph-v3-base-red/examples/copilotkit/tests/graph-v3-query.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../../../../Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/vite/dist/node/chunks/config.js:26036:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  04:01:26
+   Duration  1.28s (transform 96ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 486ms)

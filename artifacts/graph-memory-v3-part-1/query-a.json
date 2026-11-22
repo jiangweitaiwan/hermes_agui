@@ -1,0 +1,31 @@
+{
+  "mockLLM": true,
+  "result": {
+    "status": "ok",
+    "plan": {
+      "subjects": [
+        {
+          "ref": "bob",
+          "name": "Bob"
+        }
+      ],
+      "narratives": [
+        {
+          "ref": "incident",
+          "text": "搜尋推薦服務延遲",
+          "subjectRefs": [
+            "bob"
+          ],
+          "intent": "explain_cause",
+          "time": {
+            "kind": "unspecified"
+          }
+        }
+      ],
+      "temporal": {
+        "kind": "history"
+      }
+    },
+    "warnings": []
+  }
+}

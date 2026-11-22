@@ -1,0 +1,21 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-query.test.ts tests/graph-v3-net.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:81399) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-net.test.ts (5 tests) 5368ms
+   ✓ A/B: real parser → compiler/publisher → split recall → authorized Net; no fabricated actor, key Wiki section, revoke and scope gate  1088ms
+   ✓ D: subject only / narrative only / empty; F: independent events stay grouped  1705ms
+   ✓ C/E: persisted states current/history/as-of; unresolved anchor stays uncertain, known anchor resolves in two passes  1350ms
+   ✓ I: V3 vectors coexist, resume, mismatch/failure lexical fallback and revoke  687ms
+   ✓ G/J: custom relation labels publish evidence-backed JSON, invalid quote never publishes  535ms
+ ✓ tests/graph-v3-query.test.ts (3 tests) 73ms
+
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+   Start at  03:53:56
+   Duration  8.14s (transform 621ms, setup 0ms, collect 1.74s, tests 5.44s, environment 1ms, prepare 356ms)

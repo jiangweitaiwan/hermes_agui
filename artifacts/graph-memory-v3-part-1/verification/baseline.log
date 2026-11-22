@@ -1,0 +1,72 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v2.test.ts tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:78621) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v2.test.ts (12 tests | 1 failed) 24522ms
+   ✓ A/B: real queue → parser → grouped subjects/wiki → atomic event/edge evidence; replay and isolation  886ms
+   ✓ time requires metadata; after-meeting remains relative; invalid date is unknown 1ms
+   ✓ lease fencing, CAS rollback and invalid JSON never half-publish  310ms
+   ✓ revoke source invalidates evidence immediately, retains history, rebuilds other profile evidence  552ms
+   ✓ C: state slots retain both effective dates; repeated equivalent source attaches independent evidence  353ms
+   ✓ cancellation, revoke during parse and invented quote cannot publish  462ms
+   ✓ stable identity survives fresh store and homonymous alias remains unresolved 218ms
+   ✓ Fixture A alone creates minimal identity profiles; incident content remains in edges  480ms
+   ✓ D: revoke removes only A's distinct attribute; B rebuild and explicitly shared copies remain isolated  428ms
+   ✓ full attribute evidence survives beyond frontmatter limits; revoking an uncited contribution still invalidates the Wiki  623ms
+   × Session E2E: authenticated completion intake → real OpenAI HTTP adapter → worker → published Wiki/facts 20026ms
+     → Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   ✓ same-named components of independently identified systems never share a Subject ID 178ms
+(node:78850) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts (6 tests) 4993ms
+   ✓ A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope  822ms
+   ✓ edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding  1373ms
+   ✓ C: persisted states serve current/history/as-of and source revocation through the real Runtime provider  488ms
+   ✓ independent rollback events remain visible; shared copies and Bot disable cannot bypass evidence authorization  1023ms
+   ✓ evidence beyond the 20-source output window is authorized and remains inspectable  1277ms
+(node:78922) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ↓ tests/graph-v2-postgres.test.ts (4 tests | 4 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v2.test.ts > Session E2E: authenticated completion intake → real OpenAI HTTP adapter → worker → published Wiki/facts
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/graph-v2.test.ts:162:1
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+Error: listen EPERM: operation not permitted 127.0.0.1
+ ❯ Server.setupListenHandle [as _listen2] node:net:1918:21
+ ❯ listenInCluster node:net:1997:12
+ ❯ node:net:2206:7
+ ❯ processTicksAndRejections node:internal/process/task_queues:90:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'EPERM', errno: -1, syscall: 'listen', address: '127.0.0.1' }
+This error originated in "tests/graph-v2.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "Session E2E: authenticated completion intake → real OpenAI HTTP adapter → worker → published Wiki/facts". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed | 1 passed | 1 skipped (3)
+      Tests  1 failed | 17 passed | 4 skipped (22)
+     Errors  1 error
+   Start at  03:48:47
+   Duration  34.81s (transform 777ms, setup 0ms, collect 3.46s, tests 29.52s, environment 1ms, prepare 703ms)

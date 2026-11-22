@@ -1,0 +1,190 @@
+{
+  "mockLLM": true,
+  "result": {
+    "v2": {
+      "status": "ok",
+      "hits": [
+        {
+          "recordId": "fact:edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166:0",
+          "content": "{\"kind\":\"fact_edge\",\"intent\":{\"mode\":\"history\"},\"edgeId\":\"edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166\",\"eventId\":\"event_106c848f71bb478f9d2656764299de6c\",\"fromSubjectId\":\"subject_ffadb6916d0afd8df7e241f4601fd8f9\",\"toSubjectId\":\"subject_d1c5bacf2c07a82f7f5709120dfdb6cb\",\"relation\":\"caused_degradation\",\"description\":\"上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效\",\"factKind\":\"event\",\"time\":{\"occurredFrom\":\"2026-10-26T00:00:00.000Z\",\"occurredTo\":\"2026-11-01T00:00:00.000Z\",\"timePrecision\":\"week\",\"originalTimeText\":\"上週\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"certain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T20:07:30.803Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166\",\"view\":\"history\",\"fromSubject\":{\"name\":\"FeatureHub 的快取\"},\"toSubject\":{\"name\":\"搜尋推薦服務\"},\"changes\":[],\"changeTotal\":0,\"evidence\":[{\"sourceId\":\"c79d5389-9c0f-4363-a52a-dab4a189fc6b\",\"sourceVersion\":1,\"quote\":\"上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效\",\"quoteHash\":\"fe1d3dbbd66682f07bf7e6f7dcf2fdfe7a9a3d0658c74d181fbd0eb7c00e79d6\",\"position\":17,\"attribution\":\"user_stated\"}],\"evidenceWindow\":{\"start\":0,\"total\":1},\"provenanceTotal\":1}",
+          "visibility": "bot_private",
+          "principal": "v3-test",
+          "projectId": "test",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          },
+          "sources": [
+            {
+              "botId": "a",
+              "threadId": "incident",
+              "runId": "incident"
+            }
+          ]
+        },
+        {
+          "recordId": "fact:edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c:0",
+          "content": "{\"kind\":\"fact_edge\",\"intent\":{\"mode\":\"history\"},\"edgeId\":\"edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c\",\"eventId\":\"event_106c848f71bb478f9d2656764299de6c\",\"fromSubjectId\":\"subject_bc2ce38e6a0c5811785c2cd238b41041\",\"toSubjectId\":\"subject_d1c5bacf2c07a82f7f5709120dfdb6cb\",\"relation\":\"reported_issue\",\"description\":\"11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高\",\"factKind\":\"event\",\"time\":{\"occurredFrom\":\"2026-11-03T00:00:00.000Z\",\"timePrecision\":\"day\",\"originalTimeText\":\"11/3\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"certain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T20:07:30.803Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c\",\"view\":\"history\",\"fromSubject\":{\"name\":\"Alice\"},\"toSubject\":{\"name\":\"搜尋推薦服務\"},\"changes\":[],\"changeTotal\":0,\"evidence\":[{\"sourceId\":\"c79d5389-9c0f-4363-a52a-dab4a189fc6b\",\"sourceVersion\":1,\"quote\":\"11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高\",\"quoteHash\":\"25c093f57c243a13c7cccac94798264f8b449294fff0337033bda2d47f09883d\",\"position\":0,\"attribution\":\"user_stated\"}],\"evidenceWindow\":{\"start\":0,\"total\":1},\"provenanceTotal\":1}",
+          "visibility": "bot_private",
+          "principal": "v3-test",
+          "projectId": "test",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          },
+          "sources": [
+            {
+              "botId": "a",
+              "threadId": "incident",
+              "runId": "incident"
+            }
+          ]
+        },
+        {
+          "recordId": "fact:edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185:0",
+          "content": "{\"kind\":\"fact_edge\",\"intent\":{\"mode\":\"history\"},\"edgeId\":\"edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185\",\"eventId\":\"event_106c848f71bb478f9d2656764299de6c\",\"fromSubjectId\":\"subject_3bcb1a8f6b3aa135315f227ff5dd8812\",\"toSubjectId\":\"subject_d9a80cbcf2abc012fc6190c154a3eec6\",\"relation\":\"rolled_back\",\"description\":\"隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復\",\"factKind\":\"event\",\"time\":{\"occurredFrom\":\"2026-11-04T00:00:00.000Z\",\"timePrecision\":\"day\",\"originalTimeText\":\"隔天\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"certain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T20:07:30.803Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185\",\"view\":\"history\",\"fromSubject\":{\"name\":\"Bob\"},\"toSubject\":{\"name\":\"FeatureHub\"},\"changes\":[],\"changeTotal\":0,\"evidence\":[{\"sourceId\":\"c79d5389-9c0f-4363-a52a-dab4a189fc6b\",\"sourceVersion\":1,\"quote\":\"隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復\",\"quoteHash\":\"329b89ce5d1328330fe5b2f57997c50e645285e8e96d0a50b17c6eedb15809b3\",\"position\":52,\"attribution\":\"user_stated\"}],\"evidenceWindow\":{\"start\":0,\"total\":1},\"provenanceTotal\":1}",
+          "visibility": "bot_private",
+          "principal": "v3-test",
+          "projectId": "test",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          },
+          "sources": [
+            {
+              "botId": "a",
+              "threadId": "incident",
+              "runId": "incident"
+            }
+          ]
+        },
+        {
+          "recordId": "fact:edge_90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b:0",
+          "content": "{\"kind\":\"fact_edge\",\"intent\":{\"mode\":\"history\"},\"edgeId\":\"edge_90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b\",\"eventId\":\"event_106c848f71bb478f9d2656764299de6c\",\"fromSubjectId\":\"subject_a5dfa73c96c6b0f6707ba2dc0f6d9332\",\"toSubjectId\":\"subject_bc2ce38e6a0c5811785c2cd238b41041\",\"relation\":\"delivered_to\",\"description\":\"會後由 AI 助理草擬了事後檢討文件交給 Alice\",\"factKind\":\"event\",\"time\":{\"timePrecision\":\"relative\",\"originalTimeText\":\"會後\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"uncertain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T20:07:30.804Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b\",\"view\":\"uncertain\",\"uncertainty\":\"Unknown/overlapping effective time or conflicting claims; latest is not established\",\"fromSubject\":{\"name\":\"事後檢討文件\"},\"toSubject\":{\"name\":\"Alice\"},\"changes\":[],\"changeTotal\":0,\"evidence\":[{\"sourceId\":\"c79d5389-9c0f-4363-a52a-dab4a189fc6b\",\"sourceVersion\":1,\"quote\":\"會後由 AI 助理草擬了事後檢討文件交給 Alice\",\"quoteHash\":\"0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945\",\"position\":85,\"attribution\":\"user_stated\"}],\"evidenceWindow\":{\"start\":0,\"total\":1},\"provenanceTotal\":1}",
+          "visibility": "bot_private",
+          "principal": "v3-test",
+          "projectId": "test",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          },
+          "sources": [
+            {
+              "botId": "a",
+              "threadId": "incident",
+              "runId": "incident"
+            }
+          ]
+        },
+        {
+          "recordId": "fact:edge_9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b:0",
+          "content": "{\"kind\":\"fact_edge\",\"intent\":{\"mode\":\"history\"},\"edgeId\":\"edge_9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b\",\"eventId\":\"event_106c848f71bb478f9d2656764299de6c\",\"fromSubjectId\":\"subject_551b400b479d4ce609eb43b752d5e4e8\",\"toSubjectId\":\"subject_a5dfa73c96c6b0f6707ba2dc0f6d9332\",\"relation\":\"drafted\",\"description\":\"會後由 AI 助理草擬了事後檢討文件交給 Alice\",\"factKind\":\"event\",\"time\":{\"timePrecision\":\"relative\",\"originalTimeText\":\"會後\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"uncertain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T20:07:30.804Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b\",\"view\":\"uncertain\",\"uncertainty\":\"Unknown/overlapping effective time or conflicting claims; latest is not established\",\"fromSubject\":{\"name\":\"AI 助理\"},\"toSubject\":{\"name\":\"事後檢討文件\"},\"changes\":[],\"changeTotal\":0,\"evidence\":[{\"sourceId\":\"c79d5389-9c0f-4363-a52a-dab4a189fc6b\",\"sourceVersion\":1,\"quote\":\"會後由 AI 助理草擬了事後檢討文件交給 Alice\",\"quoteHash\":\"0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945\",\"position\":85,\"attribution\":\"user_stated\"}],\"evidenceWindow\":{\"start\":0,\"total\":1},\"provenanceTotal\":1}",
+          "visibility": "bot_private",
+          "principal": "v3-test",
+          "projectId": "test",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          },
+          "sources": [
+            {
+              "botId": "a",
+              "threadId": "incident",
+              "runId": "incident"
+            }
+          ]
+        },
+        {
+          "recordId": "5230e96f-af5b-4724-b587-bef9f5115db7:0",
+          "content": "# 搜尋推薦服務",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        },
+        {
+          "recordId": "5230e96f-af5b-4724-b587-bef9f5115db7:1",
+          "content": "## 搜尋推薦服務\n<!-- section_d1c5bacf2c07a82f7f5709120dfdb6cb -->",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        },
+        {
+          "recordId": "5230e96f-af5b-4724-b587-bef9f5115db7:2",
+          "content": "- 搜尋推薦服務",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        },
+        {
+          "recordId": "dfd1a3b2-95df-425f-8cf6-1942f10de5c1:0",
+          "content": "# Bob",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        },
+        {
+          "recordId": "dfd1a3b2-95df-425f-8cf6-1942f10de5c1:1",
+          "content": "## Bob\n<!-- section_3bcb1a8f6b3aa135315f227ff5dd8812 -->",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        },
+        {
+          "recordId": "dfd1a3b2-95df-425f-8cf6-1942f10de5c1:2",
+          "content": "- Bob",
+          "principal": "v3-test",
+          "projectId": "test",
+          "visibility": "bot_private",
+          "source": {
+            "botId": "a",
+            "threadId": "incident",
+            "runId": "incident"
+          }
+        }
+      ]
+    },
+    "netEdgeIds": [
+      "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185",
+      "edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166",
+      "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c",
+      "edge_90ea484998ba7bffee2e76b1b767cdca1a24d2cd2340eccb7f8fa058bfefba7b",
+      "edge_9cbae76260c1bee3f26b8cc8db19572768bb5bfd50240469652cdb00a107203b"
+    ],
+    "seedCount": 3,
+    "supportingCount": 2,
+    "edgeRecall": 1,
+    "incidentPrecision": 1,
+    "evidenceRecall": 1,
+    "netBytes": 11433
+  }
+}

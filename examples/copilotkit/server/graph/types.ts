@@ -20,6 +20,7 @@ export const ManifestSchema = z.object({
   pages: z.array(z.object({ file: z.string().regex(/^[\p{L}\p{N}_-]+\.md$/u), expectedRevision: z.string().nullable() }).strict()).min(1).max(1000),
 }).strict();
 export interface WikiOptions {
+  retrievalMode?: "v2" | "v3"; queryParser?: import("zod").input<typeof import("./query-config").RetrievalConfig>["queryParser"];
   enabled?: boolean; dataRoot?: string; timeoutMs?: number;
   maxPages?: number; maxPageBytes?: number;
   embedding?: unknown; retrieval?: { rrfK?: number; seedLimit?: number; neighbors?: number };

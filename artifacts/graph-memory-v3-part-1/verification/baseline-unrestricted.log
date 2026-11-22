@@ -1,0 +1,35 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v2.test.ts tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:82104) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2.test.ts (12 tests) 4893ms
+   ✓ A/B: real queue → parser → grouped subjects/wiki → atomic event/edge evidence; replay and isolation  651ms
+   ✓ lease fencing, CAS rollback and invalid JSON never half-publish  308ms
+   ✓ revoke source invalidates evidence immediately, retains history, rebuilds other profile evidence  552ms
+   ✓ C: state slots retain both effective dates; repeated equivalent source attaches independent evidence  321ms
+   ✓ cancellation, revoke during parse and invented quote cannot publish  476ms
+   ✓ Fixture A alone creates minimal identity profiles; incident content remains in edges  529ms
+   ✓ D: revoke removes only A's distinct attribute; B rebuild and explicitly shared copies remain isolated  400ms
+   ✓ full attribute evidence survives beyond frontmatter limits; revoking an uncited contribution still invalidates the Wiki  667ms
+   ✓ Session E2E: authenticated completion intake → real OpenAI HTTP adapter → worker → published Wiki/facts  620ms
+(node:82161) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts (6 tests) 4088ms
+   ✓ A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope  762ms
+   ✓ edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding  997ms
+   ✓ C: persisted states serve current/history/as-of and source revocation through the real Runtime provider  369ms
+   ✓ independent rollback events remain visible; shared copies and Bot disable cannot bypass evidence authorization  780ms
+   ✓ evidence beyond the 20-source output window is authorized and remains inspectable  1171ms
+(node:82217) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ↓ tests/graph-v2-postgres.test.ts (4 tests | 4 skipped)
+
+ Test Files  2 passed | 1 skipped (3)
+      Tests  18 passed | 4 skipped (22)
+   Start at  03:55:03
+   Duration  12.45s (transform 596ms, setup 0ms, collect 2.16s, tests 8.98s, environment 1ms, prepare 407ms)

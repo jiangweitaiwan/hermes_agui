@@ -15,7 +15,7 @@ import { WikiStore, safePath, namespaceKey } from "./wiki-store";
 import { DocumentIngestor } from "./ingest-queue";
 import { OpenAICompilerLLM, WikiCompiler, WORKER_SHUTDOWN } from "./compiler";
 
-const Config = z.object({ namespace: NamespaceSchema, graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EmbeddingConfig.optional(), compiler: z.object({
+const Config = z.object({ namespace: NamespaceSchema, retrievalMode: z.enum(["v2","v3"]).default("v2"), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EmbeddingConfig.optional(), compiler: z.object({
   baseUrl: z.string().url(), model: z.string().min(1), keyEnv: z.string().min(1),
   timeoutMs: z.number().int().positive().max(120000).optional(), maxTokens: z.number().int().positive().max(8192).optional(),
 }).strict().optional() }).strict();
@@ -46,8 +46,9 @@ async function rebuildVectors(store: WikiStore | PostgresWikiStore, config: z.in
     await vectors.update(config.namespace, AbortSignal.timeout(30000));
     if (vectors.metrics.indexed === before) break;
   }
-  const edges = new EdgeVectorIndex(new V2RetrievalStore(store),vectors.encoder);
-  await edges.rebuild(config.namespace);
+  const edges = new EdgeVectorIndex(new V2RetrievalStore(store),vectors.encoder,config.retrievalMode);
+  // Resume V3 missing batches while retaining V2 vectors.
+  if(config.retrievalMode === "v2")await edges.rebuild(config.namespace);
   for (let batch=0;batch<40000;batch++) {
     const before=edges.metrics.indexed;
     await edges.update(config.namespace,AbortSignal.timeout(30000));

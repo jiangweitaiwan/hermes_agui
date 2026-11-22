@@ -10,11 +10,17 @@ export function edgeEmbeddingText(edge: FactEdge) {
     occurredFrom:edge.time.occurredFrom,occurredTo:edge.time.occurredTo,timePrecision:edge.time.timePrecision,
     originalTimeText:edge.time.originalTimeText,timezone:edge.time.timezone,anchor:edge.time.anchor,confidence:edge.time.confidence}});
 }
+export function queryEmbeddingTextV3(description:string,time:{from?:string;to?:string;timezone?:string;originalText?:string}) {
+  return [`Narrative: ${description}`,time.from ? `Occurred: ${time.from}${time.to ? ` / ${time.to}`:""}`:"",time.timezone ? `Timezone: ${time.timezone}`:"",time.originalText ? `Time expression: ${time.originalText}`:""].filter(Boolean).join("\n");
+}
+export function edgeEmbeddingTextV3(edge:FactEdge,names:string[]) {
+  return [queryEmbeddingTextV3(edge.description,{from:edge.time.occurredFrom,to:edge.time.occurredTo,timezone:edge.time.timezone,originalText:edge.time.originalTimeText}),`Subjects: ${names.join("; ")}`,edge.relationLabel ? `Relation background: ${edge.relationLabel}`:""].filter(Boolean).join("\n");
+}
 export class EdgeVectorIndex {
   readonly key: string;
   readonly metrics = {indexed:0,failures:0,queries:0,lexical:0};
-  constructor(readonly store: V2RetrievalStore, readonly encoder: Encoder) {
-    this.key = JSON.stringify([encoder.model,encoder.dimension,encoder.version]);
+  constructor(readonly store: V2RetrievalStore, readonly encoder: Encoder, readonly template: "v2" | "v3" = "v2") {
+    this.key = JSON.stringify([encoder.model,encoder.dimension,encoder.version,...(template === "v3" ? ["edge-narrative-v3"]:[])]);
   }
   async update(ns: Namespace, signal: AbortSignal) {
     signal.throwIfAborted();
@@ -28,7 +34,7 @@ export class EdgeVectorIndex {
     const edges: FactEdge[] = [];
     for (const row of rows) { const read = await this.store.read(ns,String(row.edge_id)); if (read) edges.push(read.edge); }
     if (!edges.length) return;
-    const texts = edges.map(edgeEmbeddingText);
+    const texts = await Promise.all(edges.map(edge=>this.text(ns,edge)));
     try {
       const vectors = await boundedEmbedding(this.encoder,texts,signal);
       if (vectors.length !== edges.length || vectors.some(v => !validVector(v,this.encoder.dimension))) throw new Error("Invalid edge vectors");
@@ -59,17 +65,24 @@ export class EdgeVectorIndex {
       const rows = await this.store.connection(db => db.rows(`SELECT v.*,f.data FROM graph_edge_embeddings v JOIN graph_fact_edges f ON f.ns=v.ns AND f.edge_id=v.edge_id
         WHERE v.ns=$1 AND v.model=$2 AND v.dimension=$3 ORDER BY v.edge_id LIMIT 4097`,[namespaceKey(ns),this.key,this.encoder.dimension]));
       if (rows.length > 4096) throw new Error("Edge vector scan budget exceeded");
-      return rows.flatMap(row => {
+      const matches: {id:string;score:number}[] = [];
+      for (const row of rows) {
         const edge = decode(row.data), vector = decode(row.vector);
-        if (digest(edgeEmbeddingText(edge)) !== row.content_hash || !validVector(vector,this.encoder.dimension)) return [];
+        if (digest(await this.text(ns,edge)) !== row.content_hash || !validVector(vector,this.encoder.dimension)) continue;
         const norm = (v:number[]) => Math.sqrt(v.reduce((s,n)=>s+n*n,0));
         const score = vector.reduce((s,n,i)=>s+n*query[i],0)/(norm(vector)*norm(query));
-        return score>0 ? [{id:String(row.edge_id),score}] : [];
-      }).sort((a,b)=>b.score-a.score || a.id.localeCompare(b.id)).slice(0,32);
+        if(score>0)matches.push({id:String(row.edge_id),score});
+      }
+      return matches.sort((a,b)=>b.score-a.score || a.id.localeCompare(b.id)).slice(0,32);
     } catch { this.metrics.failures++; signal.throwIfAborted(); return []; }
   }
+  private async text(ns:Namespace,edge:FactEdge) {
+    if(this.template === "v2")return edgeEmbeddingText(edge);
+    const from=await this.store.subject(ns,edge.fromSubjectId),to=await this.store.subject(ns,edge.toSubjectId);
+    return edgeEmbeddingTextV3(edge,[from?.canonicalName ?? "",to?.canonicalName ?? ""]);
+  }
   async rebuild(ns: Namespace) {
-    await this.store.connection(db => db.rows("DELETE FROM graph_edge_embeddings WHERE ns=$1",[namespaceKey(ns)]));
+    await this.store.connection(db => db.rows("DELETE FROM graph_edge_embeddings WHERE ns=$1 AND model=$2",[namespaceKey(ns),this.key]));
   }
 }
 /** Bounded backfill for Part 1 facts; safe to repeat after restart, independent of embedding availability. */

@@ -1,0 +1,57 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-query.test.ts tests/graph-v3-net.test.ts tests/graph-v3-postgres.test.ts tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts tests/graph-browser.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:85675) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-browser.test.ts (12 tests) 32297ms
+   ✓ every endpoint enforces identity, ownership, namespaces and no-store  1628ms
+   ✓ bound keyset pagination, Chinese FTS, filters and closed network  1101ms
+   ✓ strict input, methods, origin, disabled/unavailable/static and evolution off  1205ms
+   ✓ disabled owner reads; deleted sources, mixed pages and policy changes revoke  756ms
+   ✓ without evolution revoked documents cannot reappear; no retrieval or writes  788ms
+   ✓ actual HTTP returns active revision and safe job summaries  979ms
+   ✓ work bounds, complete keyset traversal and bounded edges  20358ms
+   ✓ Browser rejects a revision changed during immutable object reading  635ms
+   ✓ Unicode cursors match SQLite byte ordering and tracked sessions stay revoked with evolution off  600ms
+   ✓ network caps dense edges and rechecks every source owner before returning  2391ms
+   ✓ jobs cap at 50 and health marks full candidate windows partial  866ms
+   ✓ V2 facts API: grouped subject detail, evidence windows, current/history, cursors and revoke/disable  981ms
+(node:86204) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-net.test.ts (8 tests) 8327ms
+   ✓ A/B: real parser → compiler/publisher → split recall → authorized Net; no fabricated actor, key Wiki section, revoke and scope gate  1318ms
+   ✓ D: subject only / narrative only / empty; F: independent events stay grouped  2190ms
+   ✓ C/E: persisted states current/history/as-of; unresolved anchor stays uncertain, known anchor resolves in two passes  1371ms
+   ✓ I: V3 vectors coexist, resume, mismatch/failure lexical fallback and revoke  1117ms
+   ✓ G/J: custom relation labels publish evidence-backed JSON, invalid quote never publishes  601ms
+   ✓ E: two-pass rollback anchor retrieves the prior state, unknown/tied events remain uncertain  737ms
+   ✓ H: revocation during shared namespace embedding removes previously assembled private claims  763ms
+(node:86292) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts (6 tests) 6291ms
+   ✓ A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope  1679ms
+   ✓ edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding  1268ms
+   ✓ C: persisted states serve current/history/as-of and source revocation through the real Runtime provider  529ms
+   ✓ independent rollback events remain visible; shared copies and Bot disable cannot bypass evidence authorization  895ms
+   ✓ evidence beyond the 20-source output window is authorized and remains inspectable  1900ms
+(node:86369) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-postgres.test.ts (1 test) 1747ms
+   ✓ PG V3 parity: authorized Net, wiki sections, vector version separation, revoke and Bot disable  1745ms
+ ✓ tests/graph-v3-query.test.ts (3 tests) 257ms
+(node:86419) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-postgres.test.ts (4 tests) 4837ms
+   ✓ PG + immutable mock GCS: concurrent subject creation/CAS retry, edge-only jobs, source revoke, tenant isolation  1293ms
+   ✓ PG: object upload succeeds then DB lease validation fails; all graph rows and pointers roll back  326ms
+   ✓ PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts  2671ms
+   ✓ Cloud Tasks reconciliation retries completed jobs with missing edge indexes  544ms
+
+ Test Files  6 passed (6)
+      Tests  34 passed (34)
+   Start at  04:00:46
+   Duration  76.10s (transform 1.35s, setup 0ms, collect 17.03s, tests 53.76s, environment 2ms, prepare 1.99s)
