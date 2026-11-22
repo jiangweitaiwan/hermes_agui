@@ -1,0 +1,62 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts tests/graph-browser.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:94705) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-browser.test.ts (12 tests) 22729ms
+   ✓ every endpoint enforces identity, ownership, namespaces and no-store  657ms
+   ✓ bound keyset pagination, Chinese FTS, filters and closed network  564ms
+   ✓ strict input, methods, origin, disabled/unavailable/static and evolution off  908ms
+   ✓ disabled owner reads; deleted sources, mixed pages and policy changes revoke  503ms
+   ✓ without evolution revoked documents cannot reappear; no retrieval or writes  562ms
+   ✓ actual HTTP returns active revision and safe job summaries  582ms
+   ✓ work bounds, complete keyset traversal and bounded edges  14141ms
+   ✓ Browser rejects a revision changed during immutable object reading  529ms
+   ✓ Unicode cursors match SQLite byte ordering and tracked sessions stay revoked with evolution off  621ms
+   ✓ network caps dense edges and rechecks every source owner before returning  2136ms
+   ✓ jobs cap at 50 and health marks full candidate windows partial  738ms
+   ✓ V2 facts API: grouped subject detail, evidence windows, current/history, cursors and revoke/disable  786ms
+(node:94927) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v2-postgres.test.ts (3 tests | 1 failed) 1693ms
+   ✓ PG + immutable mock GCS: concurrent subject creation/CAS retry, edge-only jobs, source revoke, tenant isolation  844ms
+   ✓ PG: object upload succeeds then DB lease validation fails; all graph rows and pointers roll back 247ms
+   × PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts 598ms
+     → expected [] to have a length of 5 but got +0
+(node:94957) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts (4 tests) 1977ms
+   ✓ A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope  653ms
+   ✓ edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding  947ms
+   ✓ C: persisted states serve current/history/as-of and source revocation through the real Runtime provider  370ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v2-postgres.test.ts > PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts
+AssertionError: expected [] to have a length of 5 but got +0
+
+- Expected
++ Received
+
+- 5
++ 0
+
+ ❯ tests/graph-v2-postgres.test.ts:67:78
+     65|   const vectors=new EdgeVectorIndex(provider.facts,{model:"mock",dimen…
+     66|   await vectors.update(f.ns,new AbortController().signal);expect(vecto…
+     67|   expect(await vectors.search(f.ns,"semantic",new AbortController().si…
+       |                                                                              ^
+     68|   const {stateText,stateModel}=await import("./fixtures/graph-v2/state…
+     69|   const current=await read("FeatureHub 目前版本");expect(current.filter(h=…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 18 passed (19)
+   Start at  21:16:52
+   Duration  30.49s (transform 654ms, setup 0ms, collect 2.95s, tests 26.40s, environment 1ms, prepare 343ms)

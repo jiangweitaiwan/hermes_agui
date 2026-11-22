@@ -25,3 +25,5 @@ GRANT SELECT,INSERT ON hermes_agui_runtime.graph_subjects,hermes_agui_runtime.gr
   hermes_agui_runtime.graph_subject_attribute_evidence,hermes_agui_runtime.graph_compiler_namespaces,
   hermes_agui_runtime.graph_source_times TO hermes_runtime;
 GRANT SELECT,INSERT,UPDATE,DELETE ON hermes_agui_runtime.graph_edge_embeddings TO hermes_runtime;
+-- Runtime 010: derived lexical index; rebuildable independently of immutable facts.
+GRANT SELECT,INSERT,DELETE ON hermes_agui_runtime.graph_fact_tokens TO hermes_runtime;

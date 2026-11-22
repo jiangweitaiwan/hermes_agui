@@ -1,4 +1,4 @@
-export type { PageSummary, PageDetail, NetworkResult, PageList, SearchResult, StatsResult, HealthResult, JobsResult } from "../../server/graph/browser-types";
+export type { FactsResult, PageSummary, PageDetail, NetworkResult, PageList, SearchResult, StatsResult, HealthResult, JobsResult } from "../../server/graph/browser-types";
 export type Scope = "all" | "bot_private" | "project_shared";
 export async function graph<T>(bot: string, endpoint: string, query: URLSearchParams, signal: AbortSignal): Promise<T> {
   const response = await fetch(`/api/graph/${encodeURIComponent(bot)}/${endpoint}?${query}`, { signal, cache: "no-store" });

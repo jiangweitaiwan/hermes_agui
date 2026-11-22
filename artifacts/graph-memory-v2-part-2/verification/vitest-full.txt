@@ -1,0 +1,219 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 --reporter=verbose
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:8764) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts > A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope 764ms
+ ✓ tests/graph-v2-retrieval.test.ts > temporal view: effective time, historical independent events, as-of, ties, unknown and disputed claims 3ms
+ ✓ tests/graph-v2-retrieval.test.ts > edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding 1075ms
+ ✓ tests/graph-v2-retrieval.test.ts > C: persisted states serve current/history/as-of and source revocation through the real Runtime provider 385ms
+ ✓ tests/graph-v2-retrieval.test.ts > independent rollback events remain visible; shared copies and Bot disable cannot bypass evidence authorization 810ms
+ ✓ tests/graph-v2-retrieval.test.ts > evidence beyond the 20-source output window is authorized and remains inspectable 1283ms
+(node:8824) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-browser.test.ts > every endpoint enforces identity, ownership, namespaces and no-store 640ms
+ ✓ tests/graph-browser.test.ts > bound keyset pagination, Chinese FTS, filters and closed network 532ms
+ ✓ tests/graph-browser.test.ts > strict input, methods, origin, disabled/unavailable/static and evolution off 835ms
+ ✓ tests/graph-browser.test.ts > disabled owner reads; deleted sources, mixed pages and policy changes revoke 491ms
+ ✓ tests/graph-browser.test.ts > without evolution revoked documents cannot reappear; no retrieval or writes 544ms
+ ✓ tests/graph-browser.test.ts > actual HTTP returns active revision and safe job summaries 533ms
+ ✓ tests/graph-browser.test.ts > work bounds, complete keyset traversal and bounded edges 14573ms
+ ✓ tests/graph-browser.test.ts > Browser rejects a revision changed during immutable object reading 526ms
+ ✓ tests/graph-browser.test.ts > Unicode cursors match SQLite byte ordering and tracked sessions stay revoked with evolution off 623ms
+ ✓ tests/graph-browser.test.ts > network caps dense edges and rechecks every source owner before returning 2121ms
+ ✓ tests/graph-browser.test.ts > jobs cap at 50 and health marks full candidate windows partial 751ms
+ ✓ tests/graph-browser.test.ts > V2 facts API: grouped subject detail, evidence windows, current/history, cursors and revoke/disable 848ms
+(node:9098) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-ingest-cli.test.ts > trusted CLI ingests, compiles, reports, revokes and rebuilds with mock HTTP LLM 12631ms
+(node:9246) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-ingest.test.ts > targeted delivery processes only its scoped job and leaves a replay unchanged 373ms
+ ✓ tests/wiki-ingest.test.ts > documents A/B/C compile incrementally with links, conflicts, provenance and duplicate suppression 703ms
+ ✓ tests/wiki-ingest.test.ts > versions, immutable source records, idempotency conflicts, MIME/size/path validation 125ms
+ ✓ tests/wiki-ingest.test.ts > malformed output cannot publish 154ms
+ ✓ tests/wiki-ingest.test.ts > schema output cannot publish 187ms
+ ✓ tests/wiki-ingest.test.ts > path output cannot publish 182ms
+ ✓ tests/wiki-ingest.test.ts > evidence output cannot publish 172ms
+ ✓ tests/wiki-ingest.test.ts > untrusted injection cannot choose ACL/paths or erase old verified evidence 459ms
+ ✓ tests/wiki-ingest.test.ts > scope isolation includes compiler context, status, source update, retrieval, deletion and rebuild 871ms
+ ✓ tests/wiki-ingest.test.ts > revocation withdraws mixed-source pages, survives reindex/restart and rebuild excludes deleted sources 583ms
+ ✓ tests/wiki-ingest.test.ts > crash recovery, heartbeat fencing, finite attempts, dead-letter and manual retry 210ms
+ ✓ tests/wiki-ingest.test.ts > backoff, explicit cancellation and timeout never publish 2215ms
+ ✓ tests/wiki-ingest.test.ts > concurrent merges preserve CAS and publication rollback includes completed job state 371ms
+ ✓ tests/wiki-ingest.test.ts > filesystem failure and revocation/cancellation during compilation cannot half-publish 331ms
+ ✓ tests/wiki-ingest.test.ts > no-value input completes without wiki revision 180ms
+ ✓ tests/wiki-ingest.test.ts > adapter sends bounded OpenAI/OpenRouter-compatible JSON and rejects malformed/error/oversize responses 8ms
+ ✓ tests/wiki-ingest.test.ts > large documents use bounded chunk digests rather than full generation context 172ms
+ ✓ tests/wiki-ingest.test.ts > updating a source preserves versioned references and stable source page identity 468ms
+ ✓ tests/wiki-ingest.test.ts > cross-bot provenance hidden inside a multi-source private hit fails closed 272ms
+ ✓ tests/wiki-ingest.test.ts > a cancelled job cannot publish even when a model returns valid merge output 284ms
+(node:9330) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-postgres-sources.test.ts > PG source/wiki/browser/retrieval use external objects; revoke defeats stale object reads and publication 845ms
+ ✓ tests/wiki-postgres-sources.test.ts > DB-clock job takeover fences stale worker and publication/completion roll back together 536ms
+ ✓ tests/wiki-postgres-sources.test.ts > completion ACK waits for durable source/job; ACK loss and new receiver preserve one job 455ms
+ ✓ tests/wiki-postgres-sources.test.ts > two independent worker processes take over an expired claim; resumed old process cannot publish 2561ms
+ ✓ tests/wiki-postgres-sources.test.ts > PG Runtime evolution, browser and context injection survive a new application and refresh authoritative ACL 904ms
+ ✓ tests/wiki-postgres-sources.test.ts > different jobs merge the same page after revision conflict without losing either source 687ms
+ ✓ tests/wiki-postgres-sources.test.ts > revocation during compile and failed object upload never publish or complete a job 606ms
+ ✓ tests/wiki-postgres-sources.test.ts > job completion SQL failure rolls back staged wiki pointers and all publication metadata 496ms
+ ✓ tests/wiki-postgres-sources.test.ts > sharing and revocation bind the original private namespace even when a shared reader has another bot ID 643ms
+(node:9447) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2.test.ts > A/B: real queue → parser → grouped subjects/wiki → atomic event/edge evidence; replay and isolation 577ms
+ ✓ tests/graph-v2.test.ts > time requires metadata; after-meeting remains relative; invalid date is unknown 2ms
+ ✓ tests/graph-v2.test.ts > lease fencing, CAS rollback and invalid JSON never half-publish 308ms
+ ✓ tests/graph-v2.test.ts > revoke source invalidates evidence immediately, retains history, rebuilds other profile evidence 536ms
+ ✓ tests/graph-v2.test.ts > C: state slots retain both effective dates; repeated equivalent source attaches independent evidence 323ms
+ ✓ tests/graph-v2.test.ts > cancellation, revoke during parse and invented quote cannot publish 456ms
+ ✓ tests/graph-v2.test.ts > stable identity survives fresh store and homonymous alias remains unresolved 232ms
+ ✓ tests/graph-v2.test.ts > Fixture A alone creates minimal identity profiles; incident content remains in edges 468ms
+ ✓ tests/graph-v2.test.ts > D: revoke removes only A's distinct attribute; B rebuild and explicitly shared copies remain isolated 478ms
+ ✓ tests/graph-v2.test.ts > full attribute evidence survives beyond frontmatter limits; revoking an uncited contribution still invalidates the Wiki 625ms
+ ✓ tests/graph-v2.test.ts > Session E2E: authenticated completion intake → real OpenAI HTTP adapter → worker → published Wiki/facts 509ms
+ ✓ tests/graph-v2.test.ts > same-named components of independently identified systems never share a Subject ID 186ms
+(node:9499) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-graph.test.ts > English/CJK lexical retrieval, paragraphs, aliases, cycles, broken links and stable ranking 374ms
+ ✓ tests/wiki-graph.test.ts > namespace identity, same slug isolation, private/shared edges never cross boundaries 411ms
+ ✓ tests/wiki-graph.test.ts > restart/reindex preserve results, CAS prevents lost updates and uncommitted files stay invisible 305ms
+ ✓ tests/wiki-graph.test.ts > safe frontmatter, paths, source provenance and limits 195ms
+ ✓ tests/wiki-graph.test.ts > disabled creates nothing, write disabled, unavailable/abort/timeout and result budgets 2411ms
+ ✓ tests/wiki-graph.test.ts > custom policy cannot bypass base principal/project/bot authorization 2ms
+ ✓ tests/wiki-graph.test.ts > one-hop expansion adds lexically relevant neighbors beyond eight seeds; edges alone do not qualify 522ms
+ ✓ tests/wiki-graph.test.ts > failed publication rolls back pointers/indexes and cleanup removes only uncommitted revision files 306ms
+(node:9558) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-evolution.test.ts > successful run persists only this turn, multiple final messages, true session provenance and conservative verification 362ms
+ ✓ tests/wiki-evolution.test.ts > interrupt never learns 159ms
+ ✓ tests/wiki-evolution.test.ts > error never learns 157ms
+ ✓ tests/wiki-evolution.test.ts > cancel never learns 173ms
+ ✓ tests/wiki-evolution.test.ts > disconnect never learns 165ms
+ ✓ tests/wiki-evolution.test.ts > mismatch never learns 164ms
+ ✓ tests/wiki-evolution.test.ts > open-message never learns 150ms
+ ✓ tests/wiki-evolution.test.ts > bad-start never learns 129ms
+ ✓ tests/wiki-evolution.test.ts > no-start never learns 134ms
+ ✓ tests/wiki-evolution.test.ts > resume never learns 167ms
+ ✓ tests/wiki-evolution.test.ts > secret never learns 166ms
+ ✓ tests/wiki-evolution.test.ts > chitchat never learns 177ms
+ ✓ tests/wiki-evolution.test.ts > late-error never learns 166ms
+ ✓ tests/wiki-evolution.test.ts > reasoning and unapproved tool output are excluded; repeated completion, repeated knowledge and restart deduplicate 171ms
+ ✓ tests/wiki-evolution.test.ts > a completion retries after storage failure and cannot republish after revocation 317ms
+ ✓ tests/wiki-evolution.test.ts > A learns; B sees nothing until explicit original-source sharing; C never sees it; revoke withdraws mixed pages and shared copies 430ms
+ ✓ tests/wiki-evolution.test.ts > bot/project/ACL loss cancels pending jobs, withdraws learned data and prevents in-flight publication 282ms
+ ✓ tests/wiki-evolution.test.ts > health detects graph issues, conflicts, stale provenance and index drift without deleting pages 279ms
+ ✓ tests/wiki-evolution.test.ts > explicit user confirmation stays distinct from an assistant claim and never grants verified status 268ms
+ ✓ tests/wiki-evolution.test.ts > an unavailable authorization service cannot turn a completed run into an error 173ms
+(node:9602) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-hybrid.test.ts > semantic seeds + one-hop graph recover paraphrases, metadata changes fall back, stale revisions and other owners never return 241ms
+ ✓ tests/wiki-hybrid.test.ts > offline embedding uses keyword fallback and refuses invalid indexing 99ms
+ ✓ tests/wiki-hybrid.test.ts > dimension embedding uses keyword fallback and refuses invalid indexing 100ms
+ ✓ tests/wiki-hybrid.test.ts > invalid embedding uses keyword fallback and refuses invalid indexing 94ms
+ ✓ tests/wiki-hybrid.test.ts > revocation/publication during async embedding never indexes withdrawn or superseded versions; rebuild handles multiple batches 1616ms
+ ✓ tests/wiki-hybrid.test.ts > embedding adapter batches in index order, binds model/dimension/version, retries and rejects wrong models 108ms
+ ✓ tests/wiki-hybrid.test.ts > an encoder that never responds still permits bounded keyword fallback 849ms
+ ✓ tests/wiki-hybrid.test.ts > source ACL revoked while the encoder is pending cannot escape through a shared query 466ms
+(node:9639) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-postgres.test.ts > PG + immutable mock GCS: concurrent subject creation/CAS retry, edge-only jobs, source revoke, tenant isolation 795ms
+ ✓ tests/graph-v2-postgres.test.ts > PG: object upload succeeds then DB lease validation fails; all graph rows and pointers roll back 253ms
+ ✓ tests/graph-v2-postgres.test.ts > PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts 1603ms
+ ✓ tests/graph-v2-postgres.test.ts > Cloud Tasks reconciliation retries completed jobs with missing edge indexes 409ms
+(node:9688) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-evolution-lifecycle.test.ts > delete revokes learned session/doc/shared knowledge and pending jobs through real application lifecycle 630ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > project revokes learned session/doc/shared knowledge and pending jobs through real application lifecycle 546ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > policy revokes learned session/doc/shared knowledge and pending jobs through real application lifecycle 536ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > owner-access revokes learned session/doc/shared knowledge and pending jobs through real application lifecycle 546ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > restart reconciles sources queued under a removed bot before a worker can compile 209ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > evolution refuses an ambiguous owner/principal deployment before opening the management registry 167ms
+ ✓ tests/wiki-evolution-lifecycle.test.ts > authorized shared document updates preserve the author of each version across bots 361ms
+(node:9732) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/delegation.test.ts > directional authorization, independent child IDs, bounded result, and parent/tool dedup 76ms
+ ✓ tests/delegation.test.ts > human returns terminal status and cooperatively cancels child 23ms
+ ✓ tests/delegation.test.ts > large returns terminal status and cooperatively cancels child 17ms
+ ✓ tests/delegation.test.ts > busy returns terminal status and cooperatively cancels child 12ms
+ ✓ tests/delegation.test.ts > error returns terminal status and cooperatively cancels child 12ms
+ ✓ tests/delegation.test.ts > slow returns terminal status and cooperatively cancels child 2011ms
+ ✓ tests/delegation.test.ts > child depth and caller cancellation are enforced 7ms
+ ✓ tests/delegation.test.ts > disconnect after child admission cancels its stream and execution 9ms
+ ✓ tests/delegation.test.ts > delegation mapping admits one child across Runtimes and isolates authenticated scopes 58ms
+(node:9771) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-import-compatibility.test.ts > legacy Runtime import retains stable metadata, omits secrets and preserves later desired operations on rerun 2021ms
+(node:9802) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-evolution-runtime.test.ts > standard run → durable queue → compiler → next thread → authorized B sharing smoke 686ms
+ ✓ tests/wiki-evolution-runtime.test.ts > delegation run → durable queue → compiler → next thread → authorized B sharing smoke 509ms
+(node:9832) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-runtime.test.ts > session wiki hits reach signed ordinary/delegated AG-UI runs without mutating original messages 401ms
+ ✓ tests/wiki-runtime.test.ts > document wiki hits reach signed ordinary/delegated AG-UI runs without mutating original messages 348ms
+(node:9856) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/wiki-postgres.test.ts > external Graph objects enforce create-only writes, generation and byte integrity 55ms
+ ✓ tests/wiki-postgres.test.ts > PostgreSQL wiki publication fences competing revisions and is readable by a fresh store 653ms
+(node:9875) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/cloud-tasks.test.ts > committed jobs survive task enqueue failure and duplicate delivery with minimal payload 567ms
+(node:9885) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-manager.test.ts > create, update, disable, restore, enable and soft delete preserve identity and hide credentials 69ms
+ ✓ tests/bot-manager.test.ts > quota, ownership, allowlists, failures and retries fail closed 36ms
+ ✓ tests/bot-manager.test.ts > API authenticates, scopes listings, prevents CSRF and supplies HttpOnly sessions 38ms
+ ✓ tests/bot-manager.test.ts > an offline Host cannot reopen a durably disabled Bot during restore 29ms
+ ✓ tests/bot-manager.test.ts > PostgreSQL registry persists Bot metadata, serializes quota, and restores credentials 172ms
+ ✓ tests/bot-manager.test.ts > a live Runtime reads Bot lifecycle changes committed by another Runtime 61ms
+(node:9921) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/bot-operations.test.ts > ACK loss, process restart and stale acknowledgements converge without replacing newer intent 293ms
+(node:9957) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/postgres-thread-mappings.test.ts > PostgreSQL thread mappings survive Runtime replacement and preserve scope under contention
+Agent execution failed: Error: Runtime thread mapping unavailable
+    at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/server/runtime.ts:37:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+ ✓ tests/postgres-thread-mappings.test.ts > PostgreSQL thread mappings survive Runtime replacement and preserve scope under contention 179ms
+(node:9975) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/runtime.test.ts > official Runtime reaches HttpAgent, pins credentials and removes only correlation metadata 114ms
+ ✓ tests/runtime.test.ts > Bot runners isolate identical IDs and pin each upstream credential 38ms
+ ✓ tests/runtime-memory.test.ts > retrieval isolates bot/principal/project, shares authorized project data and deduplicates 15ms
+ ✓ tests/runtime-memory.test.ts > disabled and timeout degrade, authorization rejection stops the run 10ms
+ ✓ tests/runtime-memory.test.ts > each run produces a fresh bounded signed envelope with server-owned identity 4ms
+ ✓ tests/cloud.test.ts > cloud deployment schemas and Unix socket DSN are accepted by production parsers 10ms
+ ✓ tests/cloud.test.ts > cloud rejects local credentials, cookies, anonymous callbacks and unapproved destinations 8ms
+ ✓ tests/cloud.test.ts > Firebase Admin failures, expiry and server membership gate the existing ACL 9ms
+ ✓ tests/cloud.test.ts > Host transport keeps business authorization separate from ADC IAM identity 3ms
+ ✓ tests/cloud.test.ts > production cloud mode rejects Firebase emulator bypass 1ms
+ ✓ tests/cloud.test.ts > public Runtime callback requires the verified service audience and allowlisted identity 3ms
+(node:10014) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/cloud-worker.test.ts > worker rejects browser credentials and malformed payloads before processing 23ms
+ ✓ tests/cloud-worker.test.ts > worker acknowledges only persisted terminal state completed 3ms
+ ✓ tests/cloud-worker.test.ts > worker acknowledges only persisted terminal state failed 2ms
+ ✓ tests/cloud-worker.test.ts > worker acknowledges only persisted terminal state cancelled 2ms
+ ✓ tests/cloud-worker.test.ts > worker acknowledges only persisted terminal state running 1ms
+ ✓ tests/cloud-worker.test.ts > worker acknowledges only persisted terminal state pending 1ms
+ ✓ tests/cloud-worker.test.ts > worker reconcile retries unsuccessful task delivery 3ms
+ ✓ tests/cloud-worker.test.ts > worker propagates bounded deadline before task dispatch expires 5ms
+ ✓ tests/bot-session.test.ts > logout revokes the server session, expires the cookie and keeps other owners isolated 12ms
+(node:10032) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-memory.test.ts > disabled graph validates trusted scopes and input before reporting disabled 7ms
+ ✓ tests/graph-memory.test.ts > injected provider preserves provenance, idempotency and bot/project visibility 3ms
+ ✓ tests/graph-memory.test.ts > boundary rejects provider leaks and bounds provider failures and timeout 10ms
+ ✓ tests/graph-memory.test.ts > application composition defaults to disabled and accepts an injected provider 6ms
+
+ Test Files  26 passed (26)
+      Tests  156 passed (156)
+   Start at  22:12:26
+   Duration  124.84s (transform 1.11s, setup 0ms, collect 27.71s, tests 87.77s, environment 8ms, prepare 2.87s)

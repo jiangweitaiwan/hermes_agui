@@ -31,6 +31,7 @@ export class PostgresWikiStore implements RetrievalStore, EmbeddingStore {
   }
 
   async ready() {
+    await this.pool.query(`SELECT ns,edge_id,token FROM ${schema}.graph_fact_tokens LIMIT 0`);
     await this.pool.query(`SELECT r.generation FROM ${schema}.graph_revisions r
       JOIN ${schema}.graph_pages p USING (ns,page,revision)
       JOIN ${schema}.graph_namespaces n ON n.id=p.ns

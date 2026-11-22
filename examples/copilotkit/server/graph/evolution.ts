@@ -1,3 +1,4 @@
+import { backfillEdgeLexical } from "./edge-embedding";
 import { z } from "zod";
 import { WikiCompiler, OpenAICompilerLLM, WORKER_SHUTDOWN, type CompilerLLM } from "./compiler";
 import { WikiStore } from "./wiki-store";
@@ -98,6 +99,8 @@ export class MemoryEvolution {
     const ns = await this.queue.namespaceForJob(id);
     if (!this.ownsNamespace(ns) || !this.authorized(ns)) throw new Error("Job authorization denied");
     await this.worker.processJob(ns, id, signal);
+    await backfillEdgeLexical(this.options.provider.facts,ns);
+    await this.options.provider.edgeVectors?.update(ns,signal);
     return this.queue.status(ns, id);
   }
   async tick() {
@@ -113,6 +116,8 @@ export class MemoryEvolution {
         if ((await this.queue.status(ns, id)).state === "completed") this.metrics.compiled++;
         else this.metrics.errors++;
       }
+      await backfillEdgeLexical(this.options.provider.facts,ns);
+      await this.options.provider.edgeVectors?.update(ns,this.controller.signal);
       await this.options.provider.retrieval?.vectors?.update(ns, this.controller.signal);
     }
   }

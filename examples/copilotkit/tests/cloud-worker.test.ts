@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 const token = "local-worker-test-credential-32-characters";
 afterEach(() => vi.useRealTimers());
 function setup(state = "completed") {
-  const evolution = { controller: new AbortController(), reconcile: vi.fn(),
+  const evolution = { options: {provider: {edgeVectors: {key:"fixture-model-v2"}}}, controller: new AbortController(), reconcile: vi.fn(),
     processJob: vi.fn(async () => ({ state })) };
   const tasks = { settings: { deadlineSeconds: 30 }, reconcile: vi.fn(async () => ({ attempted: 1, failed: 0 })) };
   const reconcileBots = vi.fn();
@@ -34,6 +34,7 @@ test("worker reconcile retries unsuccessful task delivery", async () => {
   expect((await request({}, undefined, "reconcile")).status).toBe(503);
   expect(reconcileBots).toHaveBeenCalledOnce();
   expect(evolution.reconcile).toHaveBeenCalledOnce();
+  expect(tasks.reconcile).toHaveBeenCalledWith("fixture-model-v2");
 });
 test("worker propagates bounded deadline before task dispatch expires", async () => {
   vi.useFakeTimers();

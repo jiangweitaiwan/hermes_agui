@@ -1,0 +1,23 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:95228) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-postgres.test.ts (3 tests) 2517ms
+   ✓ PG + immutable mock GCS: concurrent subject creation/CAS retry, edge-only jobs, source revoke, tenant isolation  786ms
+   ✓ PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts  1506ms
+(node:95265) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts (4 tests) 1971ms
+   ✓ A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope  681ms
+   ✓ edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding  931ms
+   ✓ C: persisted states serve current/history/as-of and source revocation through the real Runtime provider  354ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  21:17:46
+   Duration  6.24s (transform 510ms, setup 0ms, collect 997ms, tests 4.49s, environment 1ms, prepare 241ms)

@@ -1,3 +1,4 @@
+import { V2Browser } from "./v2-browser";
 import { BotError } from "../bots/types";
 import { sameOrigin } from "../bots/api";
 import type { createBotManagement } from "../bots/application";
@@ -19,7 +20,7 @@ const json = (value: unknown, status = 200) => {
 };
 function resolveRoute(request: Request) {
   const url = new URL(request.url);
-  const match = url.pathname.match(/^\/api\/graph\/([a-z][a-z0-9_-]{0,63})\/(stats|network|pages|search|health|jobs)(?:\/(bot_private|project_shared)\/([^/]+))?$/);
+  const match = url.pathname.match(/^\/api\/graph\/([a-z][a-z0-9_-]{0,63})\/(stats|network|pages|search|health|jobs|facts)(?:\/(bot_private|project_shared)\/([^/]+))?$/);
   if (!match) throw new BotError(400, "Invalid graph route");
   const [, botId, route, visibility, encodedId] = match;
   if (visibility && route !== "pages") throw new BotError(400, "Invalid graph route");
@@ -53,20 +54,44 @@ export function createGraphApi(options: BrowserOptions) {
       if (!(options.provider instanceof WikiGraphProvider)) return json({ status: "unavailable", error: "Graph unavailable" }, 503);
       if (["health", "jobs"].includes(route) && !options.evolution) return json({ status: "unavailable", error: "Evolution disabled" }, 503);
       await options.evolution?.reconcile();
-      const store = options.provider.store;
+      const provider = options.provider;
+      const store = provider.store;
       {
         const browser = new GraphBrowser(store as BrowserStore<BrowserRevision>, namespace, query, options.retained);
+        const facts = new V2Browser(options.provider.facts,browser.namespaces,{...query,view:endpoint === "health" ? "history":query.view},options.retained);
         const binding = JSON.stringify([identity.ownerId, namespace, endpoint]);
+        const overlays: V2Browser[] = [];
         const actions: Record<string, () => unknown> = {
-          stats: () => browser.stats(), network: () => browser.network(binding), pages: () => browser.list(binding),
+          facts: () => facts.list(binding),
+          stats: () => browser.stats(), network: async () => {
+            const network = await browser.network(binding);
+            const overlay = new V2Browser(provider.facts,
+              browser.namespaces,{...query,cursor:undefined,limit:100},options.retained);
+            overlays.push(overlay);
+            const values = await overlay.list(`${binding}:facts`);
+            const nodes = new Set(network.nodes.map(n=>n.id));
+            network.factEdges = values.edges.filter(e=>nodes.has(`${e.visibility}:${e.fromSubject.wikiPageId}`) && nodes.has(`${e.visibility}:${e.toSubject.wikiPageId}`));
+            network.subjects = values.subjects.filter(s=>nodes.has(`${s.visibility}:${s.wikiPageId}`));
+            network.truncated ||= values.partial;
+            await overlay.revalidate();
+            return network;
+          }, pages: () => browser.list(binding),
           search: () => browser.list(binding, true), detail: () => browser.detail(visibility as "bot_private" | "project_shared", id!),
-          health: () => browser.health(), jobs: () => browser.jobs(),
+          health: async () => {
+            const health=await browser.health();
+            const window=await facts.list(`${binding}:health-facts`);
+            return {...health,facts:{edges:window.edges.length,subjects:window.subjects.length,
+              events:new Set(window.edges.map(e=>e.eventId).filter(Boolean)).size,partial:window.partial,
+              vectorEnabled:!!provider.edgeVectors}};
+          }, jobs: () => browser.jobs(),
         };
         const value = await actions[endpoint]();
         await management.manager.sync();
         management.manager.owned(botId, identity);
         if (!options.retained({ ...namespace, visibility: "bot_private" }, botId)) throw new BotError(404, "Unknown Bot");
         await browser.revalidate();
+        await facts.revalidate();
+        for (const overlay of overlays) await overlay.revalidate();
         return json(value);
       }
     } catch (error) {

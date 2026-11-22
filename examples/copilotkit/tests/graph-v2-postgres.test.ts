@@ -55,3 +55,35 @@ test.skipIf(!url)("PG: object upload succeeds then DB lease validation fails; al
   const retry=(await f.second.claim(f.ns))!;await f.second.publish(f.ns,retry,publication,()=>{});expect((await f.queue.status(f.ns,id)).state).toBe("completed");
  }finally{await f.close();}
 });
+test.skipIf(!url)("PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts",async()=>{
+ const f=await fixture();try{
+  const {WikiGraphProvider}=await import("../server/graph/provider"),{EdgeVectorIndex}=await import("../server/graph/edge-embedding");
+  const provider=new WikiGraphProvider(f.store,10000),scope={principal:f.ns.principal,projectId:f.ns.projectId,botId:f.ns.botId,threadId:"query",runId:"query"};
+  const m=await f.add(meeting,"meeting");await new WikiCompiler(f.queue,fixtureModel(),120000,"v2").processJob(f.ns,m);
+  const read=async(text:string)=>{const result=await provider.query(scope,{text,limit:20},new AbortController().signal);expect(result.status).toBe("ok");if(result.status!=="ok")throw new Error("No hits");return result.hits.filter(h=>h.recordId.startsWith("fact:")).map(h=>JSON.parse(h.content));};
+  expect(await read("Bob 如何處理搜尋推薦服務延遲？")).toHaveLength(5);
+  const vectors=new EdgeVectorIndex(provider.facts,{model:"mock",dimension:2,version:"1",async embed(texts:string[]){return texts.map(()=>[1,0]);}});
+  await vectors.update(f.ns,new AbortController().signal);expect(vectors.metrics.indexed).toBe(5);
+  expect(await vectors.search(f.ns,"semantic",new AbortController().signal)).toHaveLength(5);
+  const {stateText,stateModel}=await import("./fixtures/graph-v2/state-model");const c=await f.add(stateText,"state");await new WikiCompiler(f.queue,stateModel,120000,"v2").processJob(f.ns,c);
+  const current=await read("FeatureHub 目前版本");expect(current.filter(h=>h.factKind==="state")).toMatchObject([{description:"FeatureHub 目前部署 v2",view:"latest"}]);
+  expect((await read("FeatureHub history")).filter(h=>h.factKind==="state")).toHaveLength(2);
+  expect(await provider.query({...scope,botId:"b"},{text:"Bob",limit:10},new AbortController().signal)).toEqual({status:"ok",hits:[]});
+  await f.queue.revoke(f.ns,(await f.queue.status(f.ns,m)).source);expect(await read("Bob")).toEqual([]);
+  expect(await vectors.search(f.ns,"semantic",new AbortController().signal)).toEqual([]);
+ }finally{await f.close();}
+});
+test.skipIf(!url)("Cloud Tasks reconciliation retries completed jobs with missing edge indexes",async()=>{
+ const f=await fixture();const env="GRAPH_V2_TASK_FIXTURE_KEY";process.env[env]="fixture-worker-token-01234567890123456789";
+ try{
+  const {CloudTasksDelivery}=await import("../server/graph/tasks");
+  const {WikiGraphProvider}=await import("../server/graph/provider"),{EdgeVectorIndex}=await import("../server/graph/edge-embedding");
+  const id=await f.add(meeting,"task-retry");await new WikiCompiler(f.queue,fixtureModel(),120000,"v2").processJob(f.ns,id);
+  const provider=new WikiGraphProvider(f.store),vectors=new EdgeVectorIndex(provider.facts,{model:"mock",dimension:2,version:"1",async embed(texts:string[]){return texts.map(()=>[1,0]);}});
+  const tasks=new CloudTasksDelivery(f.store.pool,{project:"fixture-project",location:"local",queue:"fixture",workerUrl:"https://worker.example",serviceAccount:"fixture@example.com",tokenEnv:env,deadlineSeconds:600});
+  const queued:string[]=[];tasks.enqueue=async job=>{queued.push(job);};
+  await tasks.reconcile(vectors.key);expect(queued).toContain(id);
+  await vectors.update(f.ns,new AbortController().signal);queued.length=0;
+  await tasks.reconcile(vectors.key);expect(queued).not.toContain(id);
+ }finally{delete process.env[env];await f.close();}
+});

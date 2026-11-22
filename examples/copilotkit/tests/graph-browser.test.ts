@@ -235,3 +235,17 @@ test("jobs cap at 50 and health marks full candidate windows partial", async () 
   expect(health).toMatchObject({ status: "ok", pending: 50, partial: true, brokenLinks: null, isolated: null });
   expect(JSON.stringify(jobs)).not.toMatch(/evidence|lease|token|content|error/);
 }, 30000);
+test("V2 facts API: grouped subject detail, evidence windows, current/history, cursors and revoke/disable",async()=>{
+ const f=await fixture();const {WikiCompiler}=await import("../server/graph/compiler"),{meeting,fixtureModel}=await import("./fixtures/graph-v2/model");
+ const id=f.queue.enqueue(ns,{title:"meeting",content:meeting,mime:"text/plain",idempotencyKey:"meeting"},{provenance:{botId:"a",threadId:"meeting",runId:"meeting"},classification:"user-stated",referenceTime:{instant:"2026-11-03T08:00:00.000Z",timezone:"Asia/Taipei"},evidence:{user:meeting,confirmed:false,assistants:[]}});
+ await new WikiCompiler(f.queue,fixtureModel(),120000,"v2").processJob(ns,id);
+ for(const token of ["","other"])expect((await f.request("a/facts",token)).status).toBe(token?404:401);
+ const response=await f.request("a/facts?view=history&limit=2");expect(response.status).toBe(200);const first=await response.json();expect(first.edges).toHaveLength(2);
+ expect((await f.request(`b/facts?view=history&limit=2&cursor=${first.nextCursor}`)).status).toBe(400);
+ const subjects=await f.queue.graphSubjects(ns),hub=subjects.find(s=>s.canonicalName==="FeatureHub")!;
+ const grouped=await (await f.request(`a/facts?pageId=${hub.wikiPageId}&view=history`)).json();expect(grouped.subjects.filter((s:any)=>s.wikiPageId===hub.wikiPageId)).toHaveLength(2);
+ const edge=first.edges[0];expect((await (await f.request(`a/facts?edgeId=${edge.edgeId}&view=history`)).json()).edges).toHaveLength(1);
+ f.queue.revoke(ns,f.queue.status(ns,id).source);expect((await (await f.request("a/facts?view=history")).json()).edges).toEqual([]);
+ const bot=f.registry.get("a")!;bot.record.status="disabled";f.registry.put(bot);
+ expect((await (await f.request("a/facts")).json()).edges).toEqual([]);
+});

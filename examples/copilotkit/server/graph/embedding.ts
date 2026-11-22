@@ -126,7 +126,7 @@ function cosine(a: number[], b: number[]) {
   return dot / Math.sqrt(left * right);
 }
 
-async function boundedEmbedding(encoder: Encoder, texts: string[], signal: AbortSignal) {
+export async function boundedEmbedding(encoder: Encoder, texts: string[], signal: AbortSignal) {
   const deadline = AbortSignal.any([signal, AbortSignal.timeout(750)]);
   deadline.throwIfAborted();
   let listener = () => {};

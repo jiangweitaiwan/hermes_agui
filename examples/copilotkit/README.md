@@ -633,5 +633,36 @@ Full source-level edge and attribute evidence is stored independently of the bou
 Wiki frontmatter window. Revocation synchronously invalidates source evidence and clears affected
 edge vectors. A mixed-source Wiki is safely withdrawn and surviving-source jobs are queued to rebuild
 it; their evidence and immutable Wiki history remain stored. Rebuild can temporarily remove that Wiki
-from V1 search. V2 Runtime retrieval, temporal latest views, embedding indexing and browser UI are
-Part 2 and are intentionally not enabled here. Part 1 storage lookups are available to acceptance tests.
+from profile search. V2 retrieval and browsing are described below; Part 1 storage lookups remain available to acceptance tests.
+
+### Graph Memory V2 retrieval and browser (Part 2)
+
+Apply incremental Runtime `010_graph_fact_tokens.sql` after 009 and refresh `deploy/gcp/database-grants.sql` as the schema owner.
+The application never migrates PostgreSQL automatically. SQLite initializes its equivalent derived token table locally.
+Existing V2 facts need the trusted `reindex` command (same config and namespace as above), or successive worker ticks, to backfill lexical tokens in batches of 32.
+No compiler-version flag change or source recompilation is needed. Existing V1 namespaces retain Wiki retrieval.
+
+Runtime queries combine authorized Subject/alias matches, Wiki profile sections, lexical fact tokens and optional semantic vectors.
+Edges expand their Event context; state slots expand all comparable versions before temporal selection.
+Current queries compare effective occurrence time, preserve independent events, and show previous-state hints.
+History/why/如何 queries preserve old states and independent events. `as of 2026-11-06` / `截至 2026-11-06` select by effective time;
+`2026-11-01 至 2026-11-10` filters history by overlapping date range. Unknown dates and conflicting/overlapping claims remain uncertain.
+`recordedAt` never selects the current state. These are reported claims, not independently verified truth.
+
+`vectors` now rebuilds Wiki and Edge vectors. It uses the existing embedding model/dimension/version configuration, immutable content hashes,
+batches of 32, and separate persistent Edge embeddings. An encoder outage leaves facts searchable by Subject/keyword.
+Worker ticks retry missing indexes; Cloud Tasks reconciliation also redelivers completed jobs with missing lexical or current-model Edge indexes.
+Old model/version vectors never enter the current model's search. A deliberate content-template change must bump embedding `version` and rebuild.
+
+`GET /api/graph/:bot/facts` accepts `scope`, `q`, `view=current|history`, `limit` (1–300), bound `cursor`,
+`subjectId`, `pageId`, `edgeId`, `eventId`, and `evidenceStart` (0–99). Edge detail/timeline use the ID filters on this same read-only endpoint.
+Evidence windows contain four quotes and up to 20 provenance records, with explicit totals; use `evidenceStart` to inspect later quotes.
+All contributing sources are authorized before emitting a window. Runtime GraphHits contain one evidence window with a total,
+up to two previous-state hints and the existing 16 KiB content / 20 sources limits. Full evidence remains persisted.
+The browser supports current/history selection, shared-Wiki subsubjects, purple fact relations, event IDs, occurrence ranges,
+certainty and source quotes. Health includes bounded authorized fact/subject/event counts with a `partial` marker and vector configuration status.
+
+Scans fail closed at 64 subject candidates, 128 Event/slot siblings, 96 active evidence rows per Edge, and 4,096 vector rows per namespace/model.
+The browser scans at most 300 initial candidates per window and caps expanded reads at 512; Runtime expansion caps reads at 256.
+Larger datasets require a database-native vector backend or narrower namespace/query. Revoked sources and disabled source owners cannot contribute V2 facts;
+existing V1 disabled-owner browsing semantics are preserved. No new GraphMemoryPort/AG-UI fields or core model tools are introduced.

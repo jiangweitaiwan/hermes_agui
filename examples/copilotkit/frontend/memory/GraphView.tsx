@@ -10,6 +10,7 @@ export function GraphView({ network, onSelect }: GraphViewProps) {
   const drag = useRef<{ id?: string; x: number; y: number; moved: boolean } | undefined>(undefined);
   useEffect(() => {
     const positions = Object.fromEntries(network.nodes.map((n, i) => [n.id, { x: 400 + 200 * Math.cos(i * 2.4), y: 240 + 180 * Math.sin(i * 2.4) }]));
+    const links=[...network.edges,...(network.factEdges ?? []).map(e=>({source:`${e.visibility}:${e.fromSubject.wikiPageId}`,target:`${e.visibility}:${e.toSubject.wikiPageId}`}))];
     let frame = 0, ticks = 0;
     function step() {
       const nodes = network.nodes;
@@ -19,7 +20,7 @@ export function GraphView({ network, onSelect }: GraphViewProps) {
         a.x += dx * 80 / distance; a.y += dy * 80 / distance;
         b.x -= dx * 80 / distance; b.y -= dy * 80 / distance;
       }
-      for (const edge of network.edges) {
+      for (const edge of links) {
         const a = positions[edge.source], b = positions[edge.target];
         if (!a || !b) continue;
         const dx = (b.x - a.x) * .012, dy = (b.y - a.y) * .012;
@@ -42,7 +43,7 @@ export function GraphView({ network, onSelect }: GraphViewProps) {
     setCamera({ zoom, x: (400 - (left + right) / 2) * zoom, y: (240 - (top + bottom) / 2) * zoom });
   }
   return <section aria-label="Knowledge graph"><h3>Knowledge graph</h3>
-    <p>● 藍色 Bot Private · ● 橘色 Shared · {network.nodes.length} nodes / {network.edges.length} edges</p>
+    <p>● 藍色 Bot Private · ● 橘色 Shared · {network.nodes.length} Wiki nodes / {network.edges.length} links / {network.factEdges?.length ?? 0} facts</p>
     <button onClick={() => zoom(1.25)} aria-label="Zoom in">＋</button><button onClick={() => zoom(.8)} aria-label="Zoom out">－</button>
     <button onClick={fit}>Fit graph</button>
     <label><input type="checkbox" checked={degreeSize} onChange={e => setDegreeSize(e.target.checked)} />Degree size</label>
@@ -59,6 +60,10 @@ export function GraphView({ network, onSelect }: GraphViewProps) {
       }} onPointerUp={() => { drag.current = undefined; }} onPointerCancel={() => { drag.current = undefined; }}>
       <g transform={`translate(${camera.x} ${camera.y}) translate(400 240) scale(${camera.zoom}) translate(-400 -240)`}>
         {network.edges.map(e => <line key={`${e.source}/${e.target}`} x1={points[e.source]?.x} y1={points[e.source]?.y} x2={points[e.target]?.x} y2={points[e.target]?.y} stroke="#708399" />)}
+        {network.factEdges?.map(e => <line key={`fact/${e.visibility}/${e.edgeId}`}
+          x1={points[`${e.visibility}:${e.fromSubject.wikiPageId}`]?.x} y1={points[`${e.visibility}:${e.fromSubject.wikiPageId}`]?.y}
+          x2={points[`${e.visibility}:${e.toSubject.wikiPageId}`]?.x} y2={points[`${e.visibility}:${e.toSubject.wikiPageId}`]?.y}
+          stroke="#a56cdd" strokeWidth="2"><title>{e.relation}: {e.description} · {e.time.occurredFrom ?? "時間未知"} · {e.view}</title></line>)}
         {network.nodes.map(n => <g key={n.id} transform={`translate(${points[n.id]?.x ?? 400} ${points[n.id]?.y ?? 240})`}
           onPointerDown={e => { cancelAnimationFrame(animation.current); e.stopPropagation(); e.currentTarget.ownerSVGElement!.setPointerCapture(e.pointerId); drag.current = { id: n.id, x: e.clientX, y: e.clientY, moved: false }; }}
           onClick={() => onSelect(n)}><circle r={degreeSize ? 7 + Math.min(12, network.edges.filter(e => e.source === n.id || e.target === n.id).length) : 9}

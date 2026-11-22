@@ -1,0 +1,16 @@
+The files belonging to this database system will be owned by user "jiangwei".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /private/tmp/graph-v2-part2-pg ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... sysv
+selecting default max_connections ... 20
+selecting default shared_buffers ... 400kB
+selecting default time zone ... Asia/Taipei
+creating configuration files ... ok
+running bootstrap script ...

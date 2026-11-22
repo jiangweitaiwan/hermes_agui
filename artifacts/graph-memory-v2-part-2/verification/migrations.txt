@@ -1,0 +1,11 @@
+001_threads.sql passed
+002_delegations.sql passed
+003_bot_registry.sql passed
+004_graph_wiki.sql passed
+005_graph_sources.sql passed
+006_graph_jobs.sql passed
+007_bot_operations.sql passed
+008_task_deliveries.sql passed
+009_graph_memory_v2.sql passed
+010_graph_fact_tokens.sql passed
+Repeat 010 passed

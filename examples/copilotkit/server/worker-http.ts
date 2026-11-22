@@ -16,7 +16,7 @@ export function workerHandler(evolution: MemoryEvolution, tasks: CloudTasksDeliv
     const path = new URL(request.url).pathname;
     if (path === "/internal/jobs/reconcile") {
       await reconcileBots(); await evolution.reconcile();
-      const result = await tasks.reconcile();
+      const result = await tasks.reconcile(evolution.options.provider.edgeVectors?.key);
       return Response.json(result, { status: result.failed ? 503 : 200 });
     }
     if (path !== "/internal/jobs/process") return new Response(null, { status: 404 });

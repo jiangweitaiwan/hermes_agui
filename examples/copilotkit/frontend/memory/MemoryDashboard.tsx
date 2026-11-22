@@ -40,7 +40,8 @@ export function MemoryDashboard({ bot, scope, onUnauthorized }: DashboardProps) 
     <button onClick={() => { setStats(undefined); setHealth(undefined); setJobs(undefined); setVersion(v => v + 1); }}>Refresh dashboard</button>
     {error && <p role="status">{error} · Evolution not available 時不顯示假數值。</p>}
     {stats && <p>Pages {stats.pages} · Edges {stats.edges} · Private {stats.private} · Shared {stats.shared} {stats.partial && "(partial / lower bounds)"}</p>}
-    {health && <dl>{Object.entries(health).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v === null ? "unknown (partial)" : String(v)}</dd></div>)}</dl>}
+    {health && <dl>{Object.entries(health).filter(([k]) => k !== "facts").map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v === null ? "unknown (partial)" : String(v)}</dd></div>)}</dl>}
+    {health?.facts && <p>Facts {health.facts.edges} · Subjects {health.facts.subjects} · Events {health.facts.events} · Vectors {health.facts.vectorEnabled ? "enabled" : "disabled"} {health.facts.partial && "(partial / lower bounds)"}</p>}
     {jobs && <><p>{['pending', 'running', 'completed', 'failed', 'cancelled'].map(s => `${s}: ${jobs.jobs.filter(j => j.state === s).length}`).join(" · ")}（recent window）</p>
       <ul>{jobs.jobs.map(j => <li key={j.id}>{j.id}: {j.state}{j.createdAt && ` · ${new Date(j.createdAt).toLocaleString()}`}</li>)}</ul></>}
   </section>;

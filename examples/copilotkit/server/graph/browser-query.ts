@@ -12,13 +12,17 @@ const schema = z.object({
   limit: integer(100, 300), cursor: z.string().max(2048).optional(),
   type: PageSchema.shape.type.optional(), verification: PageSchema.shape.verification,
   q: z.string().trim().min(1).max(512).refine(s => Buffer.byteLength(s) <= 2048).optional(),
+  view: z.enum(["current","history"]).default("current"),
+  subjectId: pageId.optional(), edgeId: pageId.optional(), eventId: pageId.optional(),
+  evidenceStart: z.string().regex(/^[0-9]{1,2}$/).transform(Number).default("0"),
   pageId: pageId.optional(), visibility: visibility.optional(), depth: integer(1, 2),
 }).strict();
 export type BrowserQuery = z.infer<typeof schema>;
 export function parseQuery(url: URL, endpoint: string): BrowserQuery {
   const allowed: Record<string, string[]> = {
+    facts: ["scope","limit","cursor","q","view","subjectId","edgeId","eventId","pageId","evidenceStart"],
     pages: ["scope", "limit", "cursor", "type", "verification", "q"],
-    network: ["scope", "limit", "cursor", "type", "verification", "q", "pageId", "visibility", "depth"],
+    network: ["view", "scope", "limit", "cursor", "type", "verification", "q", "pageId", "visibility", "depth"],
     search: ["scope", "limit", "cursor", "q", "type", "verification"],
     stats: ["scope"], health: ["scope"], jobs: ["scope", "limit"], detail: ["scope"],
   };
@@ -32,7 +36,7 @@ export function parseQuery(url: URL, endpoint: string): BrowserQuery {
   const q = parsed.data;
   if (endpoint === "search" && !q.q) throw new BotError(400, "Query required");
   if (q.visibility && !q.pageId) throw new BotError(400, "Focus requires pageId");
-  if (q.pageId && !q.visibility) throw new BotError(400, "Focus requires visibility");
+  if (endpoint !== "facts" && q.pageId && !q.visibility) throw new BotError(400, "Focus requires visibility");
   if (q.visibility && q.scope !== "all" && q.scope !== q.visibility) throw new BotError(400, "Focus outside scope");
   if (endpoint === "jobs") q.limit = Math.min(q.limit, 50);
   return q;

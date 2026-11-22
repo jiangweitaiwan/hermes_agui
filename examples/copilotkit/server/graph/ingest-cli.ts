@@ -1,3 +1,5 @@
+import { V2RetrievalStore } from "./v2-retrieval-store";
+import { EdgeVectorIndex, backfillEdgeLexical } from "./edge-embedding";
 import { PostgresWikiStore } from "./postgres-wiki-store";
 import { PostgresDocumentIngestor } from "./postgres-ingest-queue";
 import { GcsGraphObjects } from "./objects";
@@ -44,7 +46,14 @@ async function rebuildVectors(store: WikiStore | PostgresWikiStore, config: z.in
     await vectors.update(config.namespace, AbortSignal.timeout(30000));
     if (vectors.metrics.indexed === before) break;
   }
-  return { status: vectors.metrics.failures ? "partial" : "ok", ...vectors.metrics };
+  const edges = new EdgeVectorIndex(new V2RetrievalStore(store),vectors.encoder);
+  await edges.rebuild(config.namespace);
+  for (let batch=0;batch<40000;batch++) {
+    const before=edges.metrics.indexed;
+    await edges.update(config.namespace,AbortSignal.timeout(30000));
+    if (edges.metrics.indexed===before) break;
+  }
+  return { status: vectors.metrics.failures || edges.metrics.failures ? "partial" : "ok", ...vectors.metrics, edges:edges.metrics };
 }
 export async function main(args: string[]) {
   const [root, configPath, command, value] = args;
@@ -70,7 +79,12 @@ export async function main(args: string[]) {
       const browser = new GraphBrowser(queue.store, ns, parseQuery(new URL("http://localhost/?scope=" + ns.visibility), "health"), () => true);
       const result = await browser.health(); await browser.revalidate(); return result;
     },
-    reindex: async () => { await store.reindex(ns); return { status: "ok" }; },
+    reindex: async () => {
+      await store.reindex(ns);
+      const facts=new V2RetrievalStore(store);
+      for(let batch=0;batch<40000;batch++) if(await backfillEdgeLexical(facts,ns)===0)return {status:"ok"};
+      return {status:"partial"};
+    },
     vectors: () => rebuildVectors(store, config),
     share: async () => ({ status: "accepted", jobId: await new SessionIngestor(queue).share(ns, id()) }),
     rebuild: async () => { await queue.rebuild(ns); return { status: "queued" }; },

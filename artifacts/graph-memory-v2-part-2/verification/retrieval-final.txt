@@ -1,0 +1,26 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 --reporter=verbose tests/graph-v2-retrieval.test.ts tests/graph-v2-postgres.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:11278) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-retrieval.test.ts > A: runtime hybrid keyword retrieval expands the incident, respects GraphHit contract, aliases, revocation and Bot scope 803ms
+ ✓ tests/graph-v2-retrieval.test.ts > temporal view: effective time, historical independent events, as-of, ties, unknown and disputed claims 3ms
+ ✓ tests/graph-v2-retrieval.test.ts > edge indexing: lexical fallback, durable retries, rebuild, model separation, semantic recall, revocation during embedding 1044ms
+ ✓ tests/graph-v2-retrieval.test.ts > C: persisted states serve current/history/as-of and source revocation through the real Runtime provider 408ms
+ ✓ tests/graph-v2-retrieval.test.ts > independent rollback events remain visible; shared copies and Bot disable cannot bypass evidence authorization 818ms
+ ✓ tests/graph-v2-retrieval.test.ts > evidence beyond the 20-source output window is authorized and remains inspectable 1297ms
+(node:11336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v2-postgres.test.ts > PG + immutable mock GCS: concurrent subject creation/CAS retry, edge-only jobs, source revoke, tenant isolation 823ms
+ ✓ tests/graph-v2-postgres.test.ts > PG: object upload succeeds then DB lease validation fails; all graph rows and pointers roll back 220ms
+ ✓ tests/graph-v2-postgres.test.ts > PG retrieval V2 + mock GCS: lexical, semantic, temporal and revoked evidence match SQLite contracts 1442ms
+ ✓ tests/graph-v2-postgres.test.ts > Cloud Tasks reconciliation retries completed jobs with missing edge indexes 447ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  22:16:32
+   Duration  10.00s (transform 504ms, setup 0ms, collect 1.76s, tests 7.31s, environment 1ms, prepare 381ms)

@@ -1,3 +1,4 @@
+import { FactTimeline } from "./FactTimeline";
 import { useEffect, useRef, useState } from "react";
 import { graph, type Scope, type NetworkResult, type PageDetail, type PageSummary } from "../api/graph";
 import type { BotItem } from "../BotManagement";
@@ -25,6 +26,7 @@ export function MemoryExplorer({ bots, selected }: ExplorerProps) {
 }
 interface SessionProps { bot: string; scope: Scope; query: string; type: string; verification: string }
 function MemorySession({ bot, scope, query, type, verification }: SessionProps) {
+  const [view,setView] = useState("current");
   const [network, setNetwork] = useState<NetworkResult>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,7 +44,7 @@ function MemorySession({ bot, scope, query, type, verification }: SessionProps) 
       active = false; controller.abort(); setBusy(false); invalidate(message);
     }
     setBusy(true); setError("");
-    const params = new URLSearchParams({ scope, limit: "100" });
+    const params = new URLSearchParams({ scope, limit: "100", view });
     if (query) params.set("q", query);
     if (type) params.set("type", type);
     if (verification) params.set("verification", verification);
@@ -54,7 +56,7 @@ function MemorySession({ bot, scope, query, type, verification }: SessionProps) 
       setNetwork(value); setFatal(false);
     }).catch(e => fail(e.message)).finally(() => { if (active) setBusy(false); });
     return () => { active = false; controller.abort(); };
-  }, [bot, scope, query, type, verification, cursor, focus, refresh]);
+  }, [bot, scope, query, type, verification, cursor, focus, refresh, view]);
   function reload() { invalidated.current = false; setNetwork(undefined); setPage(undefined); setCursor(undefined); setFocus(undefined); setFatal(false); setRefresh(v => v + 1); }
   return <>
     <button onClick={reload}>Refresh memory</button>
@@ -63,6 +65,7 @@ function MemorySession({ bot, scope, query, type, verification }: SessionProps) 
       {network.truncated && <p role="status">Truncated：僅顯示此 bounded window，統計可能不完整。</p>}
       {network.nextCursor && <button disabled={busy} onClick={() => { setPage(undefined); setNetwork(undefined); setCursor(network.nextCursor!); }}>Load more · 下一頁（取代此頁）</button>}
     </>}
+    {!fatal && <FactTimeline key={`facts/${refresh}`} bot={bot} scope={scope} query={query} view={view} onViewChange={value=>{setNetwork(undefined);setView(value);}} onFailure={invalidate} />}
     {!fatal && <WikiPageList key={`wiki/${refresh}`} bot={bot} scope={scope} query={query} type={type} verification={verification} onSelect={setPage} onFailure={invalidate} />}
     {page && !fatal && <><button onClick={() => { setNetwork(undefined); setCursor(undefined); setFocus(page); }}>Load neighbors</button>
       <Detail key={`${page.id}/${refresh}`} bot={bot} scope={scope} page={page} onSelect={setPage} onFailure={invalidate} /></>}
@@ -78,5 +81,5 @@ function Detail({ bot, scope, page, onSelect, onFailure }: DetailProps) {
       .then(value => { if (active) setDetail(value); }).catch(e => { if (active) onFailure(e.message); });
     return () => { active = false; controller.abort(); };
   }, [bot, scope, page.id]);
-  return detail ? <WikiPageViewer page={detail} onSelect={onSelect} /> : <p role="status">Loading Wiki…</p>;
+  return detail ? <><WikiPageViewer page={detail} onSelect={onSelect} /><FactTimeline bot={bot} scope={page.visibility} query="" pageId={page.pageId} onFailure={onFailure} /></> : <p role="status">Loading Wiki…</p>;
 }

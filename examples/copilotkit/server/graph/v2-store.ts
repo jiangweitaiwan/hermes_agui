@@ -1,3 +1,4 @@
+import { terms } from "./markdown";
 import type { PoolClient } from "pg";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import type { GraphData, Subject, Attribute, FactEdge } from "./v2-types";
@@ -37,6 +38,10 @@ export async function readAttributes(db: GraphConnection, ns: string, page: stri
   if (rows.length > 1000) throw new Error("Attribute budget");
   return rows.map(r => typeof r.data === "string" ? JSON.parse(r.data) : r.data);
 }
+function* lexicalStatements(ns:string,edge:FactEdge):Generator<{sql:string;args:unknown[]},void,Record<string,any>[]> {
+  for (const token of terms(`${edge.description} ${edge.relation}`))
+    yield {sql:"INSERT INTO graph_fact_tokens VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",args:[ns,edge.edgeId,token]};
+}
 /** Must run inside the same transaction as Wiki CAS and lease completion. */
 function* graphStatements(ns: string, input: GraphData, source: RawSource): Generator<{ sql: string; args: unknown[] }, void, Record<string, any>[]> {
   const data = GraphDataSchema.parse({subjects:input.subjects,events:input.events,edges:input.edges,attributes:input.attributes});
@@ -66,6 +71,7 @@ function* graphStatements(ns: string, input: GraphData, source: RawSource): Gene
     for (const e of edge.evidence) check(e);
     const { evidence: _, ...record } = edge;
     (yield { sql: "INSERT INTO graph_fact_edges VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING", args: [ns,edge.edgeId,edge.eventId ?? null,edge.fromSubjectId,edge.toSubjectId,edge.relation,edge.factKind,edge.stateSlotKey ?? null,edge.time.occurredFrom ?? null,edge.semanticHash,JSON.stringify(record)] });
+    yield* lexicalStatements(ns,edge);
     for (const e of edge.evidence) (yield { sql: "INSERT INTO graph_edge_evidence VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING", args: [ns,edge.edgeId,e.sourceId,e.sourceVersion,e.quoteHash,JSON.stringify(e)] });
   }
   for (const a of data.attributes) {

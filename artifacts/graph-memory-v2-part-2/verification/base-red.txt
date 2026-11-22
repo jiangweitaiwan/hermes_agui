@@ -1,0 +1,30 @@
+
+ RUN  v3.2.4 /private/var/folders/lp/xygp61b90bl3p9vl_p2xzykc0000gn/T/graph-v2-part2-base-b6sug3cq/examples/copilotkit
+
+(node:7371) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v2-retrieval.test.ts [ tests/graph-v2-retrieval.test.ts ]
+Error: Cannot find module '../server/graph/temporal-view' imported from '/private/var/folders/lp/xygp61b90bl3p9vl_p2xzykc0000gn/T/graph-v2-part2-base-b6sug3cq/examples/copilotkit/tests/graph-v2-retrieval.test.ts'
+ ❯ tests/graph-v2-retrieval.test.ts:10:1
+      8| import {meeting,profile,fixtureModel} from "./fixtures/graph-v2/model";
+      9| import {WikiGraphProvider} from "../server/graph/provider";
+     10| import {temporalView,temporalIntent} from "../server/graph/temporal-vi…
+       | ^
+     11| import {EdgeVectorIndex,backfillEdgeLexical} from "../server/graph/edg…
+     12| import {V2Browser} from "../server/graph/v2-browser";
+
+Caused by: Error: Failed to load url ../server/graph/temporal-view (resolved id: ../server/graph/temporal-view) in /private/var/folders/lp/xygp61b90bl3p9vl_p2xzykc0000gn/T/graph-v2-part2-base-b6sug3cq/examples/copilotkit/tests/graph-v2-retrieval.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../../../../../../../../Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/vite/dist/node/chunks/config.js:26036:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  22:09:58
+   Duration  2.05s (transform 546ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 382ms)
+
+Base 5129338689d5bfe8854aa986cf2b81f5ac85e842 exit 1

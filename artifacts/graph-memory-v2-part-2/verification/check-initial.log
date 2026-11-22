@@ -1,0 +1,44 @@
+
+=== no-tmp (failed) ===
+advisory — _BASELINE in scripts/check_no_tmp_literals.py is stale; regenerate it with --print-baseline (fewer hits than listed is progress, not a failure):
+  website/docs/getting-started/nix-setup.md: listed in _BASELINE but clean (or gone)
+artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:5: host-config.yaml:8: scratch: /tmp
+artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:6: host-config.yaml:11: root: /tmp/managed
+artifacts/graph-memory-v2-part-1/verification/check.txt:5: host-config.yaml:8: scratch: /tmp
+artifacts/graph-memory-v2-part-1/verification/check.txt:6: host-config.yaml:11: root: /tmp/managed
+docs/GRAPH_MEMORY_V2_PART_1_REPORT.md:106: 3. `scripts/check` 的 no-tmp guard 在既有 `host-config.yaml` 第 8、11 行有兩筆基準已存在的 `/tmp` literals；不改動任務外設定。其他檢查與 code-health 結果見日誌。不得將整組 Lint 寫成全綠。
+host-config.yaml:8: scratch: /tmp
+host-config.yaml:11: root: /tmp/managed
+
+7 literal /tmp path(s) flagged. Resolve scratch space through hermes_constants.get_scratch_dir() (or $TMPDIR / tempfile, which Hermes points there), tell the model to do the same in skills and prompts, or mark a deliberate line with `no-tmp: ok — <why>` (same line or the line above). See scripts/check_no_tmp_literals.py.
+
+=== blob-size (failed) ===
+::error file=artifacts/graph-memory-v2-part-2/browser.png::artifacts/graph-memory-v2-part-2/browser.png is 534 KiB (binary); the limit is 500 KiB
+
+1 file(s) over the 500 KiB blob limit. Every blob a merge adds stays in
+every clone forever, even after a later commit deletes it. Fix one of these ways:
+  - screenshots, recordings, PR assets: put them in the PR description, not in git
+  - images that must ship: compress them (oxipng -o max / pngquant / jpegoptim / webp)
+  - test data or archives: generate them in the test's tmp dir instead of committing them
+  - a file that must ship at this size: add its exact path to .github/blob-size-allowlist.txt
+    (needs a hermes-agent-core review; keep that list short)
+Reproduce locally: python scripts/ci/check_blob_size.py
+
+=== health (failed) ===
+examples/copilotkit/server/graph/retriever.ts:18  CC  WikiRetriever.query
+    CC 22 > 21, its value on main (over target 20: it may only go down)
+    fix: split it: extract phases into a topical sibling (`<stem>_<topic>.py`), or replace a branch ladder with a dict/table -> handler
+examples/copilotkit/server/graph/v2-store.ts:42  CC  graphStatements
+    CC 21 > target 20 (new code must meet the target)
+    fix: split it: extract phases into a topical sibling (`<stem>_<topic>.py`), or replace a branch ladder with a dict/table -> handler
+
+code health: 56 files vs 933d967945cf: 2 blocking, 0 advisory (14.9s)
+
+Each function and file has its own cap: its value on main if it is already over target,
+otherwise the target. New code meets the target; existing code may only go down. Fix the code
+(the `fix:` line is the repo's remedy); a genuine exception takes a reviewed comment on the line,
+`# health: allow <RULE> -- <why>`. Rules and targets: scripts/code_health/config.py.
+Reproduce locally: python scripts/check --only health (every lint check: python scripts/check;
+on every push: python scripts/check --install-hook pre-push).
+
+scripts/check: 17 checks, FAILED: no-tmp, blob-size, health

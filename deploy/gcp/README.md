@@ -11,7 +11,7 @@ Images and three entrypoint startup checks pass locally with SDK doubles; the co
 | `host.env.example` | Host and Host one-shot jobs |
 | `runtime.env.example` / `worker.env.example` | Node Runtime / Worker |
 | `frontend.env.example` | Vercel Vite build; public values only |
-| `database-grants.sql` | Schema owner, after Host 001–006 and Runtime 001–009 |
+| `database-grants.sql` | Schema owner, after Host 001–006 and Runtime 001–010 |
 | `compose.staging.yaml` | Optional operator-run staging composition; NOT RUN |
 
 Copy examples to `host.yaml`, `runtime.json`, `host.env`, `runtime.env`, `worker.env`; replace all placeholders.
@@ -48,3 +48,7 @@ access and inspect redacted job/run status. The SDK and provider transports must
 
 Graph Memory V2 adds Runtime `009_graph_memory_v2.sql` and immutable fact/evidence grants.
 Review and apply through the existing schema-owner process; app startup does not run migrations.
+
+Graph Memory V2 Part 2 adds Runtime `010_graph_fact_tokens.sql` after 009 and SELECT/INSERT/DELETE grants on its derived lexical table.
+Backfill existing V2 facts using the scoped ingestion CLI `reindex`, then optionally rebuild `vectors`.
+Cloud Tasks reconciliation retries missing Edge indexes on completed compilation jobs; no new public worker route is added.

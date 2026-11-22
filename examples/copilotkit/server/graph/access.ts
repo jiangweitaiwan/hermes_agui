@@ -23,6 +23,8 @@ export function configureGraphAuthority(options: ApplicationOptions, management:
     };
   }
   const readProvider = options.graph?.provider;
+  if (readProvider instanceof WikiGraphProvider) readProvider.facts.retained = (ns,bot) => retained(ns,bot) &&
+    (!management || management.manager.options.registry.get(bot)?.record.status === "active");
   if (readProvider instanceof WikiGraphProvider && readProvider.store instanceof PostgresWikiStore && options.management?.postgres) {
     readProvider.store.readScope = ns => options.management!.users
       .filter(user => user.principal === ns.principal && user.projectId === ns.projectId).map(user => user.ownerId);

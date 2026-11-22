@@ -15,7 +15,7 @@ export class WikiRetriever {
     }
     if ((options.seedLimit ?? 8) < 1 || (options.rrfK ?? 60) < 1) throw new Error("Invalid retrieval configuration");
   }
-  async query(scope: GraphScope, request: GraphQuery, signal: AbortSignal): Promise<GraphHit[]> {
+  async query(scope: GraphScope, request: GraphQuery, signal: AbortSignal, subjectPages: {ns:string;page:string}[] = []): Promise<GraphHit[]> {
     const deadline = performance.now() + this.timeoutMs;
     const check = () => { signal.throwIfAborted(); if (performance.now() >= deadline) throw new Error("Wiki query timeout"); };
     check();
@@ -26,7 +26,8 @@ export class WikiRetriever {
     if (!tokens.length) return [];
     const identity = { principal: scope.principal, projectId: scope.projectId, botId: scope.botId };
     const namespaces = [namespaceKey({ ...identity, visibility: "bot_private" }), namespaceKey({ ...identity, visibility: "project_shared" })];
-    const lexical = (await Promise.all(namespaces.map(ns => this.storage.lexical(ns, tokens)))).flat().sort(compare);
+    const profiles = await this.profileSeeds(subjectPages,check);
+    const lexical = [...profiles,...(await Promise.all(namespaces.map(ns => this.storage.lexical(ns, tokens)))).flat()].sort(compare);
     const vectors = await this.options.vectors?.search(namespaces, request.text, signal) ?? [];
     check();
     const seeds = (vectors.length ? fuse(lexical, vectors, this.options.rrfK ?? 60) : lexical).slice(0, this.seedLimit());
@@ -71,6 +72,13 @@ export class WikiRetriever {
     }
     check();
     return hits;
+  }
+  private async profileSeeds(subjectPages:{ns:string;page:string}[],check:()=>void) {
+    const profiles:Section[]=[];
+    for (const subject of subjectPages.slice(0,64)) {
+      check();profiles.push(...await this.storage.firstSection(subject.ns,subject.page,2));
+    }
+    return profiles;
   }
   private seedLimit() { return this.options.seedLimit ?? 8; }
 

@@ -1,0 +1,255 @@
+{
+  "mockLLM": true,
+  "current": [
+    {
+      "kind": "fact_edge",
+      "intent": {
+        "mode": "current"
+      },
+      "edgeId": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+      "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "toSubjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+      "relation": "deployed_version",
+      "description": "FeatureHub 目前部署 v2",
+      "factKind": "state",
+      "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "time": {
+        "occurredFrom": "2026-11-12T00:00:00.000Z",
+        "timePrecision": "day",
+        "originalTimeText": "11/12",
+        "timezone": "Asia/Taipei",
+        "anchor": "2026-11-03T00:00:00.000Z",
+        "confidence": "certain"
+      },
+      "observedAt": "2026-11-03T08:00:00.000Z",
+      "recordedAt": "2026-11-22T14:21:10.156Z",
+      "certainty": "reported",
+      "status": "active",
+      "attribution": "user_stated",
+      "semanticHash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "view": "latest",
+      "fromSubject": {
+        "name": "FeatureHub"
+      },
+      "toSubject": {
+        "name": "v2"
+      },
+      "changes": [
+        {
+          "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+          "description": "FeatureHub 目前部署 v1",
+          "time": {
+            "occurredFrom": "2026-11-05T00:00:00.000Z",
+            "timePrecision": "day"
+          }
+        }
+      ],
+      "changeTotal": 1,
+      "evidence": [
+        {
+          "sourceId": "5de3b7e2-b3a4-4363-aa46-4d45d1fe6156",
+          "sourceVersion": 1,
+          "quote": "11/12 FeatureHub 目前部署 v2",
+          "quoteHash": "42f6bdb6731205cf9d97b54597d025c07c34e29771730586108ec96c7b20403d",
+          "position": 25,
+          "attribution": "user_stated"
+        }
+      ],
+      "evidenceWindow": {
+        "start": 0,
+        "total": 1
+      },
+      "provenanceTotal": 1
+    }
+  ],
+  "history": [
+    {
+      "kind": "fact_edge",
+      "intent": {
+        "mode": "history"
+      },
+      "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+      "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "toSubjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+      "relation": "deployed_version",
+      "description": "FeatureHub 目前部署 v1",
+      "factKind": "state",
+      "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "time": {
+        "occurredFrom": "2026-11-05T00:00:00.000Z",
+        "timePrecision": "day",
+        "originalTimeText": "11/05",
+        "timezone": "Asia/Taipei",
+        "anchor": "2026-11-03T00:00:00.000Z",
+        "confidence": "certain"
+      },
+      "observedAt": "2026-11-03T08:00:00.000Z",
+      "recordedAt": "2026-11-22T14:21:10.155Z",
+      "certainty": "reported",
+      "status": "active",
+      "attribution": "user_stated",
+      "semanticHash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "view": "history",
+      "fromSubject": {
+        "name": "FeatureHub"
+      },
+      "toSubject": {
+        "name": "v1"
+      },
+      "changes": [],
+      "changeTotal": 0,
+      "evidence": [
+        {
+          "sourceId": "5de3b7e2-b3a4-4363-aa46-4d45d1fe6156",
+          "sourceVersion": 1,
+          "quote": "11/05 FeatureHub 目前部署 v1",
+          "quoteHash": "2e81d6593f22f0da07bf853fe590d719e2b53c3d45ce825d9c8bbf1dc007ba09",
+          "position": 0,
+          "attribution": "user_stated"
+        }
+      ],
+      "evidenceWindow": {
+        "start": 0,
+        "total": 1
+      },
+      "provenanceTotal": 1
+    },
+    {
+      "kind": "fact_edge",
+      "intent": {
+        "mode": "history"
+      },
+      "edgeId": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "eventId": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+      "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "toSubjectId": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+      "relation": "deployed_version",
+      "description": "FeatureHub 目前部署 v2",
+      "factKind": "state",
+      "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "time": {
+        "occurredFrom": "2026-11-12T00:00:00.000Z",
+        "timePrecision": "day",
+        "originalTimeText": "11/12",
+        "timezone": "Asia/Taipei",
+        "anchor": "2026-11-03T00:00:00.000Z",
+        "confidence": "certain"
+      },
+      "observedAt": "2026-11-03T08:00:00.000Z",
+      "recordedAt": "2026-11-22T14:21:10.156Z",
+      "certainty": "reported",
+      "status": "active",
+      "attribution": "user_stated",
+      "semanticHash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "view": "history",
+      "fromSubject": {
+        "name": "FeatureHub"
+      },
+      "toSubject": {
+        "name": "v2"
+      },
+      "changes": [],
+      "changeTotal": 0,
+      "evidence": [
+        {
+          "sourceId": "5de3b7e2-b3a4-4363-aa46-4d45d1fe6156",
+          "sourceVersion": 1,
+          "quote": "11/12 FeatureHub 目前部署 v2",
+          "quoteHash": "42f6bdb6731205cf9d97b54597d025c07c34e29771730586108ec96c7b20403d",
+          "position": 25,
+          "attribution": "user_stated"
+        }
+      ],
+      "evidenceWindow": {
+        "start": 0,
+        "total": 1
+      },
+      "provenanceTotal": 1
+    }
+  ],
+  "asOf": [
+    {
+      "kind": "fact_edge",
+      "intent": {
+        "mode": "as_of",
+        "at": "2026-11-06T23:59:59.999Z"
+      },
+      "edgeId": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "eventId": "event_a50f04c5a71ec43c90beafcb06f77d16",
+      "fromSubjectId": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "toSubjectId": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+      "relation": "deployed_version",
+      "description": "FeatureHub 目前部署 v1",
+      "factKind": "state",
+      "stateSlotKey": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "time": {
+        "occurredFrom": "2026-11-05T00:00:00.000Z",
+        "timePrecision": "day",
+        "originalTimeText": "11/05",
+        "timezone": "Asia/Taipei",
+        "anchor": "2026-11-03T00:00:00.000Z",
+        "confidence": "certain"
+      },
+      "observedAt": "2026-11-03T08:00:00.000Z",
+      "recordedAt": "2026-11-22T14:21:10.155Z",
+      "certainty": "reported",
+      "status": "active",
+      "attribution": "user_stated",
+      "semanticHash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "view": "latest",
+      "fromSubject": {
+        "name": "FeatureHub"
+      },
+      "toSubject": {
+        "name": "v1"
+      },
+      "changes": [],
+      "changeTotal": 0,
+      "evidence": [
+        {
+          "sourceId": "5de3b7e2-b3a4-4363-aa46-4d45d1fe6156",
+          "sourceVersion": 1,
+          "quote": "11/05 FeatureHub 目前部署 v1",
+          "quoteHash": "2e81d6593f22f0da07bf853fe590d719e2b53c3d45ce825d9c8bbf1dc007ba09",
+          "position": 0,
+          "attribution": "user_stated"
+        }
+      ],
+      "evidenceWindow": {
+        "start": 0,
+        "total": 1
+      },
+      "provenanceTotal": 1
+    }
+  ],
+  "rows": [
+    {
+      "ns": "8a39233c42f07c78a05fc412cc1cedadd76dc0550c2d1834a0af390e85d2087d",
+      "edge_id": "edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "event_id": "event_a50f04c5a71ec43c90beafcb06f77d16",
+      "from_subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "to_subject_id": "subject_5ef675b53ebd4841e13261f6a0ab22d6",
+      "relation": "deployed_version",
+      "fact_kind": "state",
+      "state_slot_key": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "occurred_from": "2026-11-05T00:00:00.000Z",
+      "semantic_hash": "f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de",
+      "data": "{\"edgeId\":\"edge_f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de\",\"eventId\":\"event_a50f04c5a71ec43c90beafcb06f77d16\",\"fromSubjectId\":\"subject_d9a80cbcf2abc012fc6190c154a3eec6\",\"toSubjectId\":\"subject_5ef675b53ebd4841e13261f6a0ab22d6\",\"relation\":\"deployed_version\",\"description\":\"FeatureHub 目前部署 v1\",\"factKind\":\"state\",\"stateSlotKey\":\"subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version\",\"time\":{\"occurredFrom\":\"2026-11-05T00:00:00.000Z\",\"timePrecision\":\"day\",\"originalTimeText\":\"11/05\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"certain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T14:21:10.155Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"f2eb0b5c98aea1bc63aff94555dc275b86f818708a4ab5fd7bc8a11a11bb79de\"}"
+    },
+    {
+      "ns": "8a39233c42f07c78a05fc412cc1cedadd76dc0550c2d1834a0af390e85d2087d",
+      "edge_id": "edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "event_id": "event_da6c3baca5a3da577fe9a561fc7ff01e",
+      "from_subject_id": "subject_d9a80cbcf2abc012fc6190c154a3eec6",
+      "to_subject_id": "subject_e4fc82d9600c218f8b03fc674d1a6bfb",
+      "relation": "deployed_version",
+      "fact_kind": "state",
+      "state_slot_key": "subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version",
+      "occurred_from": "2026-11-12T00:00:00.000Z",
+      "semantic_hash": "cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470",
+      "data": "{\"edgeId\":\"edge_cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470\",\"eventId\":\"event_da6c3baca5a3da577fe9a561fc7ff01e\",\"fromSubjectId\":\"subject_d9a80cbcf2abc012fc6190c154a3eec6\",\"toSubjectId\":\"subject_e4fc82d9600c218f8b03fc674d1a6bfb\",\"relation\":\"deployed_version\",\"description\":\"FeatureHub 目前部署 v2\",\"factKind\":\"state\",\"stateSlotKey\":\"subject_d9a80cbcf2abc012fc6190c154a3eec6:deployed_version\",\"time\":{\"occurredFrom\":\"2026-11-12T00:00:00.000Z\",\"timePrecision\":\"day\",\"originalTimeText\":\"11/12\",\"timezone\":\"Asia/Taipei\",\"anchor\":\"2026-11-03T00:00:00.000Z\",\"confidence\":\"certain\"},\"observedAt\":\"2026-11-03T08:00:00.000Z\",\"recordedAt\":\"2026-11-22T14:21:10.156Z\",\"certainty\":\"reported\",\"status\":\"active\",\"attribution\":\"user_stated\",\"semanticHash\":\"cfa4db59b232092ddc4b288e6f6fc7cebad3b6aa6d8769b115a1391d56a40470\"}"
+    }
+  ]
+}

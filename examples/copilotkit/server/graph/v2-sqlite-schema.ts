@@ -50,4 +50,7 @@ CREATE TABLE IF NOT EXISTS graph_compiler_namespaces (ns text PRIMARY KEY REFERE
 CREATE TABLE IF NOT EXISTS graph_source_times (
  ns text NOT NULL REFERENCES namespaces(id),source_id text NOT NULL,source_version integer NOT NULL,instant text NOT NULL,timezone text NOT NULL,
  PRIMARY KEY(ns,source_id,source_version),FOREIGN KEY(ns,source_id,source_version) REFERENCES document_sources(ns,id,version));
+CREATE TABLE IF NOT EXISTS graph_fact_tokens (
+ ns text NOT NULL,edge_id text NOT NULL,token text NOT NULL CHECK(length(token) BETWEEN 1 AND 1000),
+ PRIMARY KEY(ns,token,edge_id),FOREIGN KEY(ns,edge_id) REFERENCES graph_fact_edges(ns,edge_id));
 `;
