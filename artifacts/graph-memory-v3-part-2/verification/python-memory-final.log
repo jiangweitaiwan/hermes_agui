@@ -1,0 +1,21 @@
+▶ not activated — using HERMES_PYTHON: /Users/jiangwei/desktop/hermes/hermes-agent/.venv/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 1 test files (~4 tests) under ['tests/hermes_agui/test_runtime_memory.py']; running with -j 4
+[100.0% |     4/~4 | ✓0 | ✗0] ✗ tests/hermes_agui/test_runtime_memory.py (4 tests, 0.0s)
+
+=== Summary: 1 files, 0 tests passed, 0 failed; FAILED: 1 of 1 file (100% complete) in 1.0s (4 workers) ===
+
+=== ✗ NO TESTS RAN — 0 collected across 1 file. This is NOT a pass. ===
+  Common causes: the selected venv has no pytest; a -k/-m filter matched nothing; or collection errored in every file.
+  Check the per-file output above for the real error.
+
+=== Failure output ===
+
+--- tests/hermes_agui/test_runtime_memory.py ---
+runner crashed: PermissionError(1, 'Operation not permitted')
+
+=== 1 file where no tests ran (timeout before collection, pytest usage error, etc.) ===
+  tests/hermes_agui/test_runtime_memory.py

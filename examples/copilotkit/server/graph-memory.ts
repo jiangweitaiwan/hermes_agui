@@ -1,3 +1,4 @@
+import { graphDeadline } from "./memory/deadline";
 import type { MemoryNet, NetResult } from "./graph/memory-net";
 import type { ReferenceTime } from "./graph/temporal-resolver";
 import { ProvenanceSchema, type Provenance } from "./graph/provenance";
@@ -27,12 +28,14 @@ export interface GraphMemoryPort {
   write(scope: GraphScope, entry: GraphEntry, signal: AbortSignal): Promise<GraphWriteResult>;
 }
 export interface GraphMemoryOptions {
-  provider?: GraphMemoryPort & {structured?: {
+  provider?: GraphMemoryPort & {storyteller?: import("./memory/storyteller").Storyteller; runtimeDeadlineMs?:number; structured?: {
     query(scope:GraphScope,message:string,signal:AbortSignal,reference?:ReferenceTime):Promise<NetResult>;
     validateNet(scope:GraphScope,net:MemoryNet,signal:AbortSignal):Promise<NetResult>;
   }};
   /** Deployment ACL is namespace-based; callers need no synthetic run/thread identity. */
   authorize: (scope: Pick<GraphScope, "principal" | "projectId" | "botId">, operation: "query" | "write") => boolean;
+  storyteller?: import("./memory/storyteller").Storyteller;
+  structuredTimeoutMs?: number;
   timeoutMs?: number;
 }
 const bounded = (value: unknown, bytes: number): value is string =>
@@ -45,22 +48,13 @@ const validSource = (source: unknown) => ProvenanceSchema.safeParse(source).succ
 export function createGraphMemory(options: GraphMemoryOptions) {
   const timeout = options.timeoutMs ?? 2000;
   if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 30000) throw new Error("Invalid graph timeout");
+  const structuredTimeout = options.structuredTimeoutMs ?? 5000;
+  if (!Number.isInteger(structuredTimeout) || structuredTimeout < 1 || structuredTimeout > 30000) throw new Error("Invalid structured timeout");
   const scopes = new WeakSet<GraphScope>();
   const allowed = (scope: GraphScope, operation: "query" | "write") => {
     try { return validScope(scope) && scopes.has(scope) && options.authorize(scope, operation) === true; }
     catch { return false; }
   };
-  async function invoke<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T | { status: "unavailable" }> {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([Promise.resolve().then(() => action(controller.signal)),
-        new Promise<{ status: "unavailable" }>(resolve => {
-          timer = setTimeout(() => { controller.abort(); resolve({ status: "unavailable" }); }, timeout);
-        })]);
-    } catch { return { status: "unavailable" }; }
-    finally { clearTimeout(timer); }
-  }
   return {
     /** Only trusted backend code calls this after resolving authenticated identity/project. */
     scope(identity: GraphScope): GraphScope {
@@ -70,13 +64,13 @@ export function createGraphMemory(options: GraphMemoryOptions) {
       scopes.add(scope);
       return scope;
     },
-    async query(scope: GraphScope, request: GraphQuery): Promise<GraphQueryResult> {
+    async query(scope: GraphScope, request: GraphQuery, parent?:AbortSignal): Promise<GraphQueryResult> {
       if (!allowed(scope, "query")) return { status: "rejected", reason: "unauthorized" };
       if (!request || !bounded(request.text, 4096) || !Number.isInteger(request.limit) || request.limit < 1 || request.limit > 50) {
         return { status: "rejected", reason: "invalid_request" };
       }
       if (!options.provider) return { status: "disabled" };
-      const result = await invoke(signal => options.provider!.query(scope, { text: request.text, limit: request.limit }, signal));
+      const result = await graphDeadline(signal => options.provider!.query(scope, { text: request.text, limit: request.limit }, signal),timeout,parent);
       if (!allowed(scope, "query")) return { status: "rejected", reason: "unauthorized" };
       if (!result || typeof result !== "object") return { status: "unavailable" };
       if (result.status !== "ok") return normalizeFailure(result);
@@ -94,18 +88,18 @@ export function createGraphMemory(options: GraphMemoryOptions) {
       })) };
     },
     /** Trusted runtime adapter only; no browser route accepts plans or Nets. */
-    async structuredQuery(scope:GraphScope, message:string, reference?:ReferenceTime):Promise<NetResult> {
+    async structuredQuery(scope:GraphScope, message:string, reference?:ReferenceTime, signal?:AbortSignal):Promise<NetResult> {
       if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
       if(!bounded(message,4096))return {status:"rejected",reason:"invalid_request"};
       if(!options.provider?.structured)return {status:"disabled"};
-      const result=await invoke(signal=>options.provider!.structured!.query(scope,message,signal,reference));
+      const result=await graphDeadline(signal=>options.provider!.structured!.query(scope,message,signal,reference),structuredTimeout,signal);
       if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
       return result;
     },
-    async validateNet(scope:GraphScope,net:MemoryNet):Promise<NetResult> {
+    async validateNet(scope:GraphScope,net:MemoryNet, signal?:AbortSignal):Promise<NetResult> {
       if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
       if(!options.provider?.structured)return {status:"disabled"};
-      const result=await invoke(signal=>options.provider!.structured!.validateNet(scope,net,signal));
+      const result=await graphDeadline(signal=>options.provider!.structured!.validateNet(scope,net,signal),structuredTimeout,signal);
       if(!allowed(scope,"query"))return {status:"rejected",reason:"unauthorized"};
       return result;
     },
@@ -117,7 +111,7 @@ export function createGraphMemory(options: GraphMemoryOptions) {
         return { status: "rejected", reason: "invalid_request" };
       }
       if (!options.provider) return { status: "disabled" };
-      const result = await invoke(signal => options.provider!.write(scope, structuredClone(entry), signal));
+      const result = await graphDeadline(signal => options.provider!.write(scope, structuredClone(entry), signal),timeout);
       if (!result || typeof result !== "object") return { status: "unavailable" };
       if (result.status !== "accepted") return normalizeFailure(result);
       return bounded(result.recordId, 512) ? { status: "accepted", recordId: result.recordId } : { status: "unavailable" };

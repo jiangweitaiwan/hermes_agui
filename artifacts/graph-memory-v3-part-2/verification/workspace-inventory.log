@@ -1,0 +1,38 @@
+ D docs/CLOUD_NATIVE_PART_1.md
+ D docs/CLOUD_NATIVE_PART_1_FINAL_ACCEPTANCE.md
+ D docs/CLOUD_NATIVE_PART_1_REMAINING.md
+ D docs/CLOUD_NATIVE_PART_2.md
+ D docs/cloud-native-part-1-report.md
+ D docs/cloud-native-part-2-final-acceptance.md
+ D docs/cloud-native-part-2-report.md
+ D docs/cloud-native-part1-status.json
+ D docs/cloud-native-part1-validation.md
+ D docs/cloud-run-deployment.md
+ M examples/copilotkit/README.md
+ M examples/copilotkit/server/application.ts
+ M examples/copilotkit/server/graph-memory.ts
+ M examples/copilotkit/server/graph/provider.ts
+ M examples/copilotkit/server/graph/query-config.ts
+ M examples/copilotkit/server/graph/types.ts
+ M examples/copilotkit/server/memory/middleware.ts
+ M examples/copilotkit/server/memory/retriever.ts
+ M examples/copilotkit/server/memory/runtime-memory-manager.ts
+ M examples/copilotkit/tests/graph-v3-postgres.test.ts
+ M host-config.yaml
+ M tests/hermes_agui/test_runtime_memory.py
+ M tests/runtime.json
+?? GRAPH_MEMORY_V2_IMPLEMENTATION_PLAN.md
+?? artifacts/graph-memory-v3-part-2/
+?? docs/GRAPH_MEMORY_V3_OVERVIEW.md
+?? docs/GRAPH_MEMORY_V3_PART_1.md
+?? docs/GRAPH_MEMORY_V3_PART_2.md
+?? docs/GRAPH_MEMORY_V3_PART_2_DESIGN_NOTES.md
+?? examples/copilotkit/server/memory/deadline.ts
+?? examples/copilotkit/server/memory/story-context.ts
+?? examples/copilotkit/server/memory/story-types.ts
+?? examples/copilotkit/server/memory/story-validator.ts
+?? examples/copilotkit/server/memory/storyteller.ts
+?? examples/copilotkit/server/memory/v3-orchestrator.ts
+?? examples/copilotkit/tests/fixtures/graph-v3-probe.ts
+?? examples/copilotkit/tests/graph-v3-runtime.test.ts
+?? examples/copilotkit/tests/graph-v3-storyteller.test.ts

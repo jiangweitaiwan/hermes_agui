@@ -1,0 +1,65 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-runtime.test.ts tests/graph-v3-storyteller.test.ts tests/graph-v3-postgres.test.ts tests/graph-v3-net.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:16947) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-net.test.ts (9 tests) 6939ms
+   ✓ A/B: real parser → compiler/publisher → split recall → authorized Net; no fabricated actor, key Wiki section, revoke and scope gate  735ms
+   ✓ D: subject only / narrative only / empty; F: independent events stay grouped  1651ms
+   ✓ C/E: persisted states current/history/as-of; unresolved anchor stays uncertain, known anchor resolves in two passes  1270ms
+   ✓ I: V3 vectors coexist, resume, mismatch/failure lexical fallback and revoke  649ms
+   ✓ G/J: custom relation labels publish evidence-backed JSON, invalid quote never publishes  505ms
+   ✓ E: two-pass rollback anchor retrieves the prior state, unknown/tied events remain uncertain  646ms
+   ✓ H: revocation during shared namespace embedding removes previously assembled private claims  731ms
+   ✓ F: two source-supported incidents ten calendar days apart retain distinct event/evidence boundaries  541ms
+ ✓ tests/graph-v3-storyteller.test.ts (4 tests) 40ms
+(node:17037) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v3-runtime.test.ts (6 tests | 1 failed) 5515ms
+   ✓ session ingest → other thread → story → signed runtime → actual Python verifier  1501ms
+   × pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated 557ms
+     → promise resolved "{ …(2) }" instead of rejecting
+   ✓ hallucination and timeout fallback preserve exact evidence, private memory cannot cross bots  1005ms
+   ✓ temporal current/as-of/history signed contexts retain structured time and source attribution  918ms
+   ✓ parser timeout falls back to actual V2 retrieval; explicit rejection never queries V2  521ms
+   ✓ concurrent runs bind distinct fresh contexts; same project shared sources remain separately sourced  1010ms
+(node:17096) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-postgres.test.ts (1 test) 1457ms
+   ✓ PG V3 parity: authorized Net, wiki sections, vector version separation, revoke and Bot disable  1455ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated
+AssertionError: promise resolved "{ …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "payload": "<redacted signed payload>",
++   "signature": "<redacted signature>",
+  }
+
+ ❯ tests/graph-v3-runtime.test.ts:84:73
+     82|  expect(context.records.some((r:any)=>r.content.includes("延遲"))).toBe(…
+     83|  const model2=new Storyteller({json:async(_stage,data:any)=>{f.disable…
+     84|  await expect(f.middleware(model2).prepare("a",settings,"b","two",quer…
+       |                                                                         ^
+     85|  }finally{f.close();}
+     86| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 19 passed (20)
+   Start at  04:55:14
+   Duration  17.08s (transform 579ms, setup 0ms, collect 1.65s, tests 13.95s, environment 1ms, prepare 443ms)
+

@@ -1,0 +1,25 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-runtime.test.ts tests/graph-v3-storyteller.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+ ✓ tests/graph-v3-storyteller.test.ts (4 tests) 261ms
+(node:19879) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/graph-v3-runtime.test.ts (8 tests) 21514ms
+   ✓ session ingest → other thread → story → signed runtime → actual Python verifier  4221ms
+   ✓ pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated  2827ms
+   ✓ hallucination and timeout fallback preserve exact evidence, private memory cannot cross bots  4731ms
+   ✓ temporal current/as-of/history signed contexts retain structured time and source attribution  3011ms
+   ✓ parser timeout falls back to actual V2 retrieval; explicit rejection never queries V2  1089ms
+   ✓ concurrent runs bind distinct fresh contexts; same project shared sources remain separately sourced  2915ms
+   ✓ owner ACL changes during model await discard all previously readable claims  896ms
+   ✓ two independent incident events retain distinct references in a larger bounded context  1756ms
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  04:59:49
+   Duration  27.09s (transform 842ms, setup 0ms, collect 2.15s, tests 21.77s, environment 30ms, prepare 1.15s)
+

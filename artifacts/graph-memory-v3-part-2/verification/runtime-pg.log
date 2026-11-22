@@ -1,0 +1,110 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-runtime.test.ts tests/graph-v3-postgres.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:13478) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v3-runtime.test.ts (4 tests | 4 failed) 2513ms
+   × session ingest → other thread → story → signed runtime → actual Python verifier 914ms
+     → expected 0 to be greater than 0
+   × pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated 511ms
+     → promise resolved "{ …(2) }" instead of rejecting
+   × hallucination and timeout fallback preserve exact evidence, private memory cannot cross bots 457ms
+     → expected 0 to be greater than 0
+   × temporal current/as-of/history signed contexts retain structured time and source attribution 629ms
+     → expected '{"version":2,"records":[]}' to contain '目前部署 v2'
+(node:13522) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v3-postgres.test.ts (1 test | 1 failed) 21ms
+   × PG V3 parity: authorized Net, wiki sections, vector version separation, revoke and Bot disable 19ms
+     → connect EPERM 127.0.0.1:55441 - Local (0.0.0.0:0)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v3-postgres.test.ts > PG V3 parity: authorized Net, wiki sections, vector version separation, revoke and Bot disable
+Error: connect EPERM 127.0.0.1:55441 - Local (0.0.0.0:0)
+ ❯ node_modules/pg-pool/index.js:45:11
+ ❯ PostgresSourceStore.ready server/graph/postgres-source-store.ts:28:5
+     26|   async ready() {
+     27|     // Deployment runs migrations separately; no application DDL or lo…
+     28|     await this.wiki.pool.query(`SELECT s.object_key,o.provenance,r.rev…
+       |     ^
+     29|       JOIN ${schema}.graph_source_owners owners ON owners.ns=s.ns AND …
+     30|       JOIN ${schema}.graph_session_origins o ON o.ns=s.ns AND o.source…
+ ❯ PostgresDocumentIngestor.ready server/graph/postgres-ingest-queue.ts:35:5
+ ❯ tests/graph-v3-postgres.test.ts:21:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > session ingest → other thread → story → signed runtime → actual Python verifier
+AssertionError: expected 0 to be greater than 0
+ ❯ tests/graph-v3-runtime.test.ts:41:81
+     39|  const envelope=await f.middleware(story).prepare("a",settings,"new-th…
+     40|  const decoded=JSON.parse(Buffer.from(envelope.payload,"base64url").to…
+     41|  expect(decoded.context.version).toBe(2);expect(decoded.context.record…
+       |                                                                                 ^
+     42|  expect(decoded.context.records.every((r:any)=>r.sources.every((s:any)…
+     43|  expect(Buffer.byteLength(JSON.stringify(decoded.context))).toBeLessTh…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated
+AssertionError: promise resolved "{ …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "payload": "<redacted signed payload>",
++   "signature": "<redacted signature>",
+  }
+
+ ❯ tests/graph-v3-runtime.test.ts:79:73
+     77|  expect(context.records.some((r:any)=>r.content.includes("延遲"))).toBe(…
+     78|  const model2=new Storyteller({json:async(_stage,data:any)=>{f.disable…
+     79|  await expect(f.middleware(model2).prepare("a",settings,"b","two",quer…
+       |                                                                         ^
+     80|  }finally{f.close();}
+     81| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > hallucination and timeout fallback preserve exact evidence, private memory cannot cross bots
+AssertionError: expected 0 to be greater than 0
+ ❯ tests/graph-v3-runtime.test.ts:94:33
+     92|  }},5);
+     93|  const env=await f.middleware(model).prepare("a",settings,"new",attack…
+     94|  expect(context.records.length).toBeGreaterThan(0);expect(JSON.stringi…
+       |                                 ^
+     95|  }
+     96|  const other=await f.middleware().prepare("b",settings,"new","other",q…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > temporal current/as-of/history signed contexts retain structured time and source attribution
+AssertionError: expected '{"version":2,"records":[]}' to contain '目前部署 v2'
+
+Expected: "目前部署 v2"
+Received: "{"version":2,"records":[]}"
+
+ ❯ tests/graph-v3-runtime.test.ts:111:56
+    109|  const envelope=await f.middleware().prepare("a",settings,"other-threa…
+    110|  const context=JSON.parse(Buffer.from(envelope.payload,"base64url").to…
+    111|  const content=JSON.stringify(context);expect(content).toContain(tempo…
+       |                                                        ^
+    112|  if(temporal.kind==="current")expect(content).not.toContain("目前部署 v1");
+    113|  if(temporal.kind==="history")expect(content).toContain("目前部署 v1");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed (5)
+   Start at  04:49:58
+   Duration  5.28s (transform 577ms, setup 0ms, collect 1.95s, tests 2.53s, environment 1ms, prepare 300ms)
+

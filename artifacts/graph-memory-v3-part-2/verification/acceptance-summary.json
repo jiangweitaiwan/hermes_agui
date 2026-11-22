@@ -1,0 +1,42 @@
+{
+  "mockLLM": true,
+  "baseCommit": "afde2e67b53d5684792d6447ffcc03d7f53fe9a6",
+  "fullSuite": {
+    "files": 32,
+    "passed": 182,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 150.64
+  },
+  "nativeMemorySuite": {
+    "passed": 7,
+    "failed": 0,
+    "durationSeconds": 222.8
+  },
+  "build": "passed",
+  "typecheck": "passed",
+  "codeHealth": {
+    "blocking": 0,
+    "advisory": 0
+  },
+  "scriptsCheck": {
+    "total": 17,
+    "passed": 16,
+    "failed": [
+      "pre-existing no-tmp (7 findings)"
+    ]
+  },
+  "fixtureA": {
+    "v2Bytes": 4074,
+    "v3Bytes": 3826,
+    "v3LatencyMs": 151.05624599999987,
+    "v2LatencyMs": 105.86691299999984,
+    "v3KeyEdgeRecall": 1,
+    "v2KeyEdgeRecall": 0.4,
+    "edgeCount": 5,
+    "eventCount": 1
+  },
+  "liveLLM": "not run",
+  "GCP": "not run",
+  "cloudDeployment": false
+}

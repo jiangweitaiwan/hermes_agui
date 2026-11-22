@@ -80,11 +80,12 @@ def test_forged_misbound_and_replayed_envelopes_fail_closed(native_config):
             assert client.post("/agent", headers=AUTH, json=valid).status_code == 409
 
 
-@pytest.mark.parametrize("probe,record_id", [
-    ("runtime-memory-probe.ts", "runtime-acceptance-fact"),
-    ("wiki-document-probe.ts", "document"),
+@pytest.mark.parametrize("probe,record_id,expected", [
+    ("runtime-memory-probe.ts", "runtime-acceptance-fact", "PostgreSQL"),
+    ("wiki-document-probe.ts", "document", "PostgreSQL"),
+    ("graph-v3-probe.ts", "story:", "FeatureHub"),
 ])
-def test_copilot_runtime_fake_graph_to_native_provider(native_config, tmp_path, probe, record_id):
+def test_copilot_runtime_fake_graph_to_native_provider(native_config, tmp_path, probe, record_id, expected):
     import os
     from pathlib import Path
     import shutil
@@ -121,7 +122,11 @@ def test_copilot_runtime_fake_graph_to_native_provider(native_config, tmp_path, 
         requests = provider.main_requests()
         assert len(requests) == 1
         assert record_id in str(requests[0]["messages"])
-        assert "PostgreSQL" in str(requests[0]["messages"])
+        assert expected in str(requests[0]["messages"])
+        if probe == "graph-v3-probe.ts":
+            assert "untrusted reference" in str(requests[0]["messages"])
+            assert "source-thread-a" in str(requests[0]["messages"])
+            assert "Bob 把 FeatureHub 回滾" in str(requests[0]["messages"])
         import sqlite3
         with sqlite3.connect(cfg.home / "state.db") as db:
             assert record_id not in str(db.execute("SELECT * FROM messages").fetchall())

@@ -691,3 +691,22 @@ available. No SQL migration is needed: optional `relationType`/`relationLabel`
 and all Net objects use the existing JSON payloads or in-memory structures.
 Older strict-schema readers should be upgraded before enabling new relation
 fields; rollback reads require omitting those optional fields from new writes.
+
+### V3 runtime recalled stories
+
+Trusted `registry.graph` configuration accepts `retrievalMode: v3` (default `v2`),
+`runtimeDeadlineMs` (100–15000, default 8000), and optional `storyteller` with
+`baseUrl`, `model`, `keyEnv`, `timeoutMs` (1–5000, default 1500), `maxTokens`
+(1–4096, default 2048). `queryParser` remains explicitly required for V3.
+Secrets belong only in the selected key environment variable. Without a Storyteller,
+V3 renders deterministic evidence-backed claims. Model output may reorder exact
+claims; unsupported paraphrases, dates, actors or extra prose fall back to deterministic output.
+
+The existing signed version 2 runtime context carries untrusted recalled records,
+original evidence quotes and real provenance, with independent post-model ACL and
+active-view revalidation. Default context JSON budget remains 4096 UTF-8 bytes.
+Whole claims exceeding byte/provenance limits are omitted and marked partial.
+No new migration or embedding format is introduced in Part 2. Existing V3 vector
+backfill remains optional; lexical fallback works without the index.
+Set `retrievalMode: v2` and restart the trusted server to roll back the read path;
+`graphCompilerVersion: v2` remains unchanged. No story is persisted as graph evidence.

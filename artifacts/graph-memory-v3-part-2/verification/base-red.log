@@ -1,0 +1,29 @@
+Base: afde2e67b53d5684792d6447ffcc03d7f53fe9a6
+Exit: 1
+
+ RUN  v3.2.4 /private/tmp/graph-v3-part2-base-7247bdzj/examples/copilotkit
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v3-storyteller.test.ts [ tests/graph-v3-storyteller.test.ts ]
+Error: Cannot find module '../server/memory/storyteller' imported from '/private/tmp/graph-v3-part2-base-7247bdzj/examples/copilotkit/tests/graph-v3-storyteller.test.ts'
+ ❯ tests/graph-v3-storyteller.test.ts:3:1
+      1| import {test,expect} from "vitest";
+      2| import type {MemoryNet} from "../server/graph/memory-net";
+      3| import {Storyteller} from "../server/memory/storyteller";
+       | ^
+      4| import {groundedStory,validateStory} from "../server/memory/story-vali…
+      5| import {assembleStory} from "../server/memory/story-context";
+
+Caused by: Error: Failed to load url ../server/memory/storyteller (resolved id: ../server/memory/storyteller) in /private/tmp/graph-v3-part2-base-7247bdzj/examples/copilotkit/tests/graph-v3-storyteller.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../../../../Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/node_modules/vite/dist/node/chunks/config.js:26036:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  04:59:11
+   Duration  1.76s (transform 109ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 716ms)
+

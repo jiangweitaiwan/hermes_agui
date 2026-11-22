@@ -1,0 +1,84 @@
+▶ not activated — using HERMES_PYTHON: /Users/jiangwei/desktop/hermes/hermes-agent/.venv/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 1 test files (~4 tests) under ['tests/hermes_agui/test_runtime_memory.py']; running with -j 4
+[100.0% |     4/~4 | ✓0 | ✗0] ✗ tests/hermes_agui/test_runtime_memory.py (1e, 16.0s)
+
+  ╔╍ Failed: tests/hermes_agui/test_runtime_memory.py ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+  ║ ============================= test session starts ==============================
+  ║ platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.7.0
+  ║ rootdir: /Users/jiangwei/desktop/hermes/hermes-agent
+  ║ configfile: pyproject.toml
+  ║ plugins: asyncio-1.4.0, anyio-4.15.1
+  ║ asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+  ║ collected 0 items / 1 error
+  ║ 
+  ║ ==================================== ERRORS ====================================
+  ║ __________ ERROR collecting tests/hermes_agui/test_runtime_memory.py ___________
+  ║ ImportError while importing test module '/Users/jiangwei/desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py'.
+  ║ Hint: make sure your test modules/packages have valid Python names.
+  ║ Traceback:
+  ║ /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+  ║     return _bootstrap._gcd_import(name[level:], package, level)
+  ║            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ║ ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py:12: in <module>
+  ║     from hermes_agui.server import create_app
+  ║ ../../../desktop/hermes/hermes-agent/hermes_agui/server.py:7: in <module>
+  ║     from ag_ui.core import RunAgentInput
+  ║ E   ModuleNotFoundError: No module named 'ag_ui'
+  ║ =========================== short test summary info ============================
+  ║ ERROR ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py
+  ║ !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+  ║ =============================== 1 error in 2.69s ===============================
+  ║ 
+  ║ (pytest child exit status 2)
+  ║
+  ║  Repro: python -m pytest tests/hermes_agui/test_runtime_memory.py
+  ╚╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍
+
+
+=== Summary: 1 files, 0 tests passed, 0 failed, 1 error; FAILED: 1 of 1 file (1 at import/collection) (100% complete) in 16.3s (4 workers) ===
+
+=== Per-file subprocess time distribution ===
+  Files:   1
+  Total subprocess CPU-wall: 16.0s  (runner wall: 16.3s, parallelism: 4x)
+  P50: 15.96s  P90: 15.96s  P95: 15.96s  P99: 15.96s  Max: 15.96s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+     15.96s  tests/hermes_agui/test_runtime_memory.py
+
+=== Failure output ===
+
+--- tests/hermes_agui/test_runtime_memory.py ---
+============================= test session starts ==============================
+platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.7.0
+rootdir: /Users/jiangwei/desktop/hermes/hermes-agent
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, anyio-4.15.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+__________ ERROR collecting tests/hermes_agui/test_runtime_memory.py ___________
+ImportError while importing test module '/Users/jiangwei/desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py:12: in <module>
+    from hermes_agui.server import create_app
+../../../desktop/hermes/hermes-agent/hermes_agui/server.py:7: in <module>
+    from ag_ui.core import RunAgentInput
+E   ModuleNotFoundError: No module named 'ag_ui'
+=========================== short test summary info ============================
+ERROR ../../../desktop/hermes/hermes-agent/tests/hermes_agui/test_runtime_memory.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 2.69s ===============================
+
+(pytest child exit status 2)
+
+=== 1 file that FAILED AT IMPORT/COLLECTION (0 tests ran) ===
+  tests/hermes_agui/test_runtime_memory.py  ModuleNotFoundError: No module named 'ag_ui'

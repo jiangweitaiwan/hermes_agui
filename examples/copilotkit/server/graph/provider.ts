@@ -1,3 +1,4 @@
+import { Storyteller } from "../memory/storyteller";
 import { RetrievalConfig } from "./query-config";
 import { QueryParser } from "./query-parser";
 import { OpenAICompilerLLM } from "./compiler";
@@ -20,6 +21,8 @@ export class WikiGraphProvider<T extends WikiStore | PostgresWikiStore = WikiSto
   readonly edgeRetriever: EdgeRetriever;
   readonly edgeVectors?: EdgeVectorIndex;
   structured?: StructuredRetriever;
+  storyteller?: Storyteller;
+  runtimeDeadlineMs?:number;
   beforeQuery?: () => void | Promise<void>;
   readonly metrics = { queries: 0, hits: 0, errors: 0, totalMs: 0, lastMs: 0 };
   constructor(readonly store: T, timeoutMs = 2000, readonly retrieval: ConstructorParameters<typeof WikiRetriever>[2] = {}) {
@@ -77,6 +80,8 @@ export function loadWiki(options?: WikiOptions): (GraphMemoryPort & { close(): v
     const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
     const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
     const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    provider.runtimeDeadlineMs=config.runtimeDeadlineMs;
+    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(new OpenAICompilerLLM(config.storyteller),config.storyteller.timeoutMs);
     if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
       new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
       encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());
@@ -101,6 +106,8 @@ export async function loadDurableWiki(options?: WikiOptions) {
     const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
     const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
     const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
+    provider.runtimeDeadlineMs=config.runtimeDeadlineMs;
+    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(new OpenAICompilerLLM(config.storyteller),config.storyteller.timeoutMs);
     if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
       new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
       encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());

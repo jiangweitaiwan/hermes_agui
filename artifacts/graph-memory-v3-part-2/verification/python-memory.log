@@ -1,0 +1,8 @@
+▶ environment missing or stale for /Users/jiangwei/desktop/hermes/hermes-agent — re-running under run-in-hermes-env
+
+[0;36m☤ Hermes Agent Setup[0m
+
+[0;36m→[0m Checking for uv...
+[0;36m→[0m Staging pinned uv 0.13.5 (darwin-x64) into the pm store...
+mkdir: /Users/jiangwei/.hermes: Operation not permitted
+setup failed

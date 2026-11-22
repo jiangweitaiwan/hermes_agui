@@ -1,0 +1,40 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --maxWorkers=1 tests/graph-v3-runtime.test.ts
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:12277) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/graph-v3-runtime.test.ts (3 tests | 1 failed) 3369ms
+   × session ingest → other thread → story → signed runtime → actual Python verifier 1746ms
+     → expected 'Traceback (most recent call last):\n …' to be '' // Object.is equality
+   ✓ pending model source revocation drops stale prose; bot disable rejects; separate runs stay isolated  581ms
+   ✓ hallucination and timeout fallback preserve exact evidence, private memory cannot cross bots  1040ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/graph-v3-runtime.test.ts > session ingest → other thread → story → signed runtime → actual Python verifier
+AssertionError: expected 'Traceback (most recent call last):\n …' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ Traceback (most recent call last):
++   File "<string>", line 4, in <module>
++     from hermes_agui.runtime_memory import verify_memory
++ ModuleNotFoundError: No module named 'hermes_agui'
++
+
+ ❯ tests/graph-v3-runtime.test.ts:65:24
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  04:48:02
+   Duration  5.62s (transform 569ms, setup 0ms, collect 1.69s, tests 3.37s, environment 0ms, prepare 208ms)
+

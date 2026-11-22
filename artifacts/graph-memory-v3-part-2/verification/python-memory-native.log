@@ -1,0 +1,18 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/graph-v3-part2-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 1 test files (~4 tests) under ['tests/hermes_agui/test_runtime_memory.py']; running with -j 4
+[100.0% |     4/~4 | ✓7 | ✗0] ✓ tests/hermes_agui/test_runtime_memory.py (7✓, 222.3s)
+
+=== Summary: 1 files, 7 tests passed, 0 failed (100% complete) in 222.8s (4 workers) ===
+  Durations cached to test_durations.json (1 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   1
+  Total subprocess CPU-wall: 222.3s  (runner wall: 222.8s, parallelism: 4x)
+  P50: 222.31s  P90: 222.31s  P95: 222.31s  P99: 222.31s  Max: 222.31s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+    222.31s  tests/hermes_agui/test_runtime_memory.py

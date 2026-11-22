@@ -1,3 +1,6 @@
+import {RuntimeMemoryMiddleware} from "../server/memory/middleware";
+import {RuntimeMemoryManager} from "../server/memory/runtime-memory-manager";
+import {MemoryRetriever} from "../server/memory/retriever";
 import {test,expect} from "vitest";
 import {randomUUID} from "node:crypto";
 import {mkdtempSync,realpathSync,rmSync} from "node:fs";
@@ -26,6 +29,10 @@ test.skipIf(!url)("PG V3 parity: authorized Net, wiki sections, vector version s
  const memory=createGraphMemory({provider,authorize:()=>true,timeoutMs:10000});const scope=memory.scope({...ns,threadId:"q",runId:"q"});
  const result=await memory.structuredQuery(scope,"Bob 搜尋推薦服務延遲 回滾");expect(result.status).toBe("ok");if(result.status!=="ok")throw new Error("No Net");
  expect(result.net.edges).toHaveLength(5);expect(result.net.events).toHaveLength(1);expect(result.net.wikiSections.some(s=>s.text.includes("支援版本回滾"))).toBe(true);
+ const envelope=await new RuntimeMemoryMiddleware(new RuntimeMemoryManager(new MemoryRetriever(memory)),memory.scope).prepare("a",{key:"local-test",principal:ns.principal,projectId:ns.projectId},"other-thread","story-run","Bob 搜尋推薦服務延遲 回滾");
+ const context=JSON.parse(Buffer.from(envelope.payload,"base64url").toString()).context;
+ expect(context.version).toBe(2);expect(context.records.length).toBeGreaterThan(0);
+ expect(result.net.edges.every(e=>JSON.stringify(context).includes(e.description))).toBe(true);
  const encoder={model:"mock",dimension:2,version:"1",async embed(texts:string[]){return texts.map(()=>[1,0]);}};
  const v2=new EdgeVectorIndex(provider.facts,encoder),v3=new EdgeVectorIndex(provider.facts,encoder,"v3");await v2.update(ns,new AbortController().signal);expect(await v3.search(ns,"event",new AbortController().signal)).toEqual([]);await v3.update(ns,new AbortController().signal);expect(await v3.search(ns,"event",new AbortController().signal)).toHaveLength(5);
  provider.facts.retained=()=>false;expect(await memory.validateNet(scope,result.net)).toMatchObject({status:"ok",net:{edges:[],wikiSections:[]}});provider.facts.retained=()=>true;

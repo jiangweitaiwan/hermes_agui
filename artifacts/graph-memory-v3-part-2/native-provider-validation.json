@@ -1,0 +1,15 @@
+{
+  "mockLLM": true,
+  "result": "passed",
+  "evidenceLog": "verification/python-memory-native.log",
+  "logSHA256": "dfd6ca50f64cd0fe3492b735abba4fd238d03953342b5dc5179c0edb7b3ed878",
+  "checks": [
+    "real session ingest and new query thread",
+    "application Runtime and AG-UI transport",
+    "native Hermes provider request contains story: and FeatureHub",
+    "untrusted reference fencing and original source-thread-a",
+    "Bob rollback evidence reaches native request",
+    "reference record IDs absent from durable messages"
+  ],
+  "note": "These checks are assertions in tests/hermes_agui/test_runtime_memory.py, including graph-v3-probe.ts; no live model used."
+}

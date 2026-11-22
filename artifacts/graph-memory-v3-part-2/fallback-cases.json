@@ -1,0 +1,26 @@
+{
+  "mockLLM": true,
+  "results": [
+    {
+      "attack": "actor",
+      "groundedFallback": true
+    },
+    {
+      "attack": "date",
+      "groundedFallback": true
+    },
+    {
+      "attack": "reference",
+      "groundedFallback": true
+    },
+    {
+      "attack": "injection",
+      "groundedFallback": true
+    },
+    {
+      "attack": "timeout",
+      "groundedFallback": true
+    }
+  ],
+  "privateIsolation": true
+}

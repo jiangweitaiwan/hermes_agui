@@ -1,3 +1,5 @@
+import { V3Orchestrator } from "./memory/v3-orchestrator";
+import { ContextAssembler } from "./memory/assembler";
 import { validateComposition } from "./application-config";
 import { configureGraphAuthority } from "./graph/access";
 import { createCompletionApi } from "./graph/completion-api";
@@ -63,7 +65,7 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
     ? createCompletionApi(evolution!.sessions, options.graphCompletionToken) : undefined;
   const streamIngestion = receiveCompletion ? undefined : evolution?.sessions;
   if (management && evolution) management.manager.options.onChange = () => { void Promise.resolve(evolution.reconcile()).catch(() => { evolution.metrics.errors++; }); };
-  const memory = new RuntimeMemoryMiddleware(new RuntimeMemoryManager(new MemoryRetriever(graph)), graph.scope);
+  const memory = new RuntimeMemoryMiddleware(new RuntimeMemoryManager(new MemoryRetriever(graph), new ContextAssembler(), new V3Orchestrator(graph, options.graph?.storyteller ?? options.graph?.provider?.storyteller, options.graph?.provider?.runtimeDeadlineMs)), graph.scope);
   const threads: RuntimeThreads | undefined = options.threadMappings && {
     store: options.threadMappings,
     scope: (botId, settings) => {

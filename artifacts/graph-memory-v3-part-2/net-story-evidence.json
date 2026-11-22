@@ -1,0 +1,161 @@
+{
+  "mockLLM": true,
+  "claims": [
+    {
+      "text": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+      "edgeIds": [
+        "edge_7a1a7fcac31d79f9ff5332c956e1e62f726b4eceb4d43fdc0146dafe0351b185"
+      ],
+      "wikiSections": [],
+      "confidence": "supported"
+    },
+    {
+      "text": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+      "edgeIds": [
+        "edge_8c6db9d8ec978d91840ff1710e1efb3f23b6cd9e95618866d2738cbfecd6c166"
+      ],
+      "wikiSections": [],
+      "confidence": "supported"
+    },
+    {
+      "text": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+      "edgeIds": [
+        "edge_c2e34c26931e2d9fe02bf2cdae77cacc53e668acde38cf2f371306872cc2419c"
+      ],
+      "wikiSections": [],
+      "confidence": "supported"
+    },
+    {
+      "text": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+      "edgeIds": [
+        "edge_da93b3339f907a76e4bfb41f4cb1fb8814b3537e3fdd1ed736d51805432013ca"
+      ],
+      "wikiSections": [],
+      "confidence": "uncertain"
+    },
+    {
+      "text": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+      "edgeIds": [
+        "edge_f603b0396bfadb633687d4e988324e7b519f3c0100cc4c5d59eafd3958ddc49d"
+      ],
+      "wikiSections": [],
+      "confidence": "uncertain"
+    },
+    {
+      "text": "- 存取層支援版本回滾\n- FeatureHub 的存取層",
+      "edgeIds": [],
+      "wikiSections": [
+        {
+          "pageId": "wiki_d9a80cbcf2abc012fc6190c154a3eec6",
+          "sectionKey": "563d67cb40a5456197b20ca7ea80778fe8b03297a9347e53adae12d928bcba21",
+          "revision": "26fa50a7-5a5b-4425-ace3-f247d9e33ec9"
+        }
+      ],
+      "confidence": "uncertain"
+    }
+  ],
+  "provenance": [
+    {
+      "ref": "fdbfa19034b11383af18e081c71b70914396750d20fb9e13b199948d03b95cb2",
+      "namespace": {
+        "principal": "owner",
+        "projectId": "project",
+        "botId": "a",
+        "visibility": "bot_private"
+      },
+      "source": {
+        "botId": "a",
+        "threadId": "source-thread",
+        "runId": "incident"
+      },
+      "evidence": {
+        "sourceId": "14c3dcff-d527-494d-b4ca-440469e0e9a7",
+        "sourceVersion": 1,
+        "quote": "隔天 Bob 把 FeatureHub 回滾到舊版，延遲隨即恢復",
+        "quoteHash": "329b89ce5d1328330fe5b2f57997c50e645285e8e96d0a50b17c6eedb15809b3",
+        "position": 52,
+        "attribution": "user_stated"
+      }
+    },
+    {
+      "ref": "b5e09e5fe241bac77173339fed5486100f7bf3784d4d30e06d520ea44f9d2244",
+      "namespace": {
+        "principal": "owner",
+        "projectId": "project",
+        "botId": "a",
+        "visibility": "bot_private"
+      },
+      "source": {
+        "botId": "a",
+        "threadId": "source-thread",
+        "runId": "incident"
+      },
+      "evidence": {
+        "sourceId": "14c3dcff-d527-494d-b4ca-440469e0e9a7",
+        "sourceVersion": 1,
+        "quote": "上週搜尋推薦服務的延遲飆高，原因是 FeatureHub 的快取失效",
+        "quoteHash": "fe1d3dbbd66682f07bf7e6f7dcf2fdfe7a9a3d0658c74d181fbd0eb7c00e79d6",
+        "position": 17,
+        "attribution": "user_stated"
+      }
+    },
+    {
+      "ref": "813db2700616ac7f0093e3030bf148003e5ed09cfead04c95157018b89abacb8",
+      "namespace": {
+        "principal": "owner",
+        "projectId": "project",
+        "botId": "a",
+        "visibility": "bot_private"
+      },
+      "source": {
+        "botId": "a",
+        "threadId": "source-thread",
+        "runId": "incident"
+      },
+      "evidence": {
+        "sourceId": "14c3dcff-d527-494d-b4ca-440469e0e9a7",
+        "sourceVersion": 1,
+        "quote": "11/3，會議中，Alice 報告上週搜尋推薦服務的延遲飆高",
+        "quoteHash": "25c093f57c243a13c7cccac94798264f8b449294fff0337033bda2d47f09883d",
+        "position": 0,
+        "attribution": "user_stated"
+      }
+    },
+    {
+      "ref": "dbdcbd4d1c9435f3c2a9f81aa1c46cb7a3928a446309e4285f30a95dda04d8d6",
+      "namespace": {
+        "principal": "owner",
+        "projectId": "project",
+        "botId": "a",
+        "visibility": "bot_private"
+      },
+      "source": {
+        "botId": "a",
+        "threadId": "source-thread",
+        "runId": "incident"
+      },
+      "evidence": {
+        "sourceId": "14c3dcff-d527-494d-b4ca-440469e0e9a7",
+        "sourceVersion": 1,
+        "quote": "會後由 AI 助理草擬了事後檢討文件交給 Alice",
+        "quoteHash": "0d34c7e7697a74fa799e07fa509cff540f21654ec105465ec10a9b1b93091945",
+        "position": 85,
+        "attribution": "user_stated"
+      }
+    },
+    {
+      "ref": "14b6b3ce7acec90351a54a16faec595843689f0b3479f0fb659382edb50bee97",
+      "namespace": {
+        "principal": "owner",
+        "projectId": "project",
+        "botId": "a",
+        "visibility": "bot_private"
+      },
+      "source": {
+        "botId": "a",
+        "threadId": "source-thread",
+        "runId": "profile"
+      }
+    }
+  ]
+}

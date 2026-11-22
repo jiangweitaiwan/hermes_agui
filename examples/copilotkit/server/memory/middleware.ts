@@ -11,6 +11,7 @@ export class RuntimeMemoryMiddleware {
       projectId: settings.projectId, botId, threadId, runId }), query);
     const payload = Buffer.from(JSON.stringify({ botId, threadId, runId, principal: settings.principal,
       projectId: settings.projectId, expires: Math.floor(Date.now() / 1000) + 60, context })).toString("base64url");
+    if (payload.length > 16000) throw new Error("Memory envelope budget");
     return { payload, signature: createHmac("sha256", settings.key).update(payload).digest("hex") };
   }
 }
