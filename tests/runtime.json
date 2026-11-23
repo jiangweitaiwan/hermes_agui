@@ -4,7 +4,7 @@
       "hermes-runtime-746997613973.asia-east1.run.app"
     ],
     "origins": [
-      "https://YOUR_APP.vercel.app"
+      "https://hermes-agui.vercel.app"
     ],
     "firebaseProject": "copilotkit-agui",
     "members": [

@@ -1,5 +1,5 @@
 cloud:
-  hosts: [hermes-host-746997613973.asia-east1.run.app, localhost, 0.0.0.0]
+  hosts: [hermes-host-746997613973.asia-east1.run.app, localhost, 127.0.0.1]
 bots: []
 max_active_runs: 4
 storage:
