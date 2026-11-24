@@ -1,3 +1,5 @@
+import { domainStage, requireAccepted, ValidationError, result, issue } from "../llm/validation/pipeline";
+import { validateIntegrity } from "../llm/validation/integrity";
 import type { CompilerLLM } from "./compiler";
 import type { IngestStore } from "./ingest-store";
 import type { RawSource } from "./ingest-queue";
@@ -11,10 +13,10 @@ import { digest } from "./wiki-store";
 import type { Attribute, GraphPublication } from "./v2-types";
 export async function compileV2(queue: IngestStore, llm: CompilerLLM, ns: Namespace, source: RawSource, signal: AbortSignal): Promise<GraphPublication> {
   if (!queue.graphSubjects || !queue.graphAttributes) throw new Error("V2 persistence unavailable");
-  const parsed = await parseSource(llm,source,signal);
+  const parsed = await domainStage("v2-parser","REF_INVALID",()=>parseSource(llm,source,signal));
   const existing = await queue.graphSubjects(ns);
-  const matches = await resolveSubjects(parsed,existing,llm,signal);
-  if (matches.some(m => m.status === "unresolved")) throw new Error("Subject disambiguation required");
+  const matches = await domainStage("v2-subject-disambiguation","IDENTITY_UNCERTAIN",()=>resolveSubjects(parsed,existing,llm,signal));
+  if (matches.some(m => m.status === "unresolved")) throw new ValidationError(result("v2-subject-disambiguation",[issue("v2-subject-disambiguation","domain","IDENTITY_UNCERTAIN","needs_review")]));
   const subjects = [...new Map(matches.map(m => [m.subject!.subjectId,m.subject!])).values()];
   const attributes: Attribute[] = parsed.stableAttributes.map(a => {
     const subjectId = matches.find(m => m.ref === a.subjectRef)!.subject!.subjectId;
@@ -29,7 +31,7 @@ export async function compileV2(queue: IngestStore, llm: CompilerLLM, ns: Namesp
     attributes.push({attributeId:`attr_${digest(JSON.stringify([subject.subjectId,"identity"]))}`,subjectId:subject.subjectId,
       kind:"background",text:subject.canonicalName,evidence:evidence(source,{quote:item.quote,position:item.position})});
   }
-  const relations = await abstractRelations(llm,parsed,matches,source,source.referenceTime,signal);
+  const relations = await domainStage("v2-relations","TEMPORAL_INVALID",()=>abstractRelations(llm,parsed,matches,source,source.referenceTime,signal));
   const pages = [];
   for (const pageId of new Set(attributes.map(a => subjects.find(s => s.subjectId === a.subjectId)!.wikiPageId))) {
     const current = await queue.current(ns,pageId);
@@ -41,5 +43,7 @@ export async function compileV2(queue: IngestStore, llm: CompilerLLM, ns: Namesp
     const page = rewriteWiki(grouped,all,sources,current);
     if (page) pages.push(page);
   }
-  return {compilerVersion:"v2",pages,subjects,attributes,...relations};
+  const publication:GraphPublication={compilerVersion:"v2",pages,subjects,attributes,...relations};
+  requireAccepted(validateIntegrity(publication,source));
+  return publication;
 }

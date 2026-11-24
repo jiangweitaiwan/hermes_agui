@@ -87,8 +87,8 @@ test("I: V3 vectors coexist, resume, mismatch/failure lexical fallback and revok
 });
 test("G/J: custom relation labels publish evidence-backed JSON, invalid quote never publishes",async()=>{
  const f=fixture();try{
- const model=fixtureModel();const custom={async json(stage:string,data:any,abort:AbortSignal){const output:any=await model.json(stage,data,abort);if(stage==="v2-relations")output.edges=output.edges.map((e:any)=>({...e,relation:"related_to",relationType:"association",relationLabel:e.relation==="rolled_back"?"maintains":"responsible_for"}));return output;}};
- await new WikiCompiler(f.queue,custom,120000,"v2").processJob(ns,f.add(meeting,"custom"));const result=await net(f);expect(result.edges).toHaveLength(5);expect(result.edges.some(e=>e.relationLabel==="maintains")).toBe(true);expect(result.edges.every(e=>e.relation==="related_to"&&e.evidenceRefs.length)).toBe(true);artifact("relation-new.json",result.edges);
+ const model=fixtureModel();const custom={async json(stage:string,data:any,abort:AbortSignal){const output:any=await model.json(stage,data,abort);if(stage==="v2-relations")output.edges=output.edges.map((e:any)=>({...e,relation:"related_to",relationType:"association",relationLabel:({rolled_back:"回滾",reported_issue:"報告",caused_degradation:"原因是",drafted:"草擬",delivered_to:"交給"} as Record<string,string>)[e.relation]}));return output;}};
+ await new WikiCompiler(f.queue,custom,120000,"v2").processJob(ns,f.add(meeting,"custom"));const result=await net(f);expect(result.edges).toHaveLength(5);expect(result.edges.some(e=>e.relationLabel==="回滾")).toBe(true);expect(result.edges.every(e=>e.relation==="related_to"&&e.evidenceRefs.length)).toBe(true);artifact("relation-new.json",result.edges);
  const source={id:"00000000-0000-4000-8000-000000000001",version:1,content:meeting,hash:"a".repeat(64),title:"test"};
  await expect(parseSource({json:async(stage,data,abort)=>{const parsed:any=await model.json(stage,data,abort);parsed.subjects[0].quote="invented";return parsed;}},source as any,signal())).rejects.toThrow("Invalid source span");
  }finally{f.close();}

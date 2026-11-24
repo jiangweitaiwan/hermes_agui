@@ -160,10 +160,10 @@ export class PostgresDocumentIngestor implements IngestStore {
     if (inputs.length) await this.store.import(ns, inputs, complete);
     else await this.store.transaction(ns, complete);
   }
-  async fail(job: Job) {
+  async fail(job: Job, validation?: import("../llm/validation/pipeline").ValidationResult) {
     await this.store.pool.query(`UPDATE ${schema}.graph_jobs SET state=CASE WHEN attempt>=3 THEN 'failed' ELSE 'pending' END,
-      error='compile_failed',token=NULL,lease=NULL,available=clock_timestamp()+power(2,attempt)*interval '1 second'
-      WHERE ns=$1 AND id=$2 AND token=$3 AND state='running' AND lease>clock_timestamp()`, [job.ns, job.id, job.token]);
+      error=$4,token=NULL,lease=NULL,available=clock_timestamp()+power(2,attempt)*interval '1 second'
+      WHERE ns=$1 AND id=$2 AND token=$3 AND state='running' AND lease>clock_timestamp()`, [job.ns, job.id, job.token, validation ? JSON.stringify(validation) : "compile_failed"]);
   }
   async cancelClaim(job: Job) {
     await this.store.pool.query(`UPDATE ${schema}.graph_jobs SET state='cancelled',token=NULL,lease=NULL

@@ -1,3 +1,6 @@
+import { validateRelation } from "../llm/validation/relation";
+import { requireAccepted, issue, result } from "../llm/validation/pipeline";
+import { promptFor } from "../llm/prompts/registry";
 import type { CompilerLLM } from "./compiler";
 import type { Parsed } from "./parser";
 import { evidence } from "./parser";
@@ -11,15 +14,17 @@ import { RelationOutputSchema as Output } from "../llm/schema/relations";
 export async function abstractRelations(llm: CompilerLLM, parsed: Parsed, matches: Match[], source: RawSource, reference: ReferenceTime | undefined, signal: AbortSignal) {
   const output = Output.parse(await llm.json("v2-relations", { schema:'{edges:[{narrativeRef,fromRef,toRef,relation,relationType?,relationLabel?,description,factKind,stateProperty?,certainty}]}',
     relations:EdgeSchema.innerType().shape.relation.options,subjects:parsed.subjects,narratives:parsed.narratives,
-    rule:"Only explicitly source-supported actors and directed relations. Optional relationType is action/state/association; relationLabel is a short semantic label. Use legacy related_to when no existing enum fits. Do not attribute AI assistant actions to Bob. Use stateProperty only for comparable mutable state; independent events never share a state slot." },signal));
+    rule: promptFor("v2-relations").rule },signal));
   const subjects = new Map(matches.map(m => [m.ref,m.subject]));
   const times = narrativeTimes(parsed,reference);
   const events = new Map<string,MemoryEvent>(); const edges: FactEdge[] = [];
   for (const proposal of output.edges) {
+    requireAccepted(validateRelation(parsed,proposal));
     const n = parsed.narratives.find(n => n.ref === proposal.narrativeRef);
     const from = subjects.get(proposal.fromRef), to = subjects.get(proposal.toRef);
     if (!n || !n.subjectRefs.includes(proposal.fromRef) || !n.subjectRefs.includes(proposal.toRef)) throw new Error("Relation outside narrative");
     if (!from || !to) throw new Error("Unresolved relation subject");
+    if(evidence(source,{quote:n.quote,position:n.position}).attribution==="assistant_unverified")requireAccepted(result("v2-relations",[issue("v2-relations","evidence","ATTRIBUTION_UNCERTAIN","needs_review")]));
     const time = times.get(n.ref)!;
     const eventId = `event_${digest(JSON.stringify([source.hash,n.eventRef,reference?.instant ?? source.id])).slice(0,32)}`;
     if (!events.has(eventId)) events.set(eventId,{eventId,title:n.text,summary:n.text,time});

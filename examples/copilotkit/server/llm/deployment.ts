@@ -1,6 +1,7 @@
-import { ModelRegistry } from "./config";
+import { ModelRegistry, taskFingerprint } from "./config";
 /** New and legacy configuration cannot coexist for an activated role. No implicit rerouting. */
 export function configureLLMDeployment(input:any){
+  console.info(JSON.stringify({event:"graph_task_contract",fingerprint:taskFingerprint()}));
   if(!input?.llm)return input;
   const registry=new ModelRegistry(input.llm);
   if(input.llmFingerprint && input.llmFingerprint!==registry.fingerprint)throw new Error("LLM config fingerprint mismatch");

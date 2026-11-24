@@ -1,0 +1,143 @@
+{
+  "corpusVersion": 1,
+  "scope": "offline deterministic validation and scripted cross-provider wire comparison; not live model quality",
+  "samples": [
+    {
+      "id": "extractive",
+      "expected": "accepted",
+      "actual": "accepted",
+      "latencyMs": 4.869946000000255,
+      "codes": []
+    },
+    {
+      "id": "utf16-codepoint-confusion",
+      "expected": "rejected",
+      "actual": "rejected",
+      "latencyMs": 0.6341800000000148,
+      "codes": [
+        "SPAN_INVALID"
+      ]
+    },
+    {
+      "id": "duplicate-sentence-explicit-span",
+      "expected": "accepted",
+      "actual": "accepted",
+      "latencyMs": 0.4863439999999173,
+      "codes": []
+    },
+    {
+      "id": "fabricated-quote",
+      "expected": "rejected",
+      "actual": "rejected",
+      "latencyMs": 0.33698999999978696,
+      "codes": [
+        "SPAN_INVALID",
+        "SEMANTIC_UNCERTAIN"
+      ]
+    },
+    {
+      "id": "unsupported-paraphrase",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "latencyMs": 0.5324810000001889,
+      "codes": [
+        "SEMANTIC_UNCERTAIN"
+      ]
+    },
+    {
+      "id": "unknown-membership",
+      "expected": "rejected",
+      "actual": "rejected",
+      "latencyMs": 0.4729149999998299,
+      "codes": [
+        "REF_INVALID"
+      ]
+    },
+    {
+      "id": "homonym-invented-identity",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "latencyMs": 0.32883099999980914,
+      "codes": [
+        "IDENTITY_UNCERTAIN"
+      ]
+    },
+    {
+      "id": "self-temporal-anchor",
+      "expected": "rejected",
+      "actual": "rejected",
+      "latencyMs": 8.056279000000359,
+      "codes": [
+        "TEMPORAL_INVALID"
+      ]
+    },
+    {
+      "id": "event-in-profile",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "latencyMs": 0.9613649999996596,
+      "codes": [
+        "SEMANTIC_UNCERTAIN",
+        "STATE_EVENT_CONFLICT"
+      ]
+    },
+    {
+      "id": "wrong-actor-direction",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "latencyMs": 1.3354599999997845,
+      "codes": [
+        "ATTRIBUTION_UNCERTAIN"
+      ]
+    },
+    {
+      "id": "event-with-state-slot",
+      "expected": "rejected",
+      "actual": "rejected",
+      "latencyMs": 1.035628000000088,
+      "codes": [
+        "STATE_EVENT_CONFLICT"
+      ]
+    },
+    {
+      "id": "model-inference",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "latencyMs": 0.764353999999912,
+      "codes": [
+        "SEMANTIC_UNCERTAIN"
+      ]
+    }
+  ],
+  "metrics": {
+    "cases": 12,
+    "verdictAccuracy": 1,
+    "falseAccepts": 0,
+    "accepted": 2,
+    "needsReview": 5,
+    "rejected": 5,
+    "reviewRate": 0.4166666666666667,
+    "validationLatencyMs": {
+      "p50": 0.6341800000000148,
+      "p95": 8.056279000000359
+    },
+    "liveModelLatencyMs": null,
+    "realTokenUsage": null
+  },
+  "modelComparison": {
+    "vertex": {
+      "scripted": true,
+      "outputInvariant": "accepted",
+      "sourcePosition": 3,
+      "promptTokens": 20,
+      "completionTokens": 30
+    },
+    "openai-compatible": {
+      "scripted": true,
+      "outputInvariant": "accepted",
+      "sourcePosition": 23,
+      "promptTokens": 20,
+      "completionTokens": 30
+    }
+  }
+}

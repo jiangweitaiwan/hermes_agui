@@ -1,3 +1,4 @@
+import { promptFor, systemPrompt } from "./prompts/registry";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { schemas, outputSchema } from "./schema/registry";
@@ -15,11 +16,12 @@ export const RegistryConfig=z.object({version:z.literal(1),providers:z.array(Pro
 export type ModelConfig=z.infer<typeof Model>;
 export type ProviderConfig=z.infer<typeof Provider>;
 export type RegistrySettings=z.infer<typeof RegistryConfig>;
-export const taskRegistry:Record<string,{role:string;schemaVersion:number;promptVersion:string;validatorVersion:string}> = Object.fromEntries(
+export interface TaskContract { readonly role:string; readonly schemaVersion:number; readonly promptVersion:string; readonly validatorVersion:string }
+export const taskRegistry:Readonly<Record<string,TaskContract>> = Object.freeze(Object.fromEntries(
   Object.entries({analysis:"graph_parser",generation:"graph_parser",merge:"graph_parser","v2-parser":"graph_parser",
     "v2-subject-disambiguation":"graph_matcher","v2-relations":"graph_relations","v3-query":"graph_query","v3-story":"graph_story"})
-    .map(([id,role])=>[id,{role,schemaVersion:1,promptVersion:"legacy",validatorVersion:"legacy"}])
-);
+    .map(([id,role])=>[id,Object.freeze({role,schemaVersion:1,promptVersion:"1",validatorVersion:"1"})])
+));
 export class ModelRegistry {
   readonly config:RegistrySettings;
   readonly fingerprint:string;
@@ -29,7 +31,7 @@ export class ModelRegistry {
     for(const provider of this.config.providers)validateEndpoint(provider);
     const roles=new Set(["agent_primary","graph_parser","graph_matcher","graph_relations","graph_query","graph_story","graph_embedding",...this.config.models.flatMap(m=>m.fallback)]);
     for(const model of this.config.models)validateModel(this,model,roles);
-    for(const s of Object.values(schemas))outputSchema(s);
+    validateTaskContracts(taskRegistry);
     this.fingerprint=createHash("sha256").update(canonical(this.config)).digest("hex");
   }
   model(alias:string){const m=this.config.models.find(m=>m.alias===alias);if(!m)throw new Error("Unknown model role");return m;}
@@ -62,3 +64,16 @@ export function canonical(value:unknown):string {
   if(value!==null && typeof value==="object")return `{${Object.entries(value).sort(([a],[b])=>a.localeCompare(b,"en")).map(([k,v])=>`${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
   return JSON.stringify(value);
 }
+
+export function validateTaskContracts(tasks:Readonly<Record<string,TaskContract>>):void {
+  for(const [id,task] of Object.entries(tasks)){
+    promptFor(id,task.promptVersion);
+    if(task.schemaVersion!==1 || task.validatorVersion!=="1" || !schemas[id] || task.role!==taskRegistry[id]?.role)throw new Error("Invalid task contract");
+    outputSchema(schemas[id]);
+  }
+  if(Object.keys(taskRegistry).some(id=>!tasks[id]))throw new Error("Missing task contract");
+}
+
+/** Independent from model config, compiler mode, persisted domain schema and SQL migrations. */
+const frozenTaskFingerprint=createHash("sha256").update(canonical(Object.fromEntries(Object.entries(taskRegistry).map(([stage,task])=>[stage,{...task,prompt:systemPrompt(stage),schema:outputSchema(schemas[stage])}])))).digest("hex");
+export function taskFingerprint():string { return frozenTaskFingerprint; }

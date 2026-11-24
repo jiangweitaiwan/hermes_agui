@@ -1,8 +1,11 @@
+import { execution, observe, type Observer } from "./observability";
+import { result, validateOutput, failure } from "./validation/pipeline";
+import { systemPrompt } from "./prompts/registry";
 import { OpenAICompatibleClient, OpenAIEmbeddingClient } from "./providers/openai-compatible";
 import { z } from "zod";
 import { ModelRegistry, RegistryConfig, taskRegistry } from "./config";
 import { schemas, outputSchema } from "./schema/registry";
-import { instruction, OpenAICompilerLLM, type CompilerLLM } from "../graph/compiler";
+import { OpenAICompilerLLM, type CompilerLLM } from "../graph/compiler";
 import { OpenAIEncoder, EmbeddingConfig, type Encoder } from "../graph/embedding";
 import { VertexEmbeddingClient, VertexStructuredLLMClient, type TokenSource } from "./providers/vertex";
 import { bounded, ProviderError, pause } from "./providers/http";
@@ -11,7 +14,7 @@ export const LegacyChatConfig=z.object({baseUrl:z.string().url(),model:z.string(
 export const RoleConfig=z.object({registry:RegistryConfig,role:z.string().min(1)}).strict();
 export const ChatConfig=z.union([LegacyChatConfig,RoleConfig]);
 export const EncoderConfig=z.union([EmbeddingConfig,RoleConfig]);
-export interface ClientDependencies {transport?:typeof fetch;token?:TokenSource}
+export interface ClientDependencies {transport?:typeof fetch;token?:TokenSource;observe?:Observer}
 export class RegistryLLM implements CompilerLLM {
   readonly registry:ModelRegistry;
   constructor(config:unknown,readonly role:string,readonly deps:ClientDependencies={}){this.registry=new ModelRegistry(config);this.registry.model(role);}
@@ -24,23 +27,27 @@ export class RegistryLLM implements CompilerLLM {
     const primary=this.registry.model(role);
     const deadline=AbortSignal.any([signal,AbortSignal.timeout(primary.timeoutMs)]);
     return bounded(deadline,async()=>{
-      let failure:unknown;
+      let lastError:unknown;
       for(const alias of [role,...primary.fallback]){
         const model=this.registry.model(alias),provider=this.registry.provider(model.provider);
         for(let attempt=0;attempt<=model.retries;attempt++){
+          const started=Date.now();
           try{
             const attemptSignal=AbortSignal.any([deadline,AbortSignal.timeout(model.timeoutMs)]);
-            const output=await bounded(attemptSignal,async()=>{
-              if(provider.driver==="vertex")return new VertexStructuredLLMClient(provider,model,this.deps.transport,this.deps.token).generate(instruction+"\n"+stage,data,outputSchema(schema),attemptSignal);
-              return new OpenAICompatibleClient(provider,model,this.deps.transport).generate(instruction+"\n"+stage,data,outputSchema(schema),attemptSignal);
-            });
-            return schema.parse(output);
-          }catch(error){deadline.throwIfAborted();failure=error;if(!(error instanceof ProviderError&&error.retryable))throw error;
+            const client=provider.driver==="vertex"?new VertexStructuredLLMClient(provider,model,this.deps.transport,this.deps.token):new OpenAICompatibleClient(provider,model,this.deps.transport);
+            const output=await bounded(attemptSignal,()=>client.generate(systemPrompt(stage),data,outputSchema(schema),attemptSignal));
+            const parsed=validateOutput(stage,output);
+            (this.deps.observe??observe)(execution(stage,started,result(stage),{phase:"provider_attempt",provider:provider.id,model:model.model,configHash:this.registry.fingerprint,...client.usage}));
+            return parsed;
+          }catch(error){
+            const validation=failure(stage,error,deadline.aborted);
+            (this.deps.observe??observe)(execution(stage,started,validation,{phase:"provider_attempt",provider:provider.id,model:model.model,configHash:this.registry.fingerprint,outcome:"failed"}));
+            deadline.throwIfAborted();lastError=error;if(!(error instanceof ProviderError&&error.retryable))throw error;
             if(attempt<model.retries)await pause(Math.min(1000,100*2**attempt),deadline);
           }
         }
       }
-      throw failure;
+      throw lastError;
     });
   }
 }

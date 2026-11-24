@@ -1,8 +1,10 @@
+import { usage, type Usage } from "../usage";
 import type {ProviderConfig,ModelConfig} from "../config";
 import {ProviderError,responseJSON,retryProvider} from "./http";
 import {validVector,type Encoder} from "../../graph/embedding";
 type Provider=Extract<ProviderConfig,{driver:"openai-compatible"}>;
 export class OpenAICompatibleClient {
+  usage:Usage=usage(null,null);
   constructor(readonly provider:Provider,readonly model:ModelConfig,readonly transport:typeof fetch=fetch){}
   headers(){const key=process.env[this.provider.keyEnv];if(!key)throw new ProviderError("auth");return {"Content-Type":"application/json",Authorization:`Bearer ${key}`};}
   url(method:string){return `${this.provider.baseUrl.replace(/\/$/,"")}/${method}`;}
@@ -10,6 +12,7 @@ export class OpenAICompatibleClient {
     const body=await responseJSON(await this.transport(this.url("chat/completions"),{method:"POST",redirect:"error",signal,headers:this.headers(),
       body:JSON.stringify({model:this.model.model,max_tokens:this.model.maxTokens,response_format:{type:"json_object"},messages:[
         {role:"system",content:system+"\nOutput JSON schema: "+JSON.stringify(schema)},{role:"user",content:JSON.stringify(data)}]})}));
+    this.usage=usage(body.usage?.prompt_tokens,body.usage?.completion_tokens);
     if(body.choices?.[0]?.finish_reason && body.choices[0].finish_reason!=="stop")throw new ProviderError("format");
     try{return JSON.parse(body.choices[0].message.content);}catch{throw new ProviderError("format");}
   }

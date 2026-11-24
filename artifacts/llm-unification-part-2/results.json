@@ -1,0 +1,174 @@
+{
+  "base_commit": "44be792596e8ea1cbecc85b5415e415e631f876e",
+  "branch": "codex/graph-memory-v2",
+  "scope": "Part 2 offline implementation; cloud acceptance not performed",
+  "changed_source_files_sha256": "8a47a9a22e9d394e4322f4af37e34d360d6df3bec861452b7b50b8abe6ed7ac9",
+  "changed_source_files": [
+    "examples/copilotkit/server/graph/compiler-v2.ts",
+    "examples/copilotkit/server/graph/compiler.ts",
+    "examples/copilotkit/server/graph/ingest-queue.ts",
+    "examples/copilotkit/server/graph/ingest-store.ts",
+    "examples/copilotkit/server/graph/parser.ts",
+    "examples/copilotkit/server/graph/postgres-ingest-queue.ts",
+    "examples/copilotkit/server/graph/query-parser.ts",
+    "examples/copilotkit/server/graph/relation-abstractor.ts",
+    "examples/copilotkit/server/graph/subject-matcher.ts",
+    "examples/copilotkit/server/llm/client.ts",
+    "examples/copilotkit/server/llm/config.ts",
+    "examples/copilotkit/server/llm/deployment.ts",
+    "examples/copilotkit/server/llm/observability.ts",
+    "examples/copilotkit/server/llm/prompts/registry.ts",
+    "examples/copilotkit/server/llm/providers/openai-compatible.ts",
+    "examples/copilotkit/server/llm/providers/vertex.ts",
+    "examples/copilotkit/server/llm/usage.ts",
+    "examples/copilotkit/server/llm/validation/compiler.ts",
+    "examples/copilotkit/server/llm/validation/evidence.ts",
+    "examples/copilotkit/server/llm/validation/integrity.ts",
+    "examples/copilotkit/server/llm/validation/persistence.ts",
+    "examples/copilotkit/server/llm/validation/pipeline.ts",
+    "examples/copilotkit/server/llm/validation/relation.ts",
+    "examples/copilotkit/server/llm/validation/retrieval.ts",
+    "examples/copilotkit/server/memory/storyteller.ts",
+    "examples/copilotkit/tests/fixtures/llm-part2/golden.json",
+    "examples/copilotkit/tests/graph-v3-net.test.ts",
+    "examples/copilotkit/tests/llm-review-contract.test.ts",
+    "examples/copilotkit/tests/llm-validation-cloud.test.ts",
+    "examples/copilotkit/tests/llm-validation-persistence.test.ts",
+    "examples/copilotkit/tests/llm-validation.test.ts"
+  ],
+  "commands": {
+    "graph": "npm test -- --reporter=dot --maxWorkers=1 --testTimeout=15000",
+    "typecheck": "tsc --noEmit -p examples/copilotkit/tsconfig.json",
+    "python": "scripts/run_tests.sh tests/hermes_agui/test_llm_registry.py tests/hermes_agui/test_headless_agent.py tests/agent/test_vertex_adapter.py",
+    "checks": "python scripts/check --base 44be792596e8ea1cbecc85b5415e415e631f876e"
+  },
+  "graph_baseline": {
+    "passed": 171,
+    "failed": 0,
+    "skipped": 27,
+    "errors": 0,
+    "status": "passed",
+    "summary": "Tests  171 passed | 27 skipped (198)",
+    "files": "Test Files  27 passed | 9 skipped (36)",
+    "duration": "Duration  119.44s (transform 1.68s, setup 0ms, collect 55.51s, tests 158.96s, environment 67ms, prepare 8.43s)",
+    "maxWorkers": 2
+  },
+  "red_on_base": {
+    "expected_red": true,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "errors": 0,
+    "status": "failed",
+    "summary": "Tests  1 failed (1)",
+    "files": "Test Files  1 failed (1)",
+    "duration": "Duration  2.38s (transform 616ms, setup 0ms, collect 947ms, tests 652ms, environment 0ms, prepare 217ms)",
+    "behavior": "expected pending/no published subjects, actual completed on base"
+  },
+  "graph_intermediate": {
+    "passed": 192,
+    "failed": 0,
+    "skipped": 29,
+    "errors": 0,
+    "status": "passed",
+    "summary": "Tests  192 passed | 29 skipped (221)",
+    "files": "Test Files  30 passed | 10 skipped (40)",
+    "duration": "Duration  169.39s (transform 2.25s, setup 0ms, collect 86.24s, tests 213.95s, environment 16ms, prepare 14.36s)"
+  },
+  "timeout_run_preserved": {
+    "passed": 194,
+    "failed": 2,
+    "skipped": 29,
+    "errors": 1,
+    "status": "failed",
+    "summary": "Tests  2 failed | 194 passed | 29 skipped (225)",
+    "files": "Test Files  2 failed | 28 passed | 10 skipped (40)",
+    "duration": "Duration  1091.61s (transform 2.62s, setup 0ms, collect 66.17s, tests 2087.96s, environment 13ms, prepare 9.32s)",
+    "reasons": [
+      "graph-v3-net test timeout",
+      "graph-v3-runtime test timeout",
+      "Vite onTaskUpdate timeout"
+    ],
+    "final_mitigation": "single worker, unchanged 15000ms test timeout; prevent idle sleep only for test duration"
+  },
+  "candidate_failure_preserved": {
+    "passed": 181,
+    "failed": 2,
+    "skipped": 29,
+    "errors": 1,
+    "status": "failed",
+    "summary": "Tests  2 failed | 181 passed | 29 skipped (212)",
+    "files": "Test Files  3 failed | 27 passed | 10 skipped (40)",
+    "duration": "Duration  1918.35s (transform 1773.39s, setup 0ms, collect 91.91s, tests 1921.59s, environment 14ms, prepare 16.23s)",
+    "reasons": [
+      "CLI stdout JSON contract regression (fixed by stderr INFO telemetry)",
+      "Vite worker fetch/onTaskUpdate timeout",
+      "native Python subprocess timeout"
+    ]
+  },
+  "affected_recovery": {
+    "passed": 58,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "status": "passed",
+    "summary": "Tests  58 passed | 1 skipped (59)",
+    "files": "Test Files  7 passed (7)",
+    "duration": "Duration  62.35s (transform 1.77s, setup 0ms, collect 11.08s, tests 104.61s, environment 2ms, prepare 1.58s)"
+  },
+  "graph_final": {
+    "passed": 196,
+    "failed": 0,
+    "skipped": 29,
+    "errors": 0,
+    "status": "passed",
+    "summary": "Tests  196 passed | 29 skipped (225)",
+    "files": "Test Files  30 passed | 10 skipped (40)",
+    "duration": "Duration  210.05s (transform 2.36s, setup 0ms, collect 38.42s, tests 152.03s, environment 12ms, prepare 6.64s)",
+    "maxWorkers": 1,
+    "testTimeoutMs": 15000,
+    "host_mitigation": "caffeinate -i for duration of test process only"
+  },
+  "final_targeted": {
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "status": "passed",
+    "summary": "Tests  25 passed (25)",
+    "files": "Test Files  3 passed (3)",
+    "duration": "Duration  9.71s (transform 1.43s, setup 0ms, collect 3.68s, tests 2.07s, environment 1ms, prepare 1.54s)"
+  },
+  "final_delta_validation": "After the full suite, UTC interval ordering was corrected to compare parsed instants, with a fractional-second negative case. Final targeted golden/persistence checks cover this delta.",
+  "python": {
+    "status": "passed",
+    "passed": 19,
+    "failed": 0,
+    "files": 3
+  },
+  "typecheck": {
+    "status": "passed"
+  },
+  "checks": {
+    "status": "baseline_failure",
+    "passed": 16,
+    "total": 17,
+    "failed": [
+      "no-tmp: 6 pre-existing hits in prior artifacts and host-config"
+    ],
+    "health": "passed"
+  },
+  "live_vertex": "blocked / not executed; no explicit live acceptance configuration",
+  "real_pg_gcs": "blocked / not executed; opt-in tests retained separately from passed tests",
+  "cloud_run_rollout_rollback": "not executed",
+  "provider_api_signatures_changed": false,
+  "sql_migration_added": false,
+  "acl_model_changed": false,
+  "deployed": false,
+  "limitations": [
+    "Deterministic extractive/grammar checks are not universal semantic truth verification.",
+    "No secondary LLM reviewer; preserved jobs require human review and gated retry.",
+    "Full execution history relies on existing structured log retention; current V2 verdict persists in job.error.",
+    "No price book; estimated cost is null. Unavailable token/embedding metadata stays null."
+  ]
+}

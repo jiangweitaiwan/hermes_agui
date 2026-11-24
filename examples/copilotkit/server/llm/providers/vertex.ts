@@ -1,3 +1,4 @@
+import { usage, type Usage } from "../usage";
 import { GoogleAuth } from "google-auth-library";
 import type { ProviderConfig, ModelConfig } from "../config";
 import { bounded, ProviderError, responseJSON, retryProvider } from "./http";
@@ -12,6 +13,7 @@ export function vertexURL(provider:Extract<ProviderConfig,{driver:"vertex"}>,mod
   return `https://${host}/v1/projects/${provider.project}/locations/${provider.location}/publishers/google/models/${encodeURIComponent(model.replace(/^google\//,""))}:${method}`;
 }
 export class VertexStructuredLLMClient {
+  usage:Usage=usage(null,null);
   constructor(readonly provider:Extract<ProviderConfig,{driver:"vertex"}>,readonly model:ModelConfig,readonly transport:typeof fetch=fetch,readonly token:TokenSource=adcTokenSource()){}
   async generate(system:string,data:unknown,schema:Record<string,unknown>,signal:AbortSignal){
     const token=await this.token(signal);
@@ -20,6 +22,7 @@ export class VertexStructuredLLMClient {
       body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:JSON.stringify(data)}]}],
         generationConfig:{maxOutputTokens:this.model.maxTokens,responseMimeType:"application/json",responseJsonSchema:schema}}),
     }));
+    this.usage=usage(body.usageMetadata?.promptTokenCount,body.usageMetadata?.candidatesTokenCount);
     const candidate=body.candidates?.[0];
     if(candidate?.finishReason!=="STOP"||!Array.isArray(candidate.content?.parts))throw new ProviderError("format");
     const content=candidate.content.parts.filter((p:any)=>!p.thought).map((p:any)=>typeof p.text==="string"?p.text:"").join("");

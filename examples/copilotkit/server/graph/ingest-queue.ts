@@ -184,9 +184,9 @@ export class DocumentIngestor implements IngestStore {
       .run(job.id, job.token, Date.now());
     if (!result.changes) throw new Error("Lost job lease");
   }
-  fail(job: Job) {
-    this.store.db.prepare("UPDATE ingest_jobs SET state=?,error='compile_failed',token=NULL,available=? WHERE id=? AND token=? AND state='running' AND lease>?")
-      .run(job.attempt >= 3 ? "failed" : "pending", Date.now() + 1000 * 2 ** job.attempt, job.id, job.token, Date.now());
+  fail(job: Job, validation?: import("../llm/validation/pipeline").ValidationResult) {
+    this.store.db.prepare("UPDATE ingest_jobs SET state=?,error=?,token=NULL,available=? WHERE id=? AND token=? AND state='running' AND lease>?")
+      .run(job.attempt >= 3 ? "failed" : "pending", validation ? JSON.stringify(validation) : "compile_failed", Date.now() + 1000 * 2 ** job.attempt, job.id, job.token, Date.now());
   }
   cancelClaim(job: Job) {
     this.store.db.prepare(`UPDATE ingest_jobs SET state='cancelled',token=NULL

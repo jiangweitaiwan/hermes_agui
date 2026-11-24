@@ -1,0 +1,26 @@
+{
+  "source": "😀 Bob drafted report. Bob drafted report.",
+  "parsed": {
+    "subjects": [
+      {"ref":"bob","name":"Bob","type":"person","identity":"Bob","aliases":[],"grouping":"independent","quote":"Bob","position":3},
+      {"ref":"report","name":"report","type":"document","identity":"report","aliases":[],"grouping":"independent","quote":"report","position":15}
+    ],
+    "narratives": [{"ref":"draft","text":"Bob drafted report","subjectRefs":["bob","report"],"timeText":"","eventRef":"draft","quote":"Bob drafted report","position":3}],
+    "stableAttributes": []
+  },
+  "relation": {"narrativeRef":"draft","fromRef":"bob","toRef":"report","relation":"drafted","description":"Bob drafted report","factKind":"event","certainty":"reported"},
+  "cases": [
+    {"id":"extractive","kind":"none","verdict":"accepted"},
+    {"id":"utf16-codepoint-confusion","kind":"offset","verdict":"rejected"},
+    {"id":"duplicate-sentence-explicit-span","kind":"repeat","verdict":"accepted"},
+    {"id":"fabricated-quote","kind":"quote","verdict":"rejected"},
+    {"id":"unsupported-paraphrase","kind":"claim","verdict":"needs_review"},
+    {"id":"unknown-membership","kind":"ref","verdict":"rejected"},
+    {"id":"homonym-invented-identity","kind":"identity","verdict":"needs_review"},
+    {"id":"self-temporal-anchor","kind":"time","verdict":"rejected"},
+    {"id":"event-in-profile","kind":"attribute","verdict":"needs_review"},
+    {"id":"wrong-actor-direction","kind":"direction","verdict":"needs_review"},
+    {"id":"event-with-state-slot","kind":"state","verdict":"rejected"},
+    {"id":"model-inference","kind":"inferred","verdict":"needs_review"}
+  ]
+}

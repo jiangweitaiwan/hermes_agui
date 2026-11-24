@@ -20,8 +20,9 @@ unsupported Vertex models, missing location/project, duplicate aliases, embeddin
 budgets fail startup validation. Additional aliases must be referenced as explicit one-hop fallback targets.
 
 Roles: `agent_primary`, `graph_parser`, `graph_matcher`, `graph_relations`, `graph_query`, `graph_story`,
-`graph_embedding`. Graph tasks bind schema version 1 and existing prompt/validator version `legacy`.
-This does not introduce Part 2 prompt or semantic-validation pipelines.
+`graph_embedding`. Part 1 bound Graph tasks to schema version 1 and `legacy` prompt/validator identifiers.
+Part 2 now binds immutable prompt version `1` and validator version `1`; model/provider config version remains `1`.
+See [Part 2 deployment/review/rollback SOP](llm-unification-part-2-operations.md) for the additional rollout gates.
 
 When `llm` is absent, existing Bot `model/provider`, `graph.evolution.compiler`, `graph.queryParser`,
 `graph.storyteller` and `graph.embedding` work unchanged. When a registry role activates a path, remove the

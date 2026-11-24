@@ -1,0 +1,14 @@
+Part 2 verification receipt
+Base HEAD: 44be792596e8ea1cbecc85b5415e415e631f876e
+Branch: codex/graph-memory-v2
+Complete Graph regression: Tests  196 passed | 29 skipped (225)
+Final targeted golden/persistence: Tests  25 passed (25)
+Python: 19 passed, 0 failed, 3 files; canonical scripts/run_tests.sh with isolated homes.
+TypeScript: tsc --noEmit exit 0.
+Health: 0 blocking, 0 advisory.
+Repository checks: 16/17 pass; only 6 existing no-tmp hits remain in prior artifacts/host-config.
+New public behavior test on base: expected red, old compiler published fabricated assertion/reversed cause.
+Real Vertex / PostgreSQL+GCS / Cloud Run rollout-rollback: not executed; blocked gates, not passed.
+No SQL migration, ACL model change, Provider API signature change or deployment performed.
+Detailed failure history and source-file fingerprint: results.json.
+Offline corpus metrics and scripted cross-provider evidence: golden-results.json.

@@ -17,7 +17,7 @@ export interface IngestStore {
   current(ns: Namespace, page: string): Awaitable<{ page: Page; revision: string } | undefined>;
   candidates(ns: Namespace, query: string): Awaitable<{ id: string; title: string; body: string }[]>;
   publish(ns: Namespace, job: Job, inputs: Publication[] | import("./v2-types").GraphPublication, check: () => void): Awaitable<void>;
-  fail(job: Job): Awaitable<void>;
+  fail(job: Job, validation?: import("../llm/validation/pipeline").ValidationResult): Awaitable<void>;
   cancelClaim(job: Job): Awaitable<void>;
   latestSource(ns: Namespace, source: string): Awaitable<RawSource>;
 }
