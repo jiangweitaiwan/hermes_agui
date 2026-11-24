@@ -48,9 +48,21 @@ def load_host(path: Path):
     data = load_yaml_file_readonly(path)
     if os.environ.get("K_SERVICE") and not data.get("cloud"):
         raise ValueError("Cloud Run requires explicit cloud settings")
+    llm = data.get("llm")
+    if llm is not None:
+        from hermes_agui.core.llm_registry import parse_registry, fingerprint
+        import logging
+        registry = parse_registry(llm)
+        if data.get("llmFingerprint") and data["llmFingerprint"] != fingerprint(registry):
+            raise ValueError("LLM config fingerprint mismatch")
+        logging.getLogger(__name__).info("llm_config version=1 fingerprint=%s", fingerprint(registry))
+    llm_credentials = {p.keyEnv: os.environ.get(p.keyEnv, "") for p in registry.providers if hasattr(p, "keyEnv")} if llm is not None else {}
     bots = []
     for item in data.get("bots", []):
         agent = dict(item["agent"])
+        if llm is not None:
+            agent["llm_registry"] = llm
+            agent["llm_credentials"] = llm_credentials
         if "api_key_env" in agent:
             agent["api_key"] = os.environ[agent.pop("api_key_env")]
         for key in ("home", "cwd"):
@@ -83,6 +95,9 @@ def load_host(path: Path):
         templates = {}
         for name, raw in settings.pop("templates").items():
             template = dict(raw)
+            if llm is not None:
+                template["llm_registry"] = llm
+                template["llm_credentials"] = llm_credentials
             if "api_key_env" in template:
                 template["api_key"] = os.environ[template.pop("api_key_env")]
             template["toolsets"] = tuple(template.get("toolsets", ("memory", "skills")))

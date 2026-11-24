@@ -61,7 +61,9 @@ class HermesAgentService:
 
         # Native session helpers include legacy clear semantics. A private Context
         # keeps every mutation (including AIAgent construction) out of the caller.
-        with bind_profile_scope(self.config.home), bind_ephemeral_workspace(self.config.ephemeral_workspace):
+        from hermes_agui.core.llm_registry import registry_scope
+
+        with bind_profile_scope(self.config.home), bind_ephemeral_workspace(self.config.ephemeral_workspace), registry_scope(self.config.llm_registry, self.config.model_role):
             set_session_vars(platform="api_server", source="api_server", session_id=native_id,
                              session_key=native_id, user_id=self.config.principal,
                              cwd=str(self.config.cwd), async_delivery=False, cron_session="")

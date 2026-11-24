@@ -25,6 +25,7 @@ export interface HostSpec {
 }
 export interface StoredBot { record: BotRecord; runtime: RuntimeSettings; spec?: HostSpec; principal?: string }
 export interface BotTemplate {
+  modelRole?: string;
   id: string; name: string; harness: "hermes" | "remote_ag_ui";
   model: string; provider: string; skills: string[]; toolsets: string[];
   /** Only administrator-approved remote endpoints may be registered. */

@@ -1,0 +1,35 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/llm-registry.test.ts tests/llm-vertex-flow.test.ts tests/llm-embedding-durable.test.ts --reporter=verbose
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:73883) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:73884) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:73885) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ↓ tests/llm-embedding-durable.test.ts > PostgreSQL + REAL GCS: build separate wiki/edge spaces, switch, failure + rollback preserve previous vectors
+ ✓ tests/llm-registry.test.ts > strict registry rejects duplicates, dangling roles, capability mismatch, bad endpoints and dimensions 358ms
+stdout | tests/llm-registry.test.ts > deployment rejects mixed legacy config and resolves roles without mutating input
+{"event":"llm_config","version":1,"fingerprint":"0f68a20a3f91bd74cc4ccb1d5dae89af336ef16d988c8c1167d743edfcc334d6"}
+
+ ✓ tests/llm-registry.test.ts > all registered tasks expose deterministic schema; refinements remain server-side 29ms
+ ✓ tests/llm-registry.test.ts > deployment rejects mixed legacy config and resolves roles without mutating input 12ms
+ ✓ tests/llm-registry.test.ts > Vertex uses native structured endpoint, trusted system and refreshing token source 221ms
+ ✓ tests/llm-registry.test.ts > Vertex retries only 429/5xx, never logs response/token; rejects malformed and safety-blocked outputs 241ms
+ ✓ tests/llm-registry.test.ts > deadline and caller cancellation bound token mint and transports that ignore signals 29ms
+ ✓ tests/llm-registry.test.ts > explicit fallback allowlist applies only after retryable failures 113ms
+ ✓ tests/llm-registry.test.ts > embedding native predict sends one text per request, validates truncation/dimension; spaces and templates cannot mix 8ms
+ ✓ tests/llm-registry.test.ts > legacy OpenRouter chat and embedding retain wire contracts 21ms
+ ✓ tests/llm-registry.test.ts > shared deployment JSON resolves to the same Python/TypeScript fingerprint 2028ms
+ ✓ tests/llm-vertex-flow.test.ts > Vertex mock HTTP → session ingest → real worker/evidence persistence → isolated embedding → query/story + outage fallbacks 40051ms
+ ↓ tests/llm-vertex-flow.test.ts > LIVE Vertex ADC smoke (explicit config file required; incurs model usage)
+
+ Test Files  2 passed | 1 skipped (3)
+      Tests  11 passed | 2 skipped (13)
+   Start at  15:05:20
+   Duration  46.16s (transform 3.28s, setup 0ms, collect 10.44s, tests 43.12s, environment 94ms, prepare 2.45s)
+

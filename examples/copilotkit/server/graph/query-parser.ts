@@ -1,5 +1,6 @@
 import type { CompilerLLM } from "./compiler";
-import { QueryPlanSchema, type QueryParseResult } from "./query-types";
+import type { QueryParseResult } from "./query-types";
+import { QueryPlanSchema } from "../llm/schema/query";
 /** Independent query contract: no persistence, source assertions, IDs or ACL fields. */
 export class QueryParser {
   constructor(readonly llm: CompilerLLM, readonly timeoutMs = 2000) {

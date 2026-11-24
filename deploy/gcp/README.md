@@ -52,3 +52,8 @@ Review and apply through the existing schema-owner process; app startup does not
 Graph Memory V2 Part 2 adds Runtime `010_graph_fact_tokens.sql` after 009 and SELECT/INSERT/DELETE grants on its derived lexical table.
 Backfill existing V2 facts using the scoped ingestion CLI `reindex`, then optionally rebuild `vectors`.
 Cloud Tasks reconciliation retries missing Edge indexes on completed compilation jobs; no new public worker route is added.
+
+Opt-in unified LLM/Vertex examples: `host.vertex.example.yaml`, `runtime.vertex.example.json`, and shared
+`llm-registry.vertex.example.json` (editor schema: `llm-registry.schema.json`). Legacy examples remain valid.
+See [registry deployment, reindex and rollback](../../docs/llm-unification-deployment.md). Real Vertex/PG/GCS
+acceptance must pass separately before rollout; mocked tests are not cloud deployment evidence.

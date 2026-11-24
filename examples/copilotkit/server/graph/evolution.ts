@@ -1,6 +1,7 @@
+import { ChatConfig, chatClient } from "../llm/client";
 import { backfillEdgeLexical } from "./edge-embedding";
 import { z } from "zod";
-import { WikiCompiler, OpenAICompilerLLM, WORKER_SHUTDOWN, type CompilerLLM } from "./compiler";
+import { WikiCompiler, WORKER_SHUTDOWN, type CompilerLLM } from "./compiler";
 import { WikiStore } from "./wiki-store";
 import { PostgresWikiStore } from "./postgres-wiki-store";
 import { PostgresDocumentIngestor } from "./postgres-ingest-queue";
@@ -14,12 +15,10 @@ export interface EvolutionOptions { provider: WikiGraphProvider<WikiStore | Post
 export function loadEvolution(provider: unknown, config: unknown): EvolutionOptions | undefined {
   if (!config || (config as any).enabled === false) return undefined;
   const value = z.object({ enabled: z.literal(true), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), pollMs: z.number().int().min(100).max(60000).default(1000),
-    compiler: z.object({ baseUrl: z.string().url(), model: z.string().min(1), keyEnv: z.string().min(1),
-      timeoutMs: z.number().int().positive().max(120000).optional(), maxTokens: z.number().int().positive().max(8192).optional(),
-    }).strict(),
+    compiler: ChatConfig,
   }).strict().parse(config);
   if (!(provider instanceof WikiGraphProvider)) return undefined; // unavailable store stays fail soft
-  return { provider, compiler: new OpenAICompilerLLM(value.compiler), pollMs: value.pollMs, graphCompilerVersion: value.graphCompilerVersion };
+  return { provider, compiler: chatClient(value.compiler), pollMs: value.pollMs, graphCompilerVersion: value.graphCompilerVersion };
 }
 export class MemoryEvolution {
   readonly queue: DocumentIngestor | PostgresDocumentIngestor;

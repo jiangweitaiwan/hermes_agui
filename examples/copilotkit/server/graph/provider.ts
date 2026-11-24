@@ -1,13 +1,13 @@
+import { chatClient, embeddingClient } from "../llm/client";
 import { Storyteller } from "../memory/storyteller";
 import { RetrievalConfig } from "./query-config";
 import { QueryParser } from "./query-parser";
-import { OpenAICompilerLLM } from "./compiler";
 import { StructuredRetriever } from "./structured-retriever";
 import { V2RetrievalStore } from "./v2-retrieval-store";
 import { EdgeRetriever } from "./edge-retriever";
 import { EdgeVectorIndex } from "./edge-embedding";
 import { performance } from "node:perf_hooks";
-import { OpenAIEncoder, VectorIndex } from "./embedding";
+import { VectorIndex } from "./embedding";
 import type { GraphEntry, GraphMemoryPort, GraphQuery, GraphQueryResult, GraphScope, GraphWriteResult } from "../graph-memory";
 import { PostgresWikiStore } from "./postgres-wiki-store";
 import { GcsGraphObjects } from "./objects";
@@ -77,13 +77,13 @@ export function loadWiki(options?: WikiOptions): (GraphMemoryPort & { close(): v
   try {
     store = new WikiStore(options.dataRoot, options);
     store.cleanup();
-    const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
-    const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
+    const encoder = options.embedding ? embeddingClient(options.embedding) : undefined;
+    const vectors = encoder ? new VectorIndex(store, encoder, 1) : undefined;
     const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
     provider.runtimeDeadlineMs=config.runtimeDeadlineMs;
-    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(new OpenAICompilerLLM(config.storyteller),config.storyteller.timeoutMs);
+    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(chatClient(config.storyteller),("registry" in config.storyteller ? undefined : config.storyteller.timeoutMs));
     if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
-      new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
+      new QueryParser(chatClient(config.queryParser!),("registry" in config.queryParser! ? undefined : config.queryParser!.timeoutMs)),
       encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());
     return provider;
   } catch {
@@ -103,13 +103,13 @@ export async function loadDurableWiki(options?: WikiOptions) {
   const store = new PostgresWikiStore(process.env.AGUI_RUNTIME_DATABASE_URL ?? "", objects, options);
   try {
     await store.ready();
-    const encoder = options.embedding ? new OpenAIEncoder(options.embedding) : undefined;
-    const vectors = encoder ? new VectorIndex(store, encoder, encoder.options.retries) : undefined;
+    const encoder = options.embedding ? embeddingClient(options.embedding) : undefined;
+    const vectors = encoder ? new VectorIndex(store, encoder, 1) : undefined;
     const provider = new WikiGraphProvider(store, timeout, { ...options.retrieval, vectors });
     provider.runtimeDeadlineMs=config.runtimeDeadlineMs;
-    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(new OpenAICompilerLLM(config.storyteller),config.storyteller.timeoutMs);
+    if(config.retrievalMode === "v3" && config.storyteller)provider.storyteller=new Storyteller(chatClient(config.storyteller),("registry" in config.storyteller ? undefined : config.storyteller.timeoutMs));
     if(config.retrievalMode === "v3")provider.structured = new StructuredRetriever(provider.facts,provider.retriever,
-      new QueryParser(new OpenAICompilerLLM(config.queryParser!),config.queryParser!.timeoutMs),
+      new QueryParser(chatClient(config.queryParser!),("registry" in config.queryParser! ? undefined : config.queryParser!.timeoutMs)),
       encoder ? new EdgeVectorIndex(provider.facts,encoder,"v3"):undefined,()=>provider.beforeQuery?.());
     return provider;
   } catch (error) { await store.close(); throw error; }

@@ -1,5 +1,6 @@
 import type { MemoryNet } from "../graph/memory-net";
-import { StorySchema, type MemoryStory } from "./story-types";
+import type { MemoryStory } from "./story-types";
+import { StorySchema } from "../llm/schema/story";
 export function groundedStory(net:MemoryNet):MemoryStory {
   const claims:MemoryStory["claims"]=[...net.edges.map(e=>({text:e.description,edgeIds:[e.edgeId],wikiSections:[],
     confidence:(e.certainty==="disputed"?"conflicting":e.attribution==="assistant_unverified"||e.view==="uncertain"||e.time.confidence==="uncertain"||e.certainty!=="reported"?"uncertain":"supported") as "conflicting"|"uncertain"|"supported"})),

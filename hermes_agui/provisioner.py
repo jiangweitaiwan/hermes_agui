@@ -27,7 +27,7 @@ class BotSpec(BaseModel):
 
 @dataclass(frozen=True)
 class ProvisionTemplate:
-    model: str
+    model: str | None = None
     provider: str | None = None
     api_key: str | None = field(default=None, repr=False)
     base_url: str | None = None
@@ -35,6 +35,20 @@ class ProvisionTemplate:
     skills: dict[str, Path] = field(default_factory=dict)
     toolsets: tuple[str, ...] = ("memory", "skills")
     agent_options: dict = field(default_factory=dict)
+    llm_registry: dict | None = field(default=None, repr=False)
+    model_role: str = "agent_primary"
+    llm_credentials: dict[str, str] = field(default_factory=dict, repr=False)
+
+
+    def __post_init__(self):
+        object.__setattr__(self, "llm_credentials", dict(self.llm_credentials))
+        if self.llm_registry is not None:
+            from hermes_agui.core.llm_registry import parse_registry, agent_route
+            if self.model or self.provider or self.api_key or self.base_url:
+                raise ValueError("Registry role conflicts with legacy template routing")
+            registry = parse_registry(self.llm_registry)
+            agent_route(self.llm_registry, self.model_role)
+            object.__setattr__(self, "llm_registry", registry.model_dump(exclude_none=True))
 
 
 class HermesBotProvisioner:
@@ -75,6 +89,7 @@ class HermesBotProvisioner:
             self._initialize(home, spec, template, previous)
         return BotConfig(spec.id, AgentConfig(home, workspace, principal=spec.principal,
             model=template.model, provider=template.provider, api_key=template.api_key,
+            llm_registry=template.llm_registry, model_role=template.model_role, llm_credentials=template.llm_credentials,
             base_url=template.base_url, enabled_toolsets=tuple(spec.toolsets),
             agent_options=template.agent_options), ServerConfig(spec.token,
                 runtime_memory_key=spec.memoryKey, runtime_memory_project=spec.projectId))
@@ -87,7 +102,8 @@ class HermesBotProvisioner:
             ensure_hermes_home()
             profile_config = dict(template.config)
             model = dict(profile_config.get("model", {}))
-            model["default"] = template.model
+            if template.model:
+                model["default"] = template.model
             if template.provider:
                 model["provider"] = template.provider
             if template.base_url:

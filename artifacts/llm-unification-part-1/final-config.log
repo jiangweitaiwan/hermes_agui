@@ -1,0 +1,21 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/graph-v3-config.test.ts tests/llm-registry.test.ts --reporter=dot
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:74109) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74108) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stdout | tests/llm-registry.test.ts > deployment rejects mixed legacy config and resolves roles without mutating input
+{"event":"llm_config","version":1,"fingerprint":"0f68a20a3f91bd74cc4ccb1d5dae89af336ef16d988c8c1167d743edfcc334d6"}
+
+···········
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  15:19:39
+   Duration  3.93s (transform 917ms, setup 0ms, collect 3.86s, tests 1.85s, environment 3ms, prepare 673ms)
+

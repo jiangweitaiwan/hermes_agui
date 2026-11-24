@@ -20,7 +20,7 @@ export class EdgeVectorIndex {
   readonly key: string;
   readonly metrics = {indexed:0,failures:0,queries:0,lexical:0};
   constructor(readonly store: V2RetrievalStore, readonly encoder: Encoder, readonly template: "v2" | "v3" = "v2") {
-    this.key = JSON.stringify([encoder.model,encoder.dimension,encoder.version,...(template === "v3" ? ["edge-narrative-v3"]:[])]);
+    this.key = encoder.fingerprint ? JSON.stringify([encoder.fingerprint,template === "v3" ? "edge-narrative-v3":"edge-v2"]) : JSON.stringify([encoder.model,encoder.dimension,encoder.version,...(template === "v3" ? ["edge-narrative-v3"]:[])]);
   }
   async update(ns: Namespace, signal: AbortSignal) {
     signal.throwIfAborted();

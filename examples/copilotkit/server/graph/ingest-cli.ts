@@ -1,3 +1,4 @@
+import { ChatConfig, EncoderConfig, chatClient, embeddingClient } from "../llm/client";
 import { V2RetrievalStore } from "./v2-retrieval-store";
 import { EdgeVectorIndex, backfillEdgeLexical } from "./edge-embedding";
 import { PostgresWikiStore } from "./postgres-wiki-store";
@@ -7,18 +8,15 @@ import { GraphBrowser } from "./browser";
 import { parseQuery } from "./browser-query";
 import { SessionIngestor } from "./session-ingestor";
 import { wikiHealth, scopedReindex } from "./health";
-import { EmbeddingConfig, OpenAIEncoder, VectorIndex } from "./embedding";
+import { VectorIndex } from "./embedding";
 import { readFileSync, statSync } from "node:fs";
 import { z } from "zod";
 import { NamespaceSchema } from "./types";
 import { WikiStore, safePath, namespaceKey } from "./wiki-store";
 import { DocumentIngestor } from "./ingest-queue";
-import { OpenAICompilerLLM, WikiCompiler, WORKER_SHUTDOWN } from "./compiler";
+import { WikiCompiler, WORKER_SHUTDOWN } from "./compiler";
 
-const Config = z.object({ namespace: NamespaceSchema, retrievalMode: z.enum(["v2","v3"]).default("v2"), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EmbeddingConfig.optional(), compiler: z.object({
-  baseUrl: z.string().url(), model: z.string().min(1), keyEnv: z.string().min(1),
-  timeoutMs: z.number().int().positive().max(120000).optional(), maxTokens: z.number().int().positive().max(8192).optional(),
-}).strict().optional() }).strict();
+const Config = z.object({ namespace: NamespaceSchema, retrievalMode: z.enum(["v2","v3"]).default("v2"), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EncoderConfig.optional(), compiler: ChatConfig.optional() }).strict();
 function jsonFile(filename: string, limit: number) {
   const path = safePath(filename);
   if (!statSync(path).isFile() || statSync(path).size > limit) throw new Error("Invalid input file size");
@@ -31,7 +29,7 @@ function jsonFile(filename: string, limit: number) {
  */
 async function work(queue: DocumentIngestor | PostgresDocumentIngestor, config: z.infer<typeof Config>, jobId?: string) {
   if (!config.compiler) throw new Error("Compiler configuration required");
-  const worker = new WikiCompiler(queue, new OpenAICompilerLLM(config.compiler),120000,config.graphCompilerVersion);
+  const worker = new WikiCompiler(queue, chatClient(config.compiler),120000,config.graphCompilerVersion);
   const controller = new AbortController(), cancel = () => controller.abort(WORKER_SHUTDOWN);
   process.once("SIGINT", cancel); process.once("SIGTERM", cancel);
   try { return { processedJobId: await (jobId ? worker.processJob(config.namespace, jobId, controller.signal) : worker.runNext(config.namespace, controller.signal)) ?? null }; }
@@ -39,8 +37,8 @@ async function work(queue: DocumentIngestor | PostgresDocumentIngestor, config: 
 }
 async function rebuildVectors(store: WikiStore | PostgresWikiStore, config: z.infer<typeof Config>) {
   if (!config.embedding) throw new Error("Embedding config required");
-  const vectors = new VectorIndex(store, new OpenAIEncoder(config.embedding), config.embedding.retries);
-  await vectors.rebuild(config.namespace);
+  const vectors = new VectorIndex(store, embeddingClient(config.embedding), 1);
+  // Build missing fingerprint rows without deleting any previous vector space.
   for (let i = 0; i < 40000; i++) {
     const before = vectors.metrics.indexed;
     await vectors.update(config.namespace, AbortSignal.timeout(30000));
@@ -48,7 +46,7 @@ async function rebuildVectors(store: WikiStore | PostgresWikiStore, config: z.in
   }
   const edges = new EdgeVectorIndex(new V2RetrievalStore(store),vectors.encoder,config.retrievalMode);
   // Resume V3 missing batches while retaining V2 vectors.
-  if(config.retrievalMode === "v2")await edges.rebuild(config.namespace);
+
   for (let batch=0;batch<40000;batch++) {
     const before=edges.metrics.indexed;
     await edges.update(config.namespace,AbortSignal.timeout(30000));

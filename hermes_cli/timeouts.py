@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_REQUEST_TIMEOUT = ContextVar("trusted_request_timeout", default=None)
+
+
+@contextmanager
+def provider_timeout_scope(provider: str, model: str, seconds: float):
+    """Trusted host binding follows the owning turn across worker threads."""
+    token = _REQUEST_TIMEOUT.set((provider, model, seconds))
+    try:
+        yield
+    finally:
+        _REQUEST_TIMEOUT.reset(token)
+
+
 
 def _coerce_timeout(raw: object) -> float | None:
     try:
@@ -32,6 +48,9 @@ def _configured_timeout(provider_id: str, model: str | None, model_key: str, pro
 
 def get_provider_request_timeout(provider_id: str, model: str | None = None) -> float | None:
     """Return a configured provider request timeout in seconds, if any."""
+    route = _REQUEST_TIMEOUT.get()
+    if route is not None and route[:2] == (provider_id, model):
+        return route[2]
     return _configured_timeout(provider_id, model, "timeout_seconds", "request_timeout_seconds")
 
 

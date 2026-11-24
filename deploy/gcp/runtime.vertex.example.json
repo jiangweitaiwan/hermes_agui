@@ -1,0 +1,161 @@
+{
+  "cloud": {
+    "hosts": [
+      "RUNTIME_SERVICE.run.app"
+    ],
+    "origins": [
+      "https://YOUR_APP.vercel.app"
+    ],
+    "firebaseProject": "YOUR_FIREBASE_PROJECT",
+    "members": [
+      {
+        "uid": "FIREBASE_UID",
+        "ownerId": "owner",
+        "principal": "owner",
+        "projectId": "workspace"
+      }
+    ],
+    "serviceAudience": "https://RUNTIME_SERVICE.run.app",
+    "serviceAccounts": [
+      "hermes-host@your-project.iam.gserviceaccount.com"
+    ],
+    "hostAudience": "https://HOST_SERVICE.run.app"
+  },
+  "bots": [],
+  "storage": {
+    "botRegistry": "postgres",
+    "threadMappings": "postgres",
+    "graphCompletions": true
+  },
+  "management": {
+    "hostUrl": "https://HOST_SERVICE.run.app",
+    "hostTokenEnv": "AGUI_HOST_MANAGEMENT_TOKEN",
+    "users": [
+      {
+        "ownerId": "owner",
+        "principal": "owner",
+        "projectId": "workspace",
+        "tokenEnv": "UNUSED_CLOUD_LOGIN"
+      }
+    ],
+    "templates": [
+      {
+        "id": "assistant",
+        "name": "Assistant",
+        "harness": "hermes",
+        "toolsets": [
+          "memory",
+          "skills"
+        ],
+        "skills": [],
+        "modelRole": "agent_primary"
+      }
+    ]
+  },
+  "graph": {
+    "enabled": true,
+    "evolution": {
+      "enabled": true,
+      "graphCompilerVersion": "v2"
+    },
+    "retrievalMode": "v3"
+  },
+  "tasks": {
+    "project": "your-project",
+    "location": "asia-east1",
+    "queue": "hermes-memory",
+    "workerUrl": "https://WORKER_SERVICE.run.app",
+    "serviceAccount": "hermes-tasks@your-project.iam.gserviceaccount.com",
+    "tokenEnv": "AGUI_WORKER_TOKEN",
+    "deadlineSeconds": 600
+  },
+  "delegation": {
+    "tokenEnv": "AGUI_DELEGATION_TOKEN",
+    "allow": {},
+    "timeoutMs": 55000
+  },
+  "llm": {
+    "version": 1,
+    "providers": [
+      {
+        "id": "vertex",
+        "driver": "vertex",
+        "project": "your-project",
+        "location": "us-central1",
+        "auth": "adc",
+        "capabilities": [
+          "chat",
+          "structured_output",
+          "embedding"
+        ]
+      }
+    ],
+    "models": [
+      {
+        "alias": "agent_primary",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 30000,
+        "retries": 0,
+        "maxTokens": 4096,
+        "fallback": []
+      },
+      {
+        "alias": "graph_parser",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 30000,
+        "retries": 1,
+        "maxTokens": 4096,
+        "fallback": []
+      },
+      {
+        "alias": "graph_matcher",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 30000,
+        "retries": 1,
+        "maxTokens": 4096,
+        "fallback": []
+      },
+      {
+        "alias": "graph_relations",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 30000,
+        "retries": 1,
+        "maxTokens": 4096,
+        "fallback": []
+      },
+      {
+        "alias": "graph_query",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 2000,
+        "retries": 0,
+        "maxTokens": 2048,
+        "fallback": []
+      },
+      {
+        "alias": "graph_story",
+        "provider": "vertex",
+        "model": "gemini-2.5-flash",
+        "timeoutMs": 1500,
+        "retries": 0,
+        "maxTokens": 2048,
+        "fallback": []
+      },
+      {
+        "alias": "graph_embedding",
+        "provider": "vertex",
+        "model": "gemini-embedding-001",
+        "timeoutMs": 500,
+        "retries": 0,
+        "maxTokens": 4096,
+        "fallback": [],
+        "dimension": 768,
+        "version": "v1"
+      }
+    ]
+  }
+}

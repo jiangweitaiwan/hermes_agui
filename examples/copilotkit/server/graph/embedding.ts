@@ -7,7 +7,7 @@ export const EmbeddingConfig = z.object({ baseUrl: z.string().url(), model: z.st
   timeoutMs: z.number().int().min(1).max(1000).default(500), retries: z.number().int().min(0).max(2).default(1),
 }).strict();
 export interface Encoder {
-  model: string; dimension: number; version: string;
+  model: string; dimension: number; version: string; readonly fingerprint?: string;
   embed(texts: string[], signal: AbortSignal): Promise<number[][]>;
 }
 export function validVector(value: unknown, dimension: number): value is number[] {
@@ -90,7 +90,7 @@ export class VectorIndex {
   readonly storage: EmbeddingStore;
   constructor(store: WikiStore | EmbeddingStore, readonly encoder: Encoder, readonly retries = 1) {
     this.storage = store instanceof WikiStore ? new LocalEmbeddingStore(store) : store;
-    this.key = JSON.stringify([encoder.model, encoder.dimension, encoder.version]);
+    this.key = encoder.fingerprint ? JSON.stringify([encoder.fingerprint,"wiki-sections-v1"]) : JSON.stringify([encoder.model, encoder.dimension, encoder.version]);
   }
   async update(ns: Namespace, signal: AbortSignal) {
     const rows = await this.storage.unindexedSections(namespaceKey(ns), this.key);

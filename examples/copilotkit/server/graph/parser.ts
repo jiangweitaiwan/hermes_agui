@@ -2,18 +2,8 @@ import { z } from "zod";
 import type { CompilerLLM } from "./compiler";
 import type { RawSource } from "./ingest-queue";
 import { digest } from "./wiki-store";
-import { EvidenceSchema, SubjectSchema } from "./v2-types";
-import { parserText as text, parserRef as ref, TimeExpressionSchema } from "./time-expression";
-const quote = z.object({ quote: text, position: z.number().int().nonnegative() });
-export const ParsedSchema = z.object({
-  subjects: z.array(quote.extend({ ref, name: text, type: SubjectSchema.shape.type, identity: text,
-    aliases: z.array(text).max(20), parentRef: ref.optional(), grouping: z.enum(["independent", "component-of"]),
-  }).strict()).max(96),
-  narratives: z.array(quote.extend({ ref, text, subjectRefs: z.array(ref).min(1).max(12), timeText: z.string().max(100),
-    anchorRef: ref.optional(), timeExpression: TimeExpressionSchema.optional(), eventRef: ref,
-  }).strict()).max(96),
-  stableAttributes: z.array(quote.extend({ subjectRef: ref, kind: z.enum(["background", "role", "expertise", "interest", "design", "component_property"]), text }).strict()).max(96),
-}).strict();
+import { EvidenceSchema } from "./v2-types";
+import { ParsedSchema } from "../llm/schema/parser";
 export type Parsed = z.infer<typeof ParsedSchema>;
 export function evidence(source: RawSource, item: { quote: string; position: number }) {
   if (source.content.slice(item.position, item.position + item.quote.length) !== item.quote) throw new Error("Invalid source span");

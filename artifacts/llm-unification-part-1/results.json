@@ -1,0 +1,38 @@
+{
+  "base": "820b9f4c1624a4ed5511374113114360155b8eb4",
+  "part": 1,
+  "part2_executed": false,
+  "baseline_graph": {
+    "passed": 160,
+    "skipped": 25
+  },
+  "final_part1_acceptance": {
+    "passed": 11,
+    "skipped": 2
+  },
+  "native_regression": {
+    "passed": 18,
+    "failed": 0
+  },
+  "final_native_registry": {
+    "passed": 4,
+    "failed": 0
+  },
+  "cloud_acceptance": "NOT_RUN",
+  "vertex_live": "SKIPPED",
+  "postgres_real_gcs": "SKIPPED",
+  "dynamic_host_sdk_suite": "BLOCKED_missing_ag_ui",
+  "full_repo_check": "FAILED_preexisting_no_tmp_6_hits",
+  "health": "PASSED_0_blocking_0_advisory",
+  "no_cloud_deployment": true,
+  "final_legacy_config_and_parity": {
+    "passed": 11,
+    "failed": 0
+  },
+  "typecheck": "PASSED",
+  "final_full_graph": {
+    "passed": 171,
+    "skipped": 27,
+    "failed": 0
+  }
+}

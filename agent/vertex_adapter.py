@@ -50,6 +50,22 @@ def _ensure_google_auth() -> bool:
 
 logger = logging.getLogger(__name__)
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_VERTEX_ROUTE = ContextVar("vertex_trusted_route", default=None)
+
+
+@contextmanager
+def vertex_route_scope(route):
+    """Bind a host-approved route for a native turn, including token refresh."""
+    token = _VERTEX_ROUTE.set(route)
+    try:
+        yield
+    finally:
+        _VERTEX_ROUTE.reset(token)
+
+
 DEFAULT_REGION = "global"
 _CLOUD_PLATFORM_SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
@@ -69,6 +85,9 @@ def _vertex_config() -> dict:
 
 def _env_or_config(env_var: str, config_key: str) -> str:
     """Setting precedence: env/secret > config.yaml; "" when neither is set."""
+    route = _VERTEX_ROUTE.get()
+    if route is not None and config_key in route:
+        return route[config_key]
     return (_get_secret(env_var) or "").strip() or str(_vertex_config().get(config_key) or "").strip()
 
 

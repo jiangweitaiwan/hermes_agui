@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { CompilerLLM } from "./compiler";
 import type { Parsed } from "./parser";
 import { evidence } from "./parser";
@@ -8,10 +7,7 @@ import { EdgeSchema, type FactEdge, type MemoryEvent } from "./v2-types";
 import { resolveTime, type ReferenceTime } from "./temporal-resolver";
 import { digest } from "./wiki-store";
 import { resolveQueryTime } from "./query-temporal-resolver";
-const Output = z.object({ edges: z.array(z.object({ narrativeRef:z.string().max(100),fromRef:z.string().max(100),toRef:z.string().max(100),
-  relation:EdgeSchema.innerType().shape.relation,relationType:EdgeSchema.innerType().shape.relationType,relationLabel:EdgeSchema.innerType().shape.relationLabel,description:z.string().min(1).max(1000),factKind:z.enum(["event","state"]),
-  stateProperty:z.string().regex(/^[a-z_]{1,80}$/).optional(),certainty:z.enum(["reported","inferred","disputed"]),
-}).strict()).max(96) }).strict();
+import { RelationOutputSchema as Output } from "../llm/schema/relations";
 export async function abstractRelations(llm: CompilerLLM, parsed: Parsed, matches: Match[], source: RawSource, reference: ReferenceTime | undefined, signal: AbortSignal) {
   const output = Output.parse(await llm.json("v2-relations", { schema:'{edges:[{narrativeRef,fromRef,toRef,relation,relationType?,relationLabel?,description,factKind,stateProperty?,certainty}]}',
     relations:EdgeSchema.innerType().shape.relation.options,subjects:parsed.subjects,narratives:parsed.narratives,

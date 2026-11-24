@@ -55,8 +55,25 @@
   },
   "graph": {
     "enabled": true,
+    "retrievalMode": "v3",
+    "runtimeDeadlineMs": 8000,
+    "queryParser": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "model": "openai/gpt-4.1-mini",
+      "keyEnv": "OPENROUTER_API_KEY",
+      "timeoutMs": 2000,
+      "maxTokens": 2048
+    },
+    "storyteller": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "model": "openai/gpt-4.1-mini",
+      "keyEnv": "OPENROUTER_API_KEY",
+      "timeoutMs": 1500,
+      "maxTokens": 2048
+    },
     "evolution": {
       "enabled": true,
+      "graphCompilerVersion": "v2",
       "compiler": {
         "baseUrl": "https://openrouter.ai/api/v1",
         "model": "openai/gpt-4.1-mini",

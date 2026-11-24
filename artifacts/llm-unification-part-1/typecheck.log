@@ -1,0 +1,1 @@
+TypeScript compiler: exit 0 (tsc --noEmit -p examples/copilotkit/tsconfig.json)

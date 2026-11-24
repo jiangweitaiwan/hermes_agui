@@ -1,3 +1,4 @@
+import { configureLLMDeployment } from "./llm/deployment";
 import { CloudTasksDelivery, TasksSchema } from "./graph/tasks";
 import { PostgresWikiStore } from "./graph/postgres-wiki-store";
 import { WikiGraphProvider } from "./graph/provider";
@@ -44,6 +45,7 @@ function completionToken(registry: any) {
 
 /** Shared composition for the HTTP Runtime and trusted one-shot worker commands. */
 export async function bootstrap(registry: any, execution: { evolutionTimer?: boolean } = {}) {
+  registry = configureLLMDeployment(registry);
   const cloud = configureCloud(registry?.cloud);
   if (process.env.K_SERVICE && !cloud) throw new Error("Cloud Run requires explicit cloud settings");
   if (cloud && cloud.members.some(member => !registry?.management?.users?.some((user: { ownerId: string; principal: string; projectId: string }) => user.ownerId === member.ownerId && user.principal === member.principal && user.projectId === member.projectId))) throw new Error("Firebase members must match server management identities");
