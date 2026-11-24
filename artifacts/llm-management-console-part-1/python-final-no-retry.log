@@ -1,0 +1,24 @@
+▶ not activated — using HERMES_PYTHON: /Users/jiangwei/desktop/hermes/hermes-agent/.venv/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 4 test files (~24 tests) under ['tests/hermes_agui/test_llm_registry.py', 'tests/hermes_agui/test_headless_agent.py', 'tests/hermes_agui/test_managed_llm.py', 'tests/agent/test_vertex_adapter.py']; running with -j 4
+[ 33.3% |     8/~24 | ✓8 | ✗0] ✓ tests/agent/test_vertex_adapter.py (8✓, 10.4s)
+[ 50.0% |    12/~24 | ✓12 | ✗ 0] ✓ tests/hermes_agui/test_llm_registry.py (4✓, 44.8s)
+[ 75.0% |    18/~24 | ✓18 | ✗ 0] ✓ tests/hermes_agui/test_managed_llm.py (6✓, 54.2s)
+[100.0% |    24/~24 | ✓25 | ✗ 0] ✓ tests/hermes_agui/test_headless_agent.py (7✓, 98.4s)
+
+=== Summary: 4 files, 25 tests passed, 0 failed (100% complete) in 98.7s (4 workers) ===
+  Durations cached to test_durations.json (4 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   4
+  Total subprocess CPU-wall: 207.8s  (runner wall: 98.7s, parallelism: 4x)
+  P50: 54.22s  P90: 98.37s  P95: 98.37s  P99: 98.37s  Max: 98.37s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+     98.37s  tests/hermes_agui/test_headless_agent.py
+     54.22s  tests/hermes_agui/test_managed_llm.py
+     44.82s  tests/hermes_agui/test_llm_registry.py
+     10.44s  tests/agent/test_vertex_adapter.py

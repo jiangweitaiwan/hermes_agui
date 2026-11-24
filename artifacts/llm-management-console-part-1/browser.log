@@ -1,0 +1,59 @@
+[2m[WebServer] [22m(node:87160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:87160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:87160) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+[2m[WebServer] [22m(node:87163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:87163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:87169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:87169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/browser/llm-control.spec.ts:2:1 › real admin API: model draft, validation, publish, conflict and rollback (1.0m)
+(node:87589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:87589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 tests/browser/llm-control.spec.ts:31:1 › workspace owner receives server-side 403 in the real browser (2.2s)
+
+
+  1) tests/browser/llm-control.spec.ts:2:1 › real admin API: model draft, validation, publish, conflict and rollback 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.selectOption: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('group', { name: 'graph_parser', exact: true }).getByLabel('Model', { exact: true })[22m
+
+
+       5 |   await expect(page.getByText("草稿 revision 1",{exact:false})).toBeVisible();
+       6 |   const parser=page.getByRole("group",{name:"graph_parser",exact:true});
+    >  7 |   await parser.getByLabel("Model",{exact:true}).selectOption("gemini-2.5-pro");
+         |                                                 ^
+       8 |   await page.getByRole("button",{name:"儲存草稿",exact:true}).click();
+       9 |   await expect(page.getByText("草稿已儲存，尚未發布。",{exact:true})).toBeVisible();
+      10 |   await page.getByRole("button",{name:"驗證已儲存草稿",exact:true}).click();
+        at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/tests/browser/llm-control.spec.ts:7:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/llm-control-real-admin-API-34136-blish-conflict-and-rollback/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/llm-control-real-admin-API-34136-blish-conflict-and-rollback/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/llm-control-real-admin-API-34136-blish-conflict-and-rollback/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/llm-control-real-admin-API-34136-blish-conflict-and-rollback/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/browser/llm-control.spec.ts:2:1 › real admin API: model draft, validation, publish, conflict and rollback 
+  1 passed (1.5m)

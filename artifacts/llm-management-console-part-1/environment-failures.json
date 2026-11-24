@@ -1,0 +1,35 @@
+{
+  "records": [
+    {
+      "stage": "initial Node baseline",
+      "status": "FAIL",
+      "reason": "Sandbox denied loopback fixtures; repeated on unchanged archived baseline with loopback access."
+    },
+    {
+      "stage": "archived baseline Python subprocesses",
+      "status": "FAIL",
+      "reason": "Hardcoded baseline .venv missing; linked existing interpreter without modifying baseline source."
+    },
+    {
+      "stage": "initial browser fixture",
+      "status": "FAIL",
+      "reason": "Vite root and accessible selector mismatch; fixed without increasing timeout."
+    },
+    {
+      "stage": "initial Host PG dependency selection",
+      "status": "FAIL",
+      "reason": "Native-only interpreter lacked psycopg; stale candidate interpreter had incomplete namespaces. Final real-PG test uses lock-matching staged psycopg 3.3.9."
+    },
+    {
+      "stage": "PM cloud test environment build",
+      "status": "BLOCKED",
+      "reason": "Standalone Python download TLS CA verification failure; verification was not disabled and no raw pip environment mutation was performed."
+    },
+    {
+      "stage": "initial native routing test",
+      "status": "FAIL",
+      "reason": "Real file-tool first-use shell setup took 18 seconds, beyond the new test future bound. Kept bounds and used real native todo_list to isolate route pinning; final 25-test suite passed once with retries disabled."
+    }
+  ],
+  "recordType": "summary_of_actual_attempts"
+}

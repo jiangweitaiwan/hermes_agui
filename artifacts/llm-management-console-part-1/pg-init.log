@@ -1,0 +1,20 @@
+The files belonging to this database system will be owned by user "jiangwei".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default database encoding has accordingly been set to "SQL_ASCII".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /private/tmp/hermes-llm-p1-pg ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... sysv
+selecting default "max_connections" ... 25
+selecting default "shared_buffers" ... 400kB
+selecting default time zone ... Asia/Taipei
+creating configuration files ... ok
+running bootstrap script ... 2026-11-25 04:57:10.550 CST [84466] FATAL:  could not create shared memory segment: Operation not permitted
+2026-11-25 04:57:10.550 CST [84466] DETAIL:  Failed system call was shmget(key=46951479, size=56, 03600).
+child process exited with exit code 1
+initdb: removing data directory "/private/tmp/hermes-llm-p1-pg"

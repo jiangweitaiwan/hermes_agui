@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/graph-memory-v2",
+  "baselineCommit": "839d36297a01e9edb27551d64f798d3d5c9543b3",
+  "implementationCommit": "529375cb53d012fa9604144c8a6986f7d04c20d2",
+  "testedAt": "2026-11-24T22:13:53.533923+00:00",
+  "nodeVersion": "22.16.0",
+  "migrationHeads": {
+    "sourceBefore": {
+      "runtime": "010",
+      "host": "006"
+    },
+    "sourceAfter": {
+      "runtime": "011",
+      "host": "006"
+    },
+    "existingDeployedDatabase": "UNKNOWN: not accessed"
+  },
+  "productionReady": false,
+  "productionDeployed": false,
+  "productionIAMModified": false,
+  "part2Implemented": false,
+  "offlineFunctionalAcceptance": "PASS",
+  "overallCloudGate": "BLOCKED",
+  "checks": [
+    {
+      "id": "baseline-node",
+      "status": "PASS",
+      "passed": 196,
+      "existingSkipped": 29,
+      "command": "npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000",
+      "log": "baseline-node-verified.log.gz"
+    },
+    {
+      "id": "final-node",
+      "status": "PASS",
+      "passed": 206,
+      "existingSkipped": 29,
+      "command": "npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000",
+      "log": "node-final.log.gz"
+    },
+    {
+      "id": "native-python",
+      "status": "PASS",
+      "passed": 25,
+      "skipped": 0,
+      "automaticFileRetries": 0,
+      "command": "HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh tests/hermes_agui/test_llm_registry.py tests/hermes_agui/test_headless_agent.py tests/hermes_agui/test_managed_llm.py tests/agent/test_vertex_adapter.py",
+      "log": "python-final-no-retry.log"
+    },
+    {
+      "id": "host-http",
+      "status": "PASS",
+      "passed": 11,
+      "existingSkipped": 2,
+      "command": "scripts/run_tests.sh tests/hermes_agui/test_server.py tests/hermes_agui/test_dynamic_host.py",
+      "log": "python-http-only-final.log"
+    },
+    {
+      "id": "real-postgresql",
+      "status": "PASS",
+      "passed": 7,
+      "skipped": 0,
+      "command": "npm test -- --config vitest.llm-control.config.ts --reporter=verbose",
+      "log": "postgres-final.log",
+      "resources": "Disposable local PostgreSQL; real SQL migrations/grants/Host SELECT identity; two independent Node processes; filesystem objects; scripted inference"
+    },
+    {
+      "id": "real-browser",
+      "status": "PASS",
+      "passed": 2,
+      "skipped": 0,
+      "command": "playwright test --config playwright.llm-control.config.ts",
+      "log": "browser-final.log",
+      "resources": "Real Chrome + actual API + disposable PostgreSQL; scripted inference and filesystem objects"
+    },
+    {
+      "id": "typescript",
+      "status": "PASS",
+      "command": "tsc --noEmit",
+      "log": "typecheck.log"
+    },
+    {
+      "id": "frontend-build",
+      "status": "PASS",
+      "command": "npm run build",
+      "log": "build.log",
+      "warning": "Existing large chunks; thresholds unchanged"
+    },
+    {
+      "id": "repository",
+      "status": "FAIL",
+      "classification": "known_baseline_only",
+      "command": "python scripts/check --base 839d36297a01e9edb27551d64f798d3d5c9543b3",
+      "log": "repository-check-final.log",
+      "failedCheck": "no-tmp",
+      "baselineHits": 6
+    },
+    {
+      "id": "health",
+      "status": "PASS",
+      "blocking": 0,
+      "advisory": 0,
+      "log": "repository-check-final.log"
+    },
+    {
+      "id": "live-cloud",
+      "status": "BLOCKED",
+      "resources": "No disposable Vertex ADC smoke config, GCS bucket or Cloud Run staging rollout resources supplied; no production credentials used",
+      "log": "cloud-gate.json"
+    },
+    {
+      "id": "existing-durable-host-fixture",
+      "status": "BLOCKED",
+      "tests": 2,
+      "reason": "Existing tests need their dedicated Host pool/socket fixture; their skip is not a cloud acceptance pass"
+    }
+  ],
+  "acceptance": {
+    "P1-01": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-02": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-03": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-04": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-05": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-06": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-07": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-08": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-09": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-10": {
+      "status": "PASS",
+      "scope": "local",
+      "cloudAcceptance": false
+    },
+    "P1-11": {
+      "status": "BLOCKED",
+      "postgresql": "PASS",
+      "vertexADC": "BLOCKED",
+      "gcs": "BLOCKED",
+      "cloudRunRollout": "BLOCKED"
+    }
+  },
+  "sourceSHA256": {
+    "deploy/gcp/README.md": "a7c54e13a0d59e3be85a423200dd1e1c912079fb43789dab2ed23edd7d3a503b",
+    "deploy/gcp/host.managed.example.yaml": "629bbc089ab3e7aae6516c0b154a216cd0a1868aa3771bfcd101d9891bbec2e5",
+    "deploy/gcp/llm-control-grants.sql": "dd986f182ae80ca1284b05bc86de6c5fe099b53cd7314bd6188d9889e8ad6529",
+    "deploy/gcp/llm-control.env.example": "b5be912fcd52ec3ed57890ed7714fe9dcb548b19cce6db160459e023ea65c1eb",
+    "deploy/gcp/runtime.managed.example.json": "1b11d31ba685535fa0abade49af22074b953d2da987c208c33015228a34bd735",
+    "docs/llm-management-console-operations.md": "0002783be8c43dc2c6e8a7907f1b8e1b051374434113392c019b34527beaf061",
+    "examples/copilotkit/frontend/BotEditor.tsx": "ab480c6a14e464f27ebbac8444ab9ba361f0cff0bb8293d83abb840bed816c25",
+    "examples/copilotkit/frontend/BotManagement.tsx": "7384104a41b3b11f598f9ca233b7fdb725a9097f7fcf11241f06c7563ad6fab3",
+    "examples/copilotkit/frontend/LLMManagement.tsx": "4cc7dc31addcc74a7ac7667a712b75fe0264b6469c8d68727ead919427638f43",
+    "examples/copilotkit/frontend/workspace/AppShell.tsx": "2c1f32374f7f70938d1437cc0740b6e90785bb5a35ce970e5d8eb8ec5344e2d5",
+    "examples/copilotkit/playwright.llm-control.config.ts": "648613ef087110317bb5335fe1b765e573eb96c04e6c0d7ba8ad4e84954f9515",
+    "examples/copilotkit/server/application.ts": "f26da504fa9995e5daaccfb412f651b14550b43f30ed211edc64df70b7d7eeee",
+    "examples/copilotkit/server/bootstrap.ts": "d888b3a796618146dded1a8fa58ebcef1d59918f64b11986a3fae038f8b0682b",
+    "examples/copilotkit/server/graph/compiler.ts": "f7fae6f016208636799b3ddb619cfe1893ba9fe8efb4c3df31003f032a3473b5",
+    "examples/copilotkit/server/graph/ingest-cli.ts": "c2e91e010c5b43affec6577e4480fe93060be02637131b76b9146d9b9242dbed",
+    "examples/copilotkit/server/graph/ingest-store.ts": "38a8c5478d544edf156832d0b8275d5f9a5c92eaaadbc78a114da97bb784a716",
+    "examples/copilotkit/server/graph/postgres-ingest-queue.ts": "3f42457f96bd388fdfe8451e3510f082c489c8b6240fe4b820a8d7aa8ebabc1c",
+    "examples/copilotkit/server/graph/worker-cli.ts": "9587b4b1e2ac179e66d1f2e0a1fc9999171de6936246e274b606986199587ce2",
+    "examples/copilotkit/server/index.ts": "e61199fc658f82f8602258b8dd0b8d596e6b2f74a3750ac1e2dec96b47a26dbe",
+    "examples/copilotkit/server/llm/client.ts": "3da8f013b69fb40ea963f17c6ee6530efac0886d2d1d874d4e640e5bd8ef15ff",
+    "examples/copilotkit/server/llm/control-api.ts": "02303a1adbd84ad67a3c88b2c852fad044f7e6baea16ca770b492cf90f845125",
+    "examples/copilotkit/server/llm/control-bootstrap.ts": "edf8c21babb1dea93b773915dcfd94906a7496eeb9bab5be701e69a1b34d0920",
+    "examples/copilotkit/server/llm/control-cli.ts": "5f5c980d700f2f13423584f5d56526065ae15f1c221213efdc6547c89ed79eef",
+    "examples/copilotkit/server/llm/control-contract.ts": "d41b7d4251db27ab3c33a36230e5845741a4478e71331a27f992dc5a359e1a3e",
+    "examples/copilotkit/server/llm/control-http.ts": "6c90fbc96eb3c67216940becc7f19c9f4d1937bcd42c826df778cd08ec42d5bf",
+    "examples/copilotkit/server/llm/control-ingest.ts": "9af38bafb47b08bd8a09dd0fd0c922454caab74fe0e79b1a3ac666eeb49ef262",
+    "examples/copilotkit/server/llm/control-store.ts": "208a83019bff90dd097942001c5f03b774e9ab68cb2c92bf211d6010424753b9",
+    "examples/copilotkit/server/llm/database-target.ts": "5bcd3d3fa1156529c7daa44fc4dbdb32089fe6645f75f7ba08160505d5356780",
+    "examples/copilotkit/server/llm/deployment.ts": "e29714d4c169649290eecf98637277a14f3623dc9cd2fee24e5697423d14a009",
+    "examples/copilotkit/server/llm/embedding-observability.ts": "cdb01504c2f62b21c177aa286520f94edb33e8a1f5194e37e73ed7f5ecb068a7",
+    "examples/copilotkit/server/llm/execution-release.ts": "f299a7f1cfbbf76d98b600f364d176c4b219afbbd514108cdd75e6bd02c25717",
+    "examples/copilotkit/server/llm/managed-transport.ts": "96e8398471a5e86733ee078f451d205f8dd76fc1dc3f9d5d01691327e98085c4",
+    "examples/copilotkit/server/llm/observability.ts": "fe86762729d01b0bad4f6f983b82f55c84a0d201e34b754c353a5b3a306f3beb",
+    "examples/copilotkit/server/llm/run-pinning.ts": "4ae780dbeeca070376ed8e8e8cc721ea27b84b82609f914cf273515619be1ac6",
+    "examples/copilotkit/server/runtime.ts": "eb5b947bbdecfada08d949ad170f68cd08025ed811141712c347ed5769a4d7e3",
+    "examples/copilotkit/server/storage/migrations/011_llm_control.sql": "85580f1624bb68725b22f89e7aa9a302c13fb816f8034a1a39115e845b4fadfa",
+    "examples/copilotkit/tests/acceptance/llm-control.pg.ts": "c0bb76214dfcdc9d27877d5399c7b081a119a5e8292be84d4a3698b00f9d660a",
+    "examples/copilotkit/tests/browser/llm-control.spec.ts": "c4400c4a36980477c7e7c3d479744d80be6702914c21393a06bdd58154b32a29",
+    "examples/copilotkit/tests/fixtures/llm-control-browser-server.ts": "79dbd7f731d6656b2d46d438fe87837b8d54372b72c2f791a548d1cd23dccc2f",
+    "examples/copilotkit/tests/fixtures/llm-control-browser.html": "634ad2ba4ff3177bc34ae311c3bbba4cee10c887c88574a700200e62a52163af",
+    "examples/copilotkit/tests/fixtures/llm-control-browser.tsx": "1a0c7cb1e2e68578aa3d86db027d59d4eea95921a8473e01e452791ab02573a6",
+    "examples/copilotkit/tests/fixtures/llm-control.ts": "1a9bf4ee6b2053eded6c21db0b2558e4c32d0b33a3ecb5aa1806a9e2e0bc8e8d",
+    "examples/copilotkit/tests/llm-control.test.ts": "9021bd1dfc8ae775e2c65c7d22c2fe5fcd4f82570683578b226ab9662769e357",
+    "examples/copilotkit/vitest.llm-control.config.ts": "3600f2e7fc3e561d9ac86bd20b9dbc66274455547a5e205afb6159870b65e213",
+    "hermes_agui/adapter.py": "2197ada3648297d7ef491e7c793f87a2e5e9c31e7281b4c3e48f0020ec0bfb59",
+    "hermes_agui/core/factory.py": "2ae14aa6141c0b8980dcb8001027ecc78fe3176ad794d3663de325bdeeccecde",
+    "hermes_agui/core/managed_llm.py": "07e99b268bac06161bf2c9b052e7eebc90e44a82e545791af7dc8856da32eba2",
+    "hermes_agui/core/service.py": "30b6d3a3541a035b0f19ccc423e4e26f0d4bb1a6d0051e2dad36f59aa8a0c55b",
+    "hermes_agui/host.py": "71d0c84d2df172dd2a954d458d5bac688f9d2d8518fd658e574757405e0ad940",
+    "hermes_agui/message_adapter.py": "2a06a07c8c91d98ac783c3b5f3a5d1d8411ff17693cdc43ff42bd03f8d4fe492",
+    "hermes_agui/provisioner.py": "701421660633b924460c07da0b3722948862b305fc440689f814760d455eca65",
+    "hermes_agui/server.py": "4a625c48240f94d6178ef52a6862ba42b66bdc956684e0e4fa0e6f2b92ef09d4",
+    "hermes_agui/session_manager.py": "224ae205d84bd44489f5baf78987f75d715a400d7d7a4bb966b14749b7a731b1",
+    "hermes_agui/storage/isolated_service.py": "1c85872c0cdcc106cf2eb898054115dccd5527bc067ae885aab41f0323822b21",
+    "tests/fixtures/llm-control-golden.json": "ebb78463e97638c411d3af1340a6f079b30f3d3cd9e3de092cca3ab2107e2ebd",
+    "tests/hermes_agui/test_managed_llm.py": "f58ba702128cbf6664df5d3a7e3dff94791572b4e674f3db9c8aa6776e8ba9b8"
+  },
+  "fixtureNotes": [
+    "Inference wire fixtures are not real Vertex acceptance.",
+    "Filesystem objects are not GCS acceptance.",
+    "Existing skipped tests do not count as passes.",
+    "Earlier native file-tool fixture was flaky due to unrelated 18-second environment startup; final native routing test uses real todo_list and passed with retries disabled."
+  ],
+  "implementationTree": "adf9fbfc93f15c25eef68a04306d59931773e29f",
+  "artifactSHA256": {
+    "baseline-node-final.log.gz": "feffe0b6d9b21a0c171abfd214ace0126cd34512d85ba91e38f290d391c0333d",
+    "baseline-node-unsandboxed.log.gz": "5888c8bc4c12513e542e3ed65ac9493ed13d9b761055f7b8a8749573cbdaff3f",
+    "baseline-node-verified.log.gz": "6adb179892e12c9677cad455db06e3b5300ae422f93851d47595e9b5874c7d87",
+    "baseline-node.log.gz": "9ed7c00b6b9b1fe251b97bff734317209928e42507961cce871dc2ddbb056a54",
+    "browser-final.log": "d283c96037caf6f36ce22caecef0984d7f03386060554b5a0f2562d6dc094185",
+    "browser.log": "1d096fe662081a5f88c06aa5a256533a3e9f92ecec966c8608af15fff5035f52",
+    "build.log": "94ce67b4200865e7f2fade50c2c3e3d24f3589f784863bbabea21c0a31b9a554",
+    "cloud-gate.json": "5dd0b242dfdbd8f559724691fae8864a2fd3d6d386def03b014959f07f1ee021",
+    "cloud-test-environment-retry.log": "4076b80e6a41919ba91264f84aa5d5b53f13e76bc2ed6425d5cb15a9e9e9b970",
+    "cloud-test-environment.log": "4076b80e6a41919ba91264f84aa5d5b53f13e76bc2ed6425d5cb15a9e9e9b970",
+    "environment-failures.json": "1069039582fb118eaa5e9163bf2cb9a44d900a35643c82432a955d30a8f9f797",
+    "health-final.log": "0705780732360f1396717fded8ed424d3ef3df4f3dc7aa64d7bed15798980901",
+    "health.log": "65d4bddab7922f506b90075d99a367335c9f0d2b08132f7781b959e36d89e711",
+    "llm-focused-final.log": "6489c9c1ccb47413783ee2269bf2208d7c6ad7ca7a2222ef818538c1ad12e46e",
+    "node-final.log.gz": "4eda4330122d106545d7881bf6513ae893c7d7f801515f741c64ecf4054bd50f",
+    "pg-init.log": "ca5ad838bf982267c6006c00663d34abd81067fbe71437d7c6b00f37402991d2",
+    "postgres-acceptance.log": "86b169a29d92579898a112444adb34e2d958c8e1a393d9271f4742f22b3e31f2",
+    "postgres-final.log": "1cbf7f80bf4e2bb8040f86a996aff56b518158f50260571f8929626c16f47c32",
+    "python-final-no-retry.log": "e1021e5446f906011922d326df966dd6fcd06324abbb6f6c69f8d9410fb58c55",
+    "python-final.log": "a68d7f48a5e26ff2c33d88322365ee3cff8eadde12580579ed14c2b0f8d77239",
+    "python-http-final.log": "aebb49b48eccb0a9239128c5398ab7ad8b718e05077be07daaa0a55af20e4d1c",
+    "python-http-only-final.log": "924e5a3ebf2264f0666b6654247f84d7f235b8da29742fc9b999ef635ca8ea78",
+    "python-managed-final.log": "240d941bcf229bdca88facfe7f452e8d6b0b6622c0448e1623894482819e984c",
+    "python-managed-no-retry.log": "62c5dec365f052fdf3467192f5d362f36f5fe4b0884f02dde20b42dcd64076f7",
+    "python.log": "ce121d0e796b0ad04e76f69ecd27b8308817f78b4dd00c7cc8de2a11d4d91a97",
+    "repository-check-final.log": "8df552cc8530010400206f93c93507ca688e065f12fe3a086a94e43b587d9b11",
+    "repository-check.log": "1812f719518bb147f01d9407ee326d04c485e4f592d9bd3ec7bc00d64a1e58cd",
+    "typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

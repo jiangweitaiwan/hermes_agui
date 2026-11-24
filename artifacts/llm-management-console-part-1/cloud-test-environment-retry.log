@@ -1,0 +1,1 @@
+python environment: python: install failed: download failed from https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.14.9+20261021-x86_64-apple-darwin-install_only.tar.gz: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1082)> — retry, or run `hermes pm doctor`

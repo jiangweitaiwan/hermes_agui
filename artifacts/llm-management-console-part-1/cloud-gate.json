@@ -1,0 +1,7 @@
+{
+  "AGUI_VERTEX_SMOKE_CONFIG": false,
+  "HERMES_AGUI_TEST_RUNTIME_DATABASE_URL": false,
+  "AGUI_GCS_BUCKET": false,
+  "cloudGate": "BLOCKED",
+  "reason": "No explicitly provisioned disposable Vertex/GCS/Cloud Run staging acceptance resources; production credentials are not used."
+}

@@ -1,0 +1,8 @@
+
+=== health (ok) ===
+Allowed by comment (reviewers: check the reasons):
+  hermes_agui/server.py:159  BLE001  create_host.agent  -- HTTP resolver boundary must redact database credentials
+
+code health: 43 files vs 839d36297a01: 0 blocking, 0 advisory (5.8s)
+
+scripts/check: 1 checks, ok

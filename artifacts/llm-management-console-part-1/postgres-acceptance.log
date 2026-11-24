@@ -1,0 +1,18 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --config vitest.llm-control.config.ts --reporter=verbose
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:85520) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ tests/acceptance/llm-control.pg.ts > immutable release/audit and exact grants fence reader/worker control writes 82ms
+ ✓ tests/acceptance/llm-control.pg.ts > two replicas CAS publication, durable run/job pins survive retry/restart and rollback 453ms
+ ✓ tests/acceptance/llm-control.pg.ts > real API requires deployment-admin, rejects cross scope/CSRF/secrets and reports conflicts 71ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  05:09:42
+   Duration  4.36s (transform 581ms, setup 0ms, collect 1.30s, tests 2.54s, environment 0ms, prepare 178ms)
+

@@ -1,0 +1,20 @@
+▶ not activated — using HERMES_PYTHON: /private/tmp/graph-v3-part2-test-env/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 2 test files (~10 tests) under ['tests/hermes_agui/test_server.py', 'tests/hermes_agui/test_dynamic_host.py']; running with -j 4
+[ 50.0% |     5/~10 | ✓3 | ✗0] ✓ tests/hermes_agui/test_dynamic_host.py (3✓ 2s, 20.4s)
+[100.0% |    10/~10 | ✓11 | ✗ 0] ✓ tests/hermes_agui/test_server.py (8✓, 32.3s)
+
+=== Summary: 2 files, 11 tests passed, 0 failed, 2 skipped (100% complete) in 32.3s (4 workers) ===
+  Durations cached to test_durations.json (2 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   2
+  Total subprocess CPU-wall: 52.6s  (runner wall: 32.3s, parallelism: 4x)
+  P50: 32.25s  P90: 32.25s  P95: 32.25s  P99: 32.25s  Max: 32.25s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+     32.25s  tests/hermes_agui/test_server.py
+     20.37s  tests/hermes_agui/test_dynamic_host.py
