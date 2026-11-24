@@ -73,7 +73,7 @@ export function BotManagement({ bots, onBots, onOpen }: BotManagementProps) {
       {!bots.length && <p role="status">尚無 Bot，請新增第一個 Bot。</p>}
       <ul>{bots.map(bot => <li key={bot.id}>
         <strong>{bot.name}</strong> · <span>{bot.status}</span>
-        {bot.record && <p>{bot.record.description}<br />{bot.record.harness} · {bot.record.provider}/{bot.record.model}</p>}
+        {bot.record && <p>{bot.record.description}<br />{bot.record.harness} · 範本紀錄：{bot.record.provider}/{bot.record.model}</p>}
         <button disabled={busy || bot.status !== "active"} onClick={() => onOpen(bot.id)}>開啟 {bot.name}</button>
         {bot.record && <button disabled={busy} onClick={() => void action(async () => {
           const response = await request(`/api/bots/${bot.id}`, "GET");

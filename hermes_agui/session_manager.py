@@ -21,6 +21,8 @@ class Session:
     active_run: str | None = None
     users: int = 0
     retiring: bool = False
+    llm_cache_key: str | None = None
+    llm_primary_key: str | None = None
 
 
 class SessionManager:

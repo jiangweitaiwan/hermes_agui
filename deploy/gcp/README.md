@@ -57,3 +57,13 @@ Opt-in unified LLM/Vertex examples: `host.vertex.example.yaml`, `runtime.vertex.
 `llm-registry.vertex.example.json` (editor schema: `llm-registry.schema.json`). Legacy examples remain valid.
 See [registry deployment, reindex and rollback](../../docs/llm-unification-deployment.md). Real Vertex/PG/GCS
 acceptance must pass separately before rollout; mocked tests are not cloud deployment evidence.
+
+LLM Management Console Part 1 adds Runtime `011_llm_control.sql`. Apply the separate
+`llm-control-grants.sql` with the schema owner after creating dedicated control admin,
+Runtime executor, Worker reader and Host reader logins. `runtime.managed.example.json`
+starts in static mode; `host.managed.example.yaml` is for activation after explicit bootstrap.
+No image startup imports or overwrites releases. Mount the appropriate `AGUI_LLM_DATABASE_URL`
+per consumer; only the admin Runtime/CLI receives `AGUI_LLM_ADMIN_DATABASE_URL`.
+See [bootstrap, Bot opt-in, deployment budgets and rollback](../../docs/llm-management-console-operations.md).
+The existing Vercel public variables, Provider Adapters, native loop and Tasks topology remain in use.
+Actual Vertex/GCS/Cloud Run staging acceptance is a separate BLOCKED gate until resources are provided.

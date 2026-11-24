@@ -1,0 +1,159 @@
+bots: []
+cloud:
+  hosts:
+    - HOST_SERVICE.run.app
+    - localhost
+    - 127.0.0.1
+delegation:
+  audience: https://RUNTIME_SERVICE.run.app
+  timeout: 60
+  token_env: AGUI_DELEGATION_TOKEN
+  url: https://RUNTIME_SERVICE.run.app/internal/delegations
+llm:
+  models:
+    - alias: agent_primary
+      fallback: []
+      maxTokens: 4096
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 0
+      timeoutMs: 30000
+    - alias: graph_parser
+      fallback: []
+      maxTokens: 4096
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 1
+      timeoutMs: 30000
+    - alias: graph_matcher
+      fallback: []
+      maxTokens: 4096
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 1
+      timeoutMs: 30000
+    - alias: graph_relations
+      fallback: []
+      maxTokens: 4096
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 1
+      timeoutMs: 30000
+    - alias: graph_query
+      fallback: []
+      maxTokens: 2048
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 0
+      timeoutMs: 2000
+    - alias: graph_story
+      fallback: []
+      maxTokens: 2048
+      model: gemini-2.5-flash
+      provider: vertex
+      retries: 0
+      timeoutMs: 1500
+    - alias: graph_embedding
+      dimension: 768
+      fallback: []
+      maxTokens: 4096
+      model: gemini-embedding-001
+      provider: vertex
+      retries: 0
+      timeoutMs: 500
+      version: v1
+  providers:
+    - auth: adc
+      capabilities:
+        - chat
+        - structured_output
+        - embedding
+      driver: vertex
+      id: vertex
+      location: us-central1
+      project: your-project
+  version: 1
+management:
+  max_bots: 128
+  root: /tmp/managed # no-tmp: ok — Cloud Run ephemeral managed profile materialization
+  templates:
+    assistant:
+      model_role: agent_primary
+      skills: {}
+      toolsets:
+        - memory
+        - skills
+  token_env: AGUI_HOST_MANAGEMENT_TOKEN
+max_active_runs: 4
+storage:
+  graph_completions: true
+  prefix: profiles
+  project: workspace
+  scratch: /tmp # no-tmp: ok — Cloud Run container scratch, never durable state
+llmControl:
+  mode: managed
+  taskFingerprint: eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188
+  approved:
+    version: 1
+    providers:
+      - id: vertex
+        driver: vertex
+        project: your-project
+        location: us-central1
+        auth: adc
+        capabilities:
+          - chat
+          - structured_output
+          - embedding
+    models:
+      - alias: agent_primary
+        provider: vertex
+        model: gemini-2.5-pro
+        timeoutMs: 30000
+        retries: 0
+        maxTokens: 4096
+        fallback: []
+      - alias: graph_parser
+        provider: vertex
+        model: gemini-2.5-flash
+        timeoutMs: 30000
+        retries: 1
+        maxTokens: 4096
+        fallback: []
+      - alias: graph_matcher
+        provider: vertex
+        model: gemini-2.5-flash
+        timeoutMs: 30000
+        retries: 1
+        maxTokens: 4096
+        fallback: []
+      - alias: graph_relations
+        provider: vertex
+        model: gemini-2.5-flash
+        timeoutMs: 30000
+        retries: 1
+        maxTokens: 4096
+        fallback: []
+      - alias: graph_query
+        provider: vertex
+        model: gemini-2.5-flash
+        timeoutMs: 2000
+        retries: 0
+        maxTokens: 2048
+        fallback: []
+      - alias: graph_story
+        provider: vertex
+        model: gemini-2.5-flash
+        timeoutMs: 1500
+        retries: 0
+        maxTokens: 2048
+        fallback: []
+      - alias: graph_embedding
+        provider: vertex
+        model: gemini-embedding-001
+        timeoutMs: 500
+        retries: 0
+        maxTokens: 4096
+        fallback: []
+        dimension: 768
+        version: v1

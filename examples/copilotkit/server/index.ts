@@ -1,5 +1,6 @@
 import { boundedText } from "./http-body";
 import { cloudSettings, authenticateBrowser, authenticateService } from "./cloud";
+import { dispatchControlHttp,serveHealth } from "./llm/control-http";
 export {};
 
 // Set before loading CopilotKit, including modules with import-time telemetry.
@@ -18,7 +19,7 @@ const registry = process.env.AGUI_BOTS_CONFIG
   ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
   : undefined;
 const { bootstrap } = await import("./bootstrap");
-const { application, wiki, threadMappings, settings, tasks } = await bootstrap(registry);
+const { application, wiki, threadMappings, settings, tasks,llmAdmin,releases,adminStore } = await bootstrap(registry);
 // Local operational counters only; no prompts, identifiers, source text or credentials.
 const metricsTimer = application.evolution && !cloudSettings() ? setInterval(async () => {
   const evolution = application.evolution!;
@@ -33,10 +34,15 @@ const browser = (handler: (request: Request) => Promise<Response>) => createCopi
 const runtime = browser(application.runtime);
 const graphApi = browser(async request => {
   await application.management?.manager.sync();
+  if(releases?.policy.mode==="managed"){
+    const {withRelease}=await import("./llm/execution-release");
+    return withRelease(await releases.active(),()=>application.graphApi(request));
+  }
   return application.graphApi(request);
 });
 const threads = browser((await import("./thread-api")).threadApi(application, threadMappings));
 const management = application.management ? browser(application.management.api) : undefined;
+const llmManagement=llmAdmin?browser(llmAdmin):undefined;
 const internalRoutes = new Map<string, import("./delegation-http").InternalRoute>();
 if (application.delegation) {
   internalRoutes.set("/internal/delegations", { maxBytes: 20_000, handle: request => application.delegation!.handle(request) });
@@ -82,7 +88,7 @@ const server = createServer((req, res) => {
   if (cloud && req.url?.startsWith("/internal/")) {
     void cloudInternal(req, res).catch(() => { if (!res.headersSent) res.writeHead(503); res.end(); }); return;
   }
-  if (req.url === "/health" && req.method === "GET") { res.writeHead(200, { "Content-Type": "application/json" }).end("{\"status\":\"ok\"}"); return; }
+  if(serveHealth(req,res))return;
   const expectedHosts = new Set(cloud?.hosts ?? [`127.0.0.1:${port}`, `localhost:${port}`]);
   const origin = req.headers.origin;
   if (!expectedHosts.has(req.headers.host ?? "") ||
@@ -97,6 +103,7 @@ const server = createServer((req, res) => {
     if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
   }
   const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+  if(dispatchControlHttp(req,res,llmManagement))return;
   if (path.startsWith("/api/threads/")) {
     void threads(req, res).catch(() => { if (!res.headersSent) res.writeHead(503); res.end(); }); return;
   }
@@ -135,7 +142,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     clearInterval(metricsTimer);
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); await wiki?.close(); await vite?.close(); }).then(() => process.exit(0)); });
+    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); await wiki?.close(); await releases?.close();await adminStore?.close();await vite?.close(); }).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

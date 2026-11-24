@@ -1,0 +1,36 @@
+import { test, expect } from "@playwright/test";
+test("real admin API: model draft, validation, publish, conflict and rollback", async ({page})=>{
+  await page.request.post("/api/bot-session",{data:{token:"local-browser-admin-only"}});
+  await page.goto("/tests/fixtures/llm-control-browser.html");
+  await expect(page.getByText("草稿 revision 1",{exact:false})).toBeVisible();
+  const parser=page.getByRole("group",{name:"graph_parser",exact:true});
+  await parser.getByRole("combobox",{name:"Model",exact:true}).selectOption("gemini-2.5-pro");
+  await page.getByRole("button",{name:"儲存草稿",exact:true}).click();
+  await expect(page.getByText("草稿已儲存，尚未發布。",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"驗證已儲存草稿",exact:true}).click();
+  await expect(page.getByText("驗證通過",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"發布",exact:true}).click();
+  await page.getByRole("dialog").getByLabel("原因").fill("Browser promotion");
+  await page.getByRole("dialog").getByRole("button",{name:"確認",exact:true}).click();
+  await expect(page.getByText("Active generation 2",{exact:false})).toBeVisible();
+  const response=await page.request.get("/api/admin/llm/tasks");
+  const active=await response.json();
+  expect(active.active.snapshot.llm.models.find((m:{alias:string})=>m.alias==="graph_parser").model).toBe("gemini-2.5-pro");
+  const job=await (await page.request.post("/api/testing/jobs")).json();
+  expect(job.job.state).toBe("completed");expect(job.release).toBe(active.active.release_id);
+  expect(job.routes[0]).toContain("gemini-2.5-pro");
+  expect((await page.request.post("/api/admin/llm/rollback",{data:{target:"release-001",expectedGeneration:1,reason:"Stale browser"}})).status()).toBe(409);
+  await page.getByRole("button",{name:"Releases",exact:true}).click();
+  await page.getByRole("article").filter({has:page.getByRole("heading",{name:"release-001",exact:true})}).getByRole("button").click();
+  await page.getByRole("dialog").getByLabel("原因").fill("Browser rollback");
+  await page.getByRole("dialog").getByRole("button",{name:"確認",exact:true}).click();
+  await expect(page.getByText("Active：release-001",{exact:false})).toBeVisible();
+  const history=await (await page.request.get("/api/admin/llm/releases")).json();
+  expect(history.events.map((e:{action:string})=>e.action)).toContain("rollback");
+});
+test("workspace owner receives server-side 403 in the real browser",async({page})=>{
+  await page.request.post("/api/bot-session",{data:{token:"local-browser-member-only"}});
+  await page.goto("/tests/fixtures/llm-control-browser.html");
+  await expect(page.getByRole("alert")).toContainText("deployment administrator");
+  expect((await page.request.get("/api/admin/llm/draft")).status()).toBe(403);
+});

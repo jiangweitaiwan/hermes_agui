@@ -54,6 +54,7 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
     """One lifespan; independent trusted service and HTTP state for each Bot."""
     from hermes_agui.host import validate_bots
     from hermes_agui.host_runtime import HostRuntime
+    from hermes_agui.core.managed_llm import ManagedResolver
 
     if not isinstance(max_active_runs, int) or max_active_runs < 1:
         raise ValueError("Host capacity must be positive")
@@ -63,6 +64,7 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
     configured_bots = list(registry.values())
     configured_ids = frozenset(registry)
     host = HostRuntime(registry, service_factory, delegation, max_active_runs, storage)
+    release_resolver = ManagedResolver(max_active_runs)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -148,10 +150,21 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
             else:
                 from dataclasses import replace
                 from hermes_agui.runtime_memory import verify_memory
-
-                memory = verify_memory(value, _bot_id, bot)
-                clean = value.model_copy(update={"forwarded_props": {}}) if memory is not None else value
-                turn = replace(adapt_input(clean), runtime_memory=memory)
+                props = dict(value.forwarded_props or {})
+                envelope = props.pop("llmRelease", None)
+                registry, release_id, release_fingerprint = None, None, None
+                if bot.agent.llm_control is not None:
+                    try:
+                        registry, release_id, release_fingerprint = await release_resolver.resolve(value, _bot_id, bot, envelope)
+                    except Exception:  # health: allow BLE001 -- HTTP resolver boundary must redact database credentials
+                        raise HTTPException(503, "Managed release unavailable or denied") from None
+                elif envelope is not None:
+                    raise ValueError("Managed metadata denied in static mode")
+                clean = value.model_copy(update={"forwarded_props": props})
+                memory = verify_memory(clean, _bot_id, bot)
+                clean = clean.model_copy(update={"forwarded_props": {}}) if memory is not None else clean
+                turn = replace(adapt_input(clean), runtime_memory=memory, llm_registry=registry,
+                               llm_release_id=release_id,llm_release_fingerprint=release_fingerprint)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         if authorize is not None:

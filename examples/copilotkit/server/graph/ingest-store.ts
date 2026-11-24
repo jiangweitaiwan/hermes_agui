@@ -7,6 +7,7 @@ export interface IngestOrigin extends SourceOrigin { knowledgeHash?: string }
 export interface Publication { markdown: string; expectedRevision: string | null }
 /** No driver or transaction callback escapes to the compiler. Publication includes job completion. */
 export interface IngestStore {
+  releaseForJob?(job:Job):Awaitable<import("../llm/control-store").Release|undefined>;
   graphSubjects?(ns: Namespace): Awaitable<import("./v2-types").Subject[]>;
   graphAttributes?(ns: Namespace, page: string): Awaitable<import("./v2-types").Attribute[]>;
   enqueue(ns: Namespace, value: unknown, origin?: IngestOrigin): Awaitable<string>;

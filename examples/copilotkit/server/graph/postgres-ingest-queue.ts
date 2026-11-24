@@ -10,6 +10,9 @@ import { NamespaceSchema, type Namespace } from "./types";
 import { SessionSourceSchema } from "./provenance";
 import { digest, namespaceKey } from "./wiki-store";
 import { terms } from "./markdown";
+import type { ControlStore } from "../llm/control-store";
+import { executionRelease } from "../llm/execution-release";
+import { databaseTarget } from "../llm/database-target";
 
 const schema = "hermes_agui_runtime";
 const jobColumns = `id,ns,source,version,state,attempt,token,error,
@@ -21,8 +24,13 @@ function leaseDuration(ms: number) {
 }
 /** Same queue/compiler contract as SQLite; every mutation uses the database clock and claim token. */
 export class PostgresDocumentIngestor implements IngestStore {
+  releases?: ControlStore;
   readonly sources: PostgresSourceStore;
   constructor(readonly store: PostgresWikiStore) { this.sources = new PostgresSourceStore(store); }
+  useReleases(releases:ControlStore){
+    if(databaseTarget(this.store.pool.options.connectionString!)!==releases.target)throw new Error("Graph ledger/control database destinations must match");
+    this.releases=releases;
+  }
   async graphSubjects(ns: Namespace) {
     const client = await this.store.pool.connect();
     try { return await readSubjects(postgresGraphConnection(client),namespaceKey(ns)); } finally { client.release(); }
@@ -39,6 +47,7 @@ export class PostgresDocumentIngestor implements IngestStore {
       JOIN ${schema}.graph_ingest_keys k ON k.job=j.id JOIN ${schema}.graph_session_knowledge h ON h.job=j.id LIMIT 0`);
   }
   async enqueue(namespace: Namespace, value: unknown, origin?: IngestOrigin) {
+    this.checkControlDatabase();
     const ns = NamespaceSchema.parse(namespace), key = namespaceKey(ns), input = UploadSchema.parse(value);
     if (origin && SessionSourceSchema.parse(origin.provenance).botId !== ns.botId) throw new Error("Source outside owning scope");
     if (Buffer.byteLength(input.content) > 1048576 || input.content.includes("\0")) throw new Error("Invalid document size/text");
@@ -74,9 +83,15 @@ export class PostgresDocumentIngestor implements IngestStore {
         if (!valid.rowCount) throw new Error("Source revoked");
       } else {
         const source = await this.sources.publish(client, ns, input, object, origin);
-        const { rows } = await client.query<{ id: string }>(`INSERT INTO ${schema}.graph_jobs (id,ns,source,version,state)
-          VALUES ($1,$2,$3,$4,'pending') ON CONFLICT (ns,source,version) DO UPDATE SET source=excluded.source RETURNING id`,
-        [randomUUID(), key, source.id, source.version]);
+        const { rows } = this.releases
+          ? await client.query<{id:string}>(`INSERT INTO ${schema}.graph_jobs (id,ns,source,version,state,llm_scope,llm_release_id)
+              SELECT $1,$2,$3,$4,'pending',scope,release_id FROM ${schema}.llm_active_release WHERE scope=$5
+              ON CONFLICT (ns,source,version) DO UPDATE SET source=excluded.source RETURNING id`,
+            [randomUUID(),key,source.id,source.version,this.releases.policy.scope])
+          : await client.query<{ id: string }>(`INSERT INTO ${schema}.graph_jobs (id,ns,source,version,state)
+              VALUES ($1,$2,$3,$4,'pending') ON CONFLICT (ns,source,version) DO UPDATE SET source=excluded.source RETURNING id`,
+            [randomUUID(), key, source.id, source.version]);
+        if(!rows[0])throw new Error("Active LLM release unavailable");
         job = rows[0].id;
         if (origin?.knowledgeHash) await client.query(`INSERT INTO ${schema}.graph_session_knowledge VALUES ($1,$2,$3)`, [key, origin.knowledgeHash, job]);
       }
@@ -90,6 +105,21 @@ export class PostgresDocumentIngestor implements IngestStore {
     if (!rows[0]) throw new Error("Unknown job");
     return NamespaceSchema.parse(rows[0].metadata);
   }
+  async releaseForJob(job: Job) {
+    this.checkControlDatabase();
+    // to_jsonb keeps pre-011 static databases readable without referencing absent columns.
+    const {rows}=await this.store.pool.query(`SELECT to_jsonb(j)->>'llm_scope' AS llm_scope,to_jsonb(j)->>'llm_release_id' AS llm_release_id
+      FROM ${schema}.graph_jobs j WHERE ns=$1 AND id=$2`,[job.ns,job.id]);
+    if(!this.releases){
+      if(rows[0]?.llm_release_id)throw new Error("Pinned job requires a compatible managed reader");
+      return undefined;
+    }
+    if(rows[0]?.llm_scope!==this.releases.policy.scope || !rows[0]?.llm_release_id)throw new Error("Unpinned managed job; drain legacy jobs before activation");
+    return this.releases.resolve(rows[0].llm_release_id);
+  }
+  private checkControlDatabase(){
+    if(this.releases && databaseTarget(this.store.pool.options.connectionString!)!==this.releases.target)throw new Error("Graph ledger/control database destinations must match");
+  }
   async status(ns: Namespace, id: string) {
     const { rows } = await this.store.pool.query<Job>(`SELECT ${jobColumns} FROM ${schema}.graph_jobs WHERE ns=$1 AND id=$2`, [namespaceKey(ns), id]);
     if (!rows[0]) throw new Error("Unknown job in namespace");
@@ -98,6 +128,7 @@ export class PostgresDocumentIngestor implements IngestStore {
   async claim(ns: Namespace, _now?: number, leaseMs = 30000, jobId: string | null = null) {
     leaseDuration(leaseMs);
     return this.store.transaction(ns, async client => {
+      await client.query("SELECT set_config('hermes.llm_contract','management-part-1',true)");
       const key = namespaceKey(ns);
       await client.query(`UPDATE ${schema}.graph_jobs SET state='failed',error='lease_expired',token=NULL,lease=NULL
         WHERE ns=$1 AND state='running' AND lease<=clock_timestamp() AND attempt>=3 AND ($2::uuid IS NULL OR id=$2)`, [key, jobId]);
@@ -144,6 +175,7 @@ export class PostgresDocumentIngestor implements IngestStore {
     const raw = !Array.isArray(publication) ? await this.source(job) : undefined;
     const complete = async (client: PoolClient) => {
       check();
+      await this.checkPublicationPin(client,job);
       const mode = await client.query(`SELECT version FROM ${schema}.graph_compiler_namespaces WHERE ns=$1`,[job.ns]);
       const version = Array.isArray(publication) ? "v1" : "v2";
       if (mode.rows[0] && mode.rows[0].version !== version) throw new Error("Namespace compiler version conflict");
@@ -159,6 +191,15 @@ export class PostgresDocumentIngestor implements IngestStore {
     };
     if (inputs.length) await this.store.import(ns, inputs, complete);
     else await this.store.transaction(ns, complete);
+  }
+  private async checkPublicationPin(client:PoolClient,job:Job){
+    const {rows}=await client.query(`SELECT to_jsonb(j)->>'llm_release_id' AS release_id FROM ${schema}.graph_jobs j WHERE ns=$1 AND id=$2`,[job.ns,job.id]);
+    if(rows[0]?.release_id && executionRelease()?.release_id!==rows[0].release_id)throw new Error("Publication requires the persisted release pin");
+    if(rows[0]?.release_id){
+      const release=await client.query(`SELECT release_fingerprint FROM ${schema}.llm_releases WHERE scope='deployment' AND release_id=$1`,[rows[0].release_id]);
+      if(release.rows[0]?.release_fingerprint!==executionRelease()?.release_fingerprint)throw new Error("Publication release fingerprint mismatch");
+      await client.query("SELECT set_config('hermes.llm_release_id',$1,true)",[rows[0].release_id]);
+    }
   }
   async fail(job: Job, validation?: import("../llm/validation/pipeline").ValidationResult) {
     await this.store.pool.query(`UPDATE ${schema}.graph_jobs SET state=CASE WHEN attempt>=3 THEN 'failed' ELSE 'pending' END,

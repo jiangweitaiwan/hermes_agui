@@ -13,7 +13,7 @@ _STREAM_CALLBACKS = (
 )
 
 
-def _run_worker(output, config, thread_id, text, run_id, reference, callback_names, delegation):
+def _run_worker(output, config, thread_id, text, run_id, reference, callback_names, delegation, release_id=None,release_fingerprint=None):
     from agent.runtime_reference import runtime_reference
     from hermes_agui.core import HermesAgentService
 
@@ -33,7 +33,9 @@ def _run_worker(output, config, thread_id, text, run_id, reference, callback_nam
             config = replace(config, enabled_toolsets=(*config.enabled_toolsets, "agui_bots"))
             _execution.set((delegation, None, None))
         with HermesAgentService(config, max_workers=1, max_pending=1) as service:
-            result = service.run(thread_id, text, run_id=run_id, callbacks=callbacks)
+            pinned = {"registry": config.llm_registry, "release_id": release_id,
+                      "release_fingerprint":release_fingerprint} if release_id else {}
+            result = service.run(thread_id, text, run_id=run_id, callbacks=callbacks, **pinned)
         fields = ("completed", "failed", "partial", "interrupted", "final_response", "native_session_id")
         emit("result", {key: result[key] for key in fields if key in result})
     except Exception:  # health: allow BLE001 -- exceptions can include model credentials and prompt content
@@ -50,7 +52,7 @@ class IsolatedAgentService:
         self._lock = Lock()
         self._cancelled = False
 
-    def submit(self, thread_id, text, *, run_id, callbacks=None):
+    def submit(self, thread_id, text, *, run_id, callbacks=None, registry=None, release_id=None,release_fingerprint=None):
         from agent.runtime_reference import runtime_reference
         from hermes_agui.delegation import _execution
 
@@ -59,14 +61,15 @@ class IsolatedAgentService:
         callbacks = callbacks or {}
         execution = _execution.get()
         delegation = execution[0] if execution else None
-        return self._executor.submit(self._run, thread_id, text, run_id, runtime_reference.get(), callbacks, delegation)
+        config = replace(self.config, llm_registry=registry) if registry and release_id else self.config
+        return self._executor.submit(self._run, thread_id, text, run_id, runtime_reference.get(), callbacks, delegation, config, release_id,release_fingerprint)
 
-    def _run(self, thread_id, text, run_id, reference, callbacks, delegation):
+    def _run(self, thread_id, text, run_id, reference, callbacks, delegation, config, release_id,release_fingerprint):
         context = get_context("spawn")
         reader, writer = context.Pipe(duplex=False)
         names = tuple(name for name in _STREAM_CALLBACKS if name in callbacks)
         process = context.Process(target=_run_worker, args=(
-            writer, self.config, thread_id, text, run_id, reference, names, delegation,
+            writer, config, thread_id, text, run_id, reference, names, delegation, release_id,release_fingerprint,
         ))
         try:
             with self._lock:

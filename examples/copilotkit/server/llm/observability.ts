@@ -3,8 +3,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { taskRegistry, taskFingerprint } from "./config";
 import { promptFor, systemPrompt } from "./prompts/registry";
 import { validatorVersion, type ValidationResult } from "./validation/pipeline";
+import { executionRelease } from "./execution-release";
 export interface ExecutionRecord {
   event:"llm_execution"; executionId:string; jobId?:string; attempt?:number;
+  releaseId?:string;releaseFingerprint?:string;
   sourceVersion:number|null; taskFingerprint:string; phase:"provider_attempt"|"stage_output"|"publication"; stage:string; taskVersion:string; promptId:string; promptVersion:string; promptHash:string;
   schemaId:string; schemaVersion:number; validatorVersion:string;
   provider:string|null; model:string|null; configHash:string|null; embeddingFingerprint:string|null;
@@ -23,5 +25,6 @@ export function execution(stage:string,started:number,validation:ValidationResul
   return {event:"llm_execution",executionId:randomUUID(),sourceVersion:null,taskFingerprint:taskFingerprint(),phase:"stage_output",stage,taskVersion:"1",promptId:prompt.id,promptVersion:prompt.version,
     promptHash:createHash("sha256").update(systemPrompt(stage)).digest("hex"),schemaId:stage,schemaVersion:task.schemaVersion,validatorVersion,
     provider:null,model:null,configHash:null,embeddingFingerprint:null,startedAt:new Date(started).toISOString(),finishedAt:new Date().toISOString(),
-    latencyMs:Date.now()-started,validation,outcome:validation.verdict==="accepted"?"succeeded":"failed",promptTokens:null,completionTokens:null,estimatedCost:null,...context.getStore(),...fields};
+    latencyMs:Date.now()-started,validation,outcome:validation.verdict==="accepted"?"succeeded":"failed",promptTokens:null,completionTokens:null,estimatedCost:null,...context.getStore(),
+    ...(executionRelease()?{releaseId:executionRelease()!.release_id,releaseFingerprint:executionRelease()!.release_fingerprint}:{}),...fields};
 }

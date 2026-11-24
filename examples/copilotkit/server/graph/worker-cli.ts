@@ -9,7 +9,7 @@ async function main() {
   const { readFile } = await import("node:fs/promises");
   const { bootstrap } = await import("../bootstrap");
   const { WORKER_SHUTDOWN } = await import("./compiler");
-  const { application, wiki, threadMappings } = await bootstrap(JSON.parse(await readFile(process.env.AGUI_BOTS_CONFIG, "utf8")), { evolutionTimer: false });
+  const { application, wiki, threadMappings,releases,adminStore } = await bootstrap(JSON.parse(await readFile(process.env.AGUI_BOTS_CONFIG, "utf8")), { evolutionTimer: false });
   const evolution = application.evolution;
   const stop = () => evolution?.controller.abort(WORKER_SHUTDOWN);
   process.once("SIGINT", stop); process.once("SIGTERM", stop);
@@ -25,7 +25,7 @@ async function main() {
     }
   } finally {
     process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop);
-    await application.close(); await wiki?.close(); await threadMappings?.close();
+    await application.close(); await wiki?.close(); await threadMappings?.close();await releases?.close();await adminStore?.close();
   }
 }
 main().catch(() => { console.error("Graph worker command failed; inspect scoped job status and deployment references."); process.exitCode = 1; });

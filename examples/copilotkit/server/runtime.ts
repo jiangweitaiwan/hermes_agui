@@ -9,6 +9,7 @@ import { HttpAgent } from "@ag-ui/client";
 import { CopilotRuntime, createCopilotRuntimeHandler } from "@copilotkit/runtime/v2";
 
 import type { ThreadMappings, ThreadScope } from "./storage/thread-mappings";
+import type { PrepareManagedRun } from "./llm/run-pinning";
 
 export interface RuntimeSettings {
   agentUrl: string;
@@ -24,7 +25,7 @@ export interface RuntimeThreads {
 }
 
 function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?: RuntimeMemoryMiddleware,
-  ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
+  ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads, managed?: PrepareManagedRun) {
   const { agentUrl, token } = settings;
   const agent = new HttpAgent({ url: agentUrl, fetch: hostFetch, headers: { Authorization: `Bearer ${token}` } });
   agent.use((input, next) => defer(async () => {
@@ -38,7 +39,8 @@ function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?
     }
   }).pipe(switchMap(hostInput => {
     const observer = ingestion ? new RunCompletionObserver(botId, settings, hostInput, ingestion) : undefined;
-    return defer(() => prepareRunInput(botId, settings, hostInput, middleware)).pipe(
+    const prepare=(value:typeof hostInput)=>prepareRunInput(botId,settings,value,middleware);
+    return defer(() => managed ? managed(botId,settings,hostInput,prepare) : prepare(hostInput)).pipe(
       switchMap(prepared => next.run(prepared)),
       tap({ next: event => observer?.event(event), complete: () => observer?.complete() }),
       map(event => "threadId" in event && event.threadId === hostInput.threadId
@@ -49,7 +51,7 @@ function createHermesAgent(settings: RuntimeSettings, botId: string, middleware?
 }
 
 function singleHandler(settings: Record<string, RuntimeSettings>, botId = "info", middleware?: RuntimeMemoryMiddleware,
-  runner = new BotRunner(botId), ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
+  runner = new BotRunner(botId), ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads, managed?: PrepareManagedRun) {
   for (const { agentUrl, token, memory } of Object.values(settings)) {
     if (memory && (!memory.key || memory.key === token || !memory.principal || !memory.projectId)) {
       throw new Error("Memory requires a separate Runtime signing key and trusted scope");
@@ -59,7 +61,7 @@ function singleHandler(settings: Record<string, RuntimeSettings>, botId = "info"
     }
   }
   const runtime = new CopilotRuntime({
-    agents: () => Object.fromEntries(Object.entries(settings).map(([id, value]) => [id, createHermesAgent(value, id, middleware, ingestion, threads)])),
+    agents: () => Object.fromEntries(Object.entries(settings).map(([id, value]) => [id, createHermesAgent(value, id, middleware, ingestion, threads,managed)])),
     runner,
     forwardHeaders: { deny: ["authorization"], denyPrefixes: ["x-"] },
     identifyUser: () => ({ id: Object.values(settings)[0]?.ownerId ?? "local-owner", name: "Bot owner" }),
@@ -72,7 +74,7 @@ export interface RuntimeAccess {
   allowed: (request: Request, botId: string) => boolean;
 }
 export function createRuntimeHandler(settings: RuntimeSettings | Record<string, RuntimeSettings>,
-  middleware?: RuntimeMemoryMiddleware, access?: RuntimeAccess, ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads) {
+  middleware?: RuntimeMemoryMiddleware, access?: RuntimeAccess, ingestion?: SessionIngestor<IngestStore>, threads?: RuntimeThreads, managed?: PrepareManagedRun) {
   const bots: Record<string, RuntimeSettings> = "agentUrl" in settings && typeof settings.agentUrl === "string"
     ? { hermes: settings as RuntimeSettings } : settings as Record<string, RuntimeSettings>;
   if (Object.keys(bots).some(id => !/^[a-z][a-z0-9_-]{0,63}$/.test(id))) throw new Error("Invalid Bot registry");
@@ -95,7 +97,7 @@ export function createRuntimeHandler(settings: RuntimeSettings | Record<string, 
     if (!cached || cached.settings !== value) {
       const runner = runners.get(id) ?? new BotRunner(id);
       runners.set(id, runner);
-      cached = { settings: value, handle: singleHandler({ [id]: value }, id, middleware, runner, ingestion, threads) };
+      cached = { settings: value, handle: singleHandler({ [id]: value }, id, middleware, runner, ingestion, threads,managed) };
       handlers.set(id, cached);
     }
     return cached.handle(request);

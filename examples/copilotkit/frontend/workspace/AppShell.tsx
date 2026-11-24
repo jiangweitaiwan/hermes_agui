@@ -2,8 +2,9 @@ import { MemoryExplorer } from "../memory/MemoryExplorer";
 import { useState } from "react";
 import { BotManagement, type BotItem } from "../BotManagement";
 import { BotThreads } from "../BotThreads";
+import { LLMManagement } from "../LLMManagement";
 
-type Page = "Chat" | "Bot Manager" | "Graph Memory";
+type Page = "Chat" | "Bot Manager" | "Graph Memory" | "LLM Management";
 export function AppShell() {
   const [bots, setBots] = useState<BotItem[]>([]);
   const [selected, setSelected] = useState("");
@@ -21,7 +22,7 @@ export function AppShell() {
       onClick={() => setExpanded(!expanded)}>工作空間導覽</button>
     <aside id="workspace-sidebar" className={`sidebar ${expanded ? "expanded" : ""}`}>
       <h1>Hermes Workspace</h1>
-      <nav aria-label="工作空間">{(["Chat", "Bot Manager", "Graph Memory"] as Page[]).map(value =>
+      <nav aria-label="工作空間">{(["Chat", "Bot Manager", "Graph Memory", "LLM Management"] as Page[]).map(value =>
         <button key={value} aria-current={page === value ? "page" : undefined}
           onClick={() => { setPage(value); setExpanded(false); }}>{value}</button>)}</nav>
       <nav aria-label="Bot 列表">{bots.filter(bot => bot.status === "active").map(bot =>
@@ -35,6 +36,7 @@ export function AppShell() {
         <BotManagement bots={bots} onBots={updateBots} onOpen={open} />
       </div>
       {page === "Graph Memory" && <MemoryExplorer key={bots.map(b => b.id).join("/")} bots={bots} selected={selected} />}
+      {page === "LLM Management" && <LLMManagement />}
       {page === "Chat" && !selected && <p role="status">請登入或在 Bot Manager 建立並啟用 Bot 後開始對話。</p>}
       {bots.filter(bot => bot.status === "active").map(bot =>
         <BotThreads key={bot.id} botId={bot.id} visible={page === "Chat" && selected === bot.id} />)}

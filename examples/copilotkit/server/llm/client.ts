@@ -1,4 +1,7 @@
 import { execution, observe, type Observer } from "./observability";
+import { executionRelease } from "./execution-release";
+import { managedTransport } from "./managed-transport";
+import { ObservedEncoder } from "./embedding-observability";
 import { result, validateOutput, failure } from "./validation/pipeline";
 import { systemPrompt } from "./prompts/registry";
 import { OpenAICompatibleClient, OpenAIEmbeddingClient } from "./providers/openai-compatible";
@@ -11,14 +14,19 @@ import { VertexEmbeddingClient, VertexStructuredLLMClient, type TokenSource } fr
 import { bounded, ProviderError, pause } from "./providers/http";
 export const LegacyChatConfig=z.object({baseUrl:z.string().url(),model:z.string().min(1),keyEnv:z.string().min(1),
   timeoutMs:z.number().int().positive().max(120000).optional(),maxTokens:z.number().int().positive().max(8192).optional()}).strict();
-export const RoleConfig=z.object({registry:RegistryConfig,role:z.string().min(1)}).strict();
+export const RoleConfig=z.object({registry:RegistryConfig,role:z.string().min(1),managed:z.boolean().optional()}).strict();
 export const ChatConfig=z.union([LegacyChatConfig,RoleConfig]);
 export const EncoderConfig=z.union([EmbeddingConfig,RoleConfig]);
 export interface ClientDependencies {transport?:typeof fetch;token?:TokenSource;observe?:Observer}
 export class RegistryLLM implements CompilerLLM {
   readonly registry:ModelRegistry;
-  constructor(config:unknown,readonly role:string,readonly deps:ClientDependencies={}){this.registry=new ModelRegistry(config);this.registry.model(role);}
-  async json(stage:string,data:unknown,signal:AbortSignal){
+  constructor(config:unknown,readonly role:string,readonly deps:ClientDependencies={},readonly managed=false){this.registry=new ModelRegistry(config);this.registry.model(role);}
+  async json(stage:string,data:unknown,signal:AbortSignal):Promise<unknown>{
+    if(this.managed){
+      const release=executionRelease();
+      if(!release)throw new Error("Managed execution requires a release pin");
+      return new RegistryLLM(release.snapshot.llm,this.role,{...this.deps,transport:this.deps.transport??managedTransport}).json(stage,data,signal);
+    }
     const task=taskRegistry[stage],schema=schemas[stage];
     if(!task||!schema)throw new Error("Unknown LLM task");
     // Ingest bridge selects per-stage role; query/story bridges cannot route another task.
@@ -53,13 +61,13 @@ export class RegistryLLM implements CompilerLLM {
 }
 export function chatClient(options:unknown,deps:ClientDependencies={}):CompilerLLM {
   const parsed=ChatConfig.parse(options);
-  return "registry" in parsed?new RegistryLLM(parsed.registry,parsed.role,deps):new OpenAICompilerLLM(parsed,deps.transport);
+  return "registry" in parsed?new RegistryLLM(parsed.registry,parsed.role,deps,parsed.managed):new OpenAICompilerLLM(parsed,deps.transport);
 }
 export function embeddingClient(options:unknown,deps:ClientDependencies={}):Encoder {
   const parsed=EncoderConfig.parse(options);
   if(!("registry" in parsed))return new OpenAIEncoder(parsed,deps.transport);
   if(parsed.role!=="graph_embedding")throw new Error("Invalid embedding role");
   const registry=new ModelRegistry(parsed.registry),model=registry.model(parsed.role),provider=registry.provider(model.provider);
-  if(provider.driver==="vertex")return new VertexEmbeddingClient(provider,model,deps.transport,deps.token);
-  return new OpenAIEmbeddingClient(provider,model,deps.transport);
+  const encoder=provider.driver==="vertex"?new VertexEmbeddingClient(provider,model,deps.transport,deps.token):new OpenAIEmbeddingClient(provider,model,deps.transport);
+  return new ObservedEncoder(encoder,registry);
 }

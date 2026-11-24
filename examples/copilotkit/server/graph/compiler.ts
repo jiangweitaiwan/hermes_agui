@@ -1,4 +1,5 @@
 import { callCompiler } from "../llm/validation/compiler";
+import { withRelease } from "../llm/execution-release";
 import { validatePersistence } from "../llm/validation/persistence";
 import { domainStage, result, failure } from "../llm/validation/pipeline";
 import { execution, observe, withExecutionContext } from "../llm/observability";
@@ -77,6 +78,15 @@ export class WikiCompiler {
     return this.compile(ns, job, signal);
   }
   private async compile(ns: Namespace, job: Job, signal: AbortSignal) {
+    if(this.queue.releaseForJob){
+      try {
+        const release=await this.queue.releaseForJob(job);
+        if(release)return await withRelease(release,()=>withExecutionContext(job.id,job.attempt,()=>this.compileAttempt(ns,job,signal),job.version));
+      } catch {
+        await this.queue.fail(job);
+        return job.id;
+      }
+    }
     return withExecutionContext(job.id,job.attempt,()=>this.compileAttempt(ns,job,signal),job.version);
   }
   private async compileAttempt(ns: Namespace, job: Job, signal: AbortSignal) {

@@ -12,6 +12,9 @@ class TurnInput:
     message_id: str
     text: str
     runtime_memory: dict | None = None
+    llm_registry: dict | None = None
+    llm_release_id: str | None = None
+    llm_release_fingerprint: str | None = None
 
 
 def adapt_input(value: RunAgentInput) -> TurnInput:

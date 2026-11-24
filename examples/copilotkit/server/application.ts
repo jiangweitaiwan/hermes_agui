@@ -1,4 +1,5 @@
 import { V3Orchestrator } from "./memory/v3-orchestrator";
+import type { PrepareManagedRun } from "./llm/run-pinning";
 import { ContextAssembler } from "./memory/assembler";
 import { validateComposition } from "./application-config";
 import { configureGraphAuthority } from "./graph/access";
@@ -18,6 +19,7 @@ import type { ThreadMappings } from "./storage/thread-mappings";
 import { sameOrigin } from "./bots/api";
 
 export interface ApplicationOptions {
+  managedRun?: PrepareManagedRun;
   delegation?: DelegationSettings; graph?: GraphMemoryOptions; management?: BotManagementSettings; evolution?: EvolutionOptions;
   threadMappings?: ThreadMappings; graphCompletionToken?: string; evolutionTimer?: boolean;
 }
@@ -81,14 +83,15 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
     const identity = management.auth.authenticate(request);
     if (!identity) return false;
     try { return management.manager.owned(id, identity).record.status === "active"; } catch { return false; }
-  } } : undefined, streamIngestion, threads);
+  } } : undefined, streamIngestion, threads,options.managedRun);
   const refresh = (handler: (request: Request) => Promise<Response>) => async (request: Request) => {
     try { await management?.manager.sync(); }
     catch { return new Response("Bot registry unavailable", { status: 503 }); }
     return handler(request);
   };
   const delegation = options.delegation ? new DelegationCoordinator(bots, { ...options.delegation, allow },
-    (id, input) => prepareRunInput(id, bots[id], input, memory), streamIngestion, threads) : undefined;
+    (id, input) => options.managedRun ? options.managedRun(id,bots[id],input,value=>prepareRunInput(id,bots[id],value,memory))
+      : prepareRunInput(id, bots[id], input, memory), streamIngestion, threads) : undefined;
   const dispatchRuntime = refresh(runtime);
   return {
     runtime: async (request: Request) => {

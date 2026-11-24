@@ -49,6 +49,15 @@ def load_host(path: Path):
     if os.environ.get("K_SERVICE") and not data.get("cloud"):
         raise ValueError("Cloud Run requires explicit cloud settings")
     llm = data.get("llm")
+    control = data.get("llmControl")
+    if control is not None:
+        from hermes_agui.core.llm_registry import parse_registry
+        if (set(control) != {"mode", "taskFingerprint", "approved"} or control["mode"] != "managed"
+                or not re.fullmatch(r"[a-f0-9]{64}", control["taskFingerprint"]) or llm is None):
+            raise ValueError("Invalid Host managed LLM contract")
+        parse_registry(control["approved"])
+        from hermes_agui.core.managed_llm import ready_host
+        ready_host(control)
     if llm is not None:
         from hermes_agui.core.llm_registry import parse_registry, fingerprint
         import logging
@@ -56,13 +65,15 @@ def load_host(path: Path):
         if data.get("llmFingerprint") and data["llmFingerprint"] != fingerprint(registry):
             raise ValueError("LLM config fingerprint mismatch")
         logging.getLogger(__name__).info("llm_config version=1 fingerprint=%s", fingerprint(registry))
-    llm_credentials = {p.keyEnv: os.environ.get(p.keyEnv, "") for p in registry.providers if hasattr(p, "keyEnv")} if llm is not None else {}
+    credential_registry = parse_registry(control["approved"]) if control else registry if llm is not None else None
+    llm_credentials = {p.keyEnv: os.environ.get(p.keyEnv, "") for p in credential_registry.providers if hasattr(p, "keyEnv")} if credential_registry else {}
     bots = []
     for item in data.get("bots", []):
         agent = dict(item["agent"])
         if llm is not None:
             agent["llm_registry"] = llm
             agent["llm_credentials"] = llm_credentials
+            agent["llm_control"] = control
         if "api_key_env" in agent:
             agent["api_key"] = os.environ[agent.pop("api_key_env")]
         for key in ("home", "cwd"):
@@ -98,6 +109,7 @@ def load_host(path: Path):
             if llm is not None:
                 template["llm_registry"] = llm
                 template["llm_credentials"] = llm_credentials
+                template["llm_control"] = control
             if "api_key_env" in template:
                 template["api_key"] = os.environ[template.pop("api_key_env")]
             template["toolsets"] = tuple(template.get("toolsets", ("memory", "skills")))

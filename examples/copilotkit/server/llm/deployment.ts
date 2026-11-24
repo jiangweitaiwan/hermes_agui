@@ -14,7 +14,7 @@ export function configureLLMDeployment(input:any){
 
 function configureGraph(copy:any,registry:ModelRegistry){
   const configured=(role:string)=>registry.config.models.some(m=>m.alias===role);
-  const route=(role:string)=>({registry:registry.config,role});
+  const route=(role:string)=>({registry:registry.config,role,...(copy.llmControl?.mode==="managed" && role!=="graph_embedding"?{managed:true}:{})});
   if(copy.graph?.enabled){
     if(copy.graph.evolution?.enabled){
       if(copy.graph.evolution.compiler)throw new Error("Conflicting legacy compiler and LLM registry");
@@ -34,6 +34,7 @@ function configureTemplates(copy:any,registry:ModelRegistry){
   for(const template of copy.management?.templates ?? []){
     if(template.harness!=="hermes")continue;
     const role=template.modelRole ?? "agent_primary";
+    if(copy.llmControl?.mode==="managed" && role!=="agent_primary")throw new Error("Managed Bots use the deployment agent_primary role");
     if(!configured(role))throw new Error("Unknown Bot model role");
     if(template.model || template.provider)throw new Error("Conflicting legacy Bot routing and LLM registry");
     const model=registry.model(role),provider=registry.provider(model.provider);

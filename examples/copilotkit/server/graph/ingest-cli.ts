@@ -15,8 +15,10 @@ import { NamespaceSchema } from "./types";
 import { WikiStore, safePath, namespaceKey } from "./wiki-store";
 import { DocumentIngestor } from "./ingest-queue";
 import { WikiCompiler, WORKER_SHUTDOWN } from "./compiler";
+import { ControlSettings } from "../llm/control-contract";
+import { managedIngest } from "../llm/control-ingest";
 
-const Config = z.object({ namespace: NamespaceSchema, retrievalMode: z.enum(["v2","v3"]).default("v2"), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EncoderConfig.optional(), compiler: ChatConfig.optional() }).strict();
+const Config = z.object({ namespace: NamespaceSchema, retrievalMode: z.enum(["v2","v3"]).default("v2"), graphCompilerVersion: z.enum(["v1","v2"]).default("v1"), embedding: EncoderConfig.optional(), compiler: ChatConfig.optional(),llmControl:ControlSettings.optional() }).strict();
 function jsonFile(filename: string, limit: number) {
   const path = safePath(filename);
   if (!statSync(path).isFile() || statSync(path).size > limit) throw new Error("Invalid input file size");
@@ -97,8 +99,11 @@ export async function main(args: string[]) {
     revoke: async () => { await queue.revokeCopies(ns, id()); return { status: "ok" }; },
   };
   try {
+    const releases=await managedIngest(queue,config.llmControl,config.compiler,config.embedding);
+    try{
     if (!Object.hasOwn(actions, command)) throw new Error("Unknown graph management command");
     return await actions[command]();
+    }finally{await releases?.close();}
   } finally { await store.close(); }
 }
 // No raw source, endpoint response, or secret is included in error output.

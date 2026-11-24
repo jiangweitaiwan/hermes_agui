@@ -38,10 +38,13 @@ class ProvisionTemplate:
     llm_registry: dict | None = field(default=None, repr=False)
     model_role: str = "agent_primary"
     llm_credentials: dict[str, str] = field(default_factory=dict, repr=False)
+    llm_control: dict | None = field(default=None, repr=False)
 
 
     def __post_init__(self):
         object.__setattr__(self, "llm_credentials", dict(self.llm_credentials))
+        if self.llm_control is not None and self.model_role != "agent_primary":
+            raise ValueError("Managed templates use the deployment agent_primary role")
         if self.llm_registry is not None:
             from hermes_agui.core.llm_registry import parse_registry, agent_route
             if self.model or self.provider or self.api_key or self.base_url:
@@ -90,6 +93,7 @@ class HermesBotProvisioner:
         return BotConfig(spec.id, AgentConfig(home, workspace, principal=spec.principal,
             model=template.model, provider=template.provider, api_key=template.api_key,
             llm_registry=template.llm_registry, model_role=template.model_role, llm_credentials=template.llm_credentials,
+            llm_control=template.llm_control,
             base_url=template.base_url, enabled_toolsets=tuple(spec.toolsets),
             agent_options=template.agent_options), ServerConfig(spec.token,
                 runtime_memory_key=spec.memoryKey, runtime_memory_project=spec.projectId))

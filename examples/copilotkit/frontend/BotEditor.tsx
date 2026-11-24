@@ -50,7 +50,7 @@ export function BotEditor({ editing, templates, bots, busy, onSave, onCancel }: 
     <label>Harness／模型<select value={templateId} onChange={e => {
       setTemplateId(e.target.value); setSkills([]); setToolsets([]);
     }}>{templates.filter(t => !editing || t.harness === editing.harness).map(t =>
-      <option key={t.id} value={t.id}>{t.name} · {t.harness} · {t.provider}/{t.model}</option>)}</select></label>
+      <option key={t.id} value={t.id}>{t.name} · {t.harness} · 啟動時範本：{t.provider}/{t.model}</option>)}</select></label>
     <Checklist title="Skills" options={options(selected?.skills ?? [])} values={skills} onChange={setSkills} />
     <Checklist title="Toolsets" options={options(selected?.toolsets ?? [])} values={toolsets} onChange={setToolsets} />
     <Checklist title="可委派的 Bot" options={bots.filter(bot => bot.status === "active" && bot.id !== editing?.id)}

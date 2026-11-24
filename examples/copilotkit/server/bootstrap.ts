@@ -9,6 +9,9 @@ import { loadWiki, loadDurableWiki } from "./graph/provider";
 import { loadEvolution } from "./graph/evolution";
 import { PostgresThreadMappings } from "./storage/thread-mappings";
 import type { RuntimeSettings } from "./runtime";
+import { ControlStore } from "./llm/control-store";
+import { managedRunPreparation } from "./llm/run-pinning";
+import { parseControl,openControl,bindManagedQueue,adminControl } from "./llm/control-bootstrap";
 
 function validateDeployment(registry: any) {
   if (!registry) return;
@@ -43,13 +46,20 @@ function completionToken(registry: any) {
   return enabled ? process.env.AGUI_GRAPH_COMPLETION_TOKEN ?? "" : undefined;
 }
 
+function validateCloudDeployment(registry:any,cloud:ReturnType<typeof configureCloud>){
+  if (process.env.K_SERVICE && !cloud) throw new Error("Cloud Run requires explicit cloud settings");
+  if (!cloud)return;
+  if (cloud.members.some(member => !registry?.management?.users?.some((user: { ownerId: string; principal: string; projectId: string }) => user.ownerId === member.ownerId && user.principal === member.principal && user.projectId === member.projectId))) throw new Error("Firebase members must match server management identities");
+  if (process.env.AGUI_STORAGE_BACKEND !== "gcp" || registry?.storage?.botRegistry !== "postgres" || registry?.storage?.threadMappings !== "postgres" || !registry?.storage?.graphCompletions || !registry?.graph?.enabled || !registry?.graph?.evolution?.enabled) throw new Error("Cloud mode requires durable registry, threads, Graph and completions");
+}
+
 /** Shared composition for the HTTP Runtime and trusted one-shot worker commands. */
 export async function bootstrap(registry: any, execution: { evolutionTimer?: boolean } = {}) {
+  const policy=parseControl(registry);
+  const managed=policy?.mode==="managed";
   registry = configureLLMDeployment(registry);
   const cloud = configureCloud(registry?.cloud);
-  if (process.env.K_SERVICE && !cloud) throw new Error("Cloud Run requires explicit cloud settings");
-  if (cloud && cloud.members.some(member => !registry?.management?.users?.some((user: { ownerId: string; principal: string; projectId: string }) => user.ownerId === member.ownerId && user.principal === member.principal && user.projectId === member.projectId))) throw new Error("Firebase members must match server management identities");
-  if (cloud && (process.env.AGUI_STORAGE_BACKEND !== "gcp" || registry?.storage?.botRegistry !== "postgres" || registry?.storage?.threadMappings !== "postgres" || !registry?.storage?.graphCompletions || !registry?.graph?.enabled || !registry?.graph?.evolution?.enabled)) throw new Error("Cloud mode requires durable registry, threads, Graph and completions");
+  validateCloudDeployment(registry,cloud);
   validateDeployment(registry);
   const settings: Record<string, RuntimeSettings> = registry ? loadDeployedBots(registry.bots) : { hermes: {
     agentUrl: process.env.AGUI_URL ?? "http://127.0.0.1:8000/agent", token: process.env.AGUI_API_KEY ?? "",
@@ -57,14 +67,19 @@ export async function bootstrap(registry: any, execution: { evolutionTimer?: boo
   const wiki = await graphProvider(registry);
   let threadMappings: PostgresThreadMappings | undefined;
   let application: ReturnType<typeof createApplication> | undefined;
+  let releases:ControlStore|undefined;
+  let adminStore:ControlStore|undefined;
   try {
+    ({releases,adminStore}=await openControl(policy));
     threadMappings = await threadStorage(registry);
     application = createApplication(settings, {
+      managedRun:managed?managedRunPreparation(releases!):undefined,
       evolutionTimer: cloud ? false : execution.evolutionTimer, threadMappings, graphCompletionToken: completionToken(registry),
       graph: registry?.graph?.enabled ? { provider: wiki, timeoutMs: registry.graph.timeoutMs, authorize: () => true } : undefined,
       evolution: loadEvolution(wiki, registry?.graph?.evolution), management: managementSettings(registry),
       delegation: registry?.delegation ? { ...registry.delegation, token: process.env[registry.delegation.tokenEnv] ?? "" } : undefined,
     });
+    await bindManagedQueue(application,releases);
     await application.ready;
     const tasks = cloud && wiki instanceof WikiGraphProvider && wiki.store instanceof PostgresWikiStore
       ? new CloudTasksDelivery(wiki.store.pool, TasksSchema.parse(registry.tasks)) : undefined;
@@ -78,6 +93,7 @@ export async function bootstrap(registry: any, execution: { evolutionTimer?: boo
         return id;
       };
     }
-    return { application, wiki, threadMappings, settings, tasks };
-  } catch (error) { await application?.close(); await wiki?.close(); await threadMappings?.close(); throw error; }
+    const llmAdmin=adminControl(application,adminStore);
+    return { application, wiki, threadMappings, settings, tasks,llmAdmin,releases,adminStore };
+  } catch (error) { await application?.close(); await wiki?.close(); await threadMappings?.close();await releases?.close();await adminStore?.close(); throw error; }
 }

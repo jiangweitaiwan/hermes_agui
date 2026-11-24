@@ -30,6 +30,7 @@ class AgentConfig:
     llm_registry: dict | None = field(default=None, repr=False)
     model_role: str = "agent_primary"
     llm_credentials: dict[str, str] = field(default_factory=dict, repr=False)
+    llm_control: dict | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "home", Path(self.home).expanduser().resolve())
@@ -40,6 +41,8 @@ class AgentConfig:
             raise ValueError("session_home_identity must be nonempty")
         object.__setattr__(self, "agent_options", dict(self.agent_options))
         object.__setattr__(self, "llm_credentials", dict(self.llm_credentials))
+        if self.llm_control is not None and self.model_role != "agent_primary":
+            raise ValueError("Managed Bots use the deployment agent_primary role")
         if self.llm_registry is not None:
             from hermes_agui.core.llm_registry import agent_route, parse_registry
             if self.model or self.provider or self.api_key or self.base_url:
@@ -100,7 +103,11 @@ def _create_agent(config: AgentConfig, session_id: str, db):
     options.setdefault("fallback_model", cfg.get("fallback_model"))
     enabled = (list(config.enabled_toolsets) if config.enabled_toolsets is not None
                else sorted(_get_platform_tools(cfg, "api_server", include_default_mcp_servers=True)))
-    agent = AIAgent(
+    agent_class = AIAgent
+    if config.llm_control is not None and runtime["provider"] == "custom":
+        from hermes_agui.core.managed_llm import managed_agent_type
+        agent_class = managed_agent_type(AIAgent)
+    agent = agent_class(
         model=normalize_model_for_provider(model, runtime["provider"]),
         provider=runtime["provider"], requested_provider=runtime.get("requested_provider"),
         api_key=runtime.get("api_key"), base_url=runtime.get("base_url"), api_mode=runtime.get("api_mode"),

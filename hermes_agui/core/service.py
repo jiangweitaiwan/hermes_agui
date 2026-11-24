@@ -44,17 +44,18 @@ class HermesAgentService:
         self._execution = ExecutionManager(max_workers, max_pending)
 
     def submit(self, session_id: str, message: Any, *, run_id: str,
-               callbacks: dict[str, Callable] | None = None):
+               callbacks: dict[str, Callable] | None = None, registry=None, release_id=None, release_fingerprint=None):
         """Return a concurrent Future; async hosts can await asyncio.wrap_future.
 
         Future.cancel cancels queued work only. Use cancel(session_id, run_id)
         for active native execution, then await completion before releasing it.
         """
         self._check_access(session_id)
-        return self._execution.submit(self.run, session_id, message, run_id=run_id, callbacks=callbacks)
+        return self._execution.submit(self.run, session_id, message, run_id=run_id, callbacks=callbacks,
+                                      registry=registry, release_id=release_id,release_fingerprint=release_fingerprint)
 
     @contextmanager
-    def _scope(self, native_id: str) -> Iterator[None]:
+    def _scope(self, native_id: str, config=None) -> Iterator[None]:
         from agent.runtime_cwd import bind_ephemeral_workspace
         from agent.runtime_scope import bind_profile_scope
         from gateway.session_context import set_session_vars
@@ -63,7 +64,8 @@ class HermesAgentService:
         # keeps every mutation (including AIAgent construction) out of the caller.
         from hermes_agui.core.llm_registry import registry_scope
 
-        with bind_profile_scope(self.config.home), bind_ephemeral_workspace(self.config.ephemeral_workspace), registry_scope(self.config.llm_registry, self.config.model_role):
+        config = config or self.config
+        with bind_profile_scope(config.home), bind_ephemeral_workspace(config.ephemeral_workspace), registry_scope(config.llm_registry, config.model_role):
             set_session_vars(platform="api_server", source="api_server", session_id=native_id,
                              session_key=native_id, user_id=self.config.principal,
                              cwd=str(self.config.cwd), async_delivery=False, cron_session="")
@@ -75,7 +77,7 @@ class HermesAgentService:
             self._authorize(self.config.principal, session_id)
 
     def run(self, session_id: str, message: Any, *, run_id: str | None = None,
-            callbacks: dict[str, Callable] | None = None) -> dict[str, Any]:
+            callbacks: dict[str, Callable] | None = None, registry=None, release_id=None,release_fingerprint=None) -> dict[str, Any]:
         """Execute one native turn; history is exclusively owned by Hermes storage.
 
         Returns the native result plus external_session_id, native_session_id and
@@ -89,20 +91,40 @@ class HermesAgentService:
             raise ValueError("run_id must be a nonempty string")
         with self._sessions.borrow(session_id) as session:
             return contextvars.copy_context().run(
-                self._run, session, session_id, message, run_id or str(uuid.uuid4()), callbacks,
+                self._run, session, session_id, message, run_id or str(uuid.uuid4()), callbacks, registry, release_id,release_fingerprint,
             )
 
     def _run(self, session: Session, external_id: str, message: Any,
-             run_id: str, callbacks: dict[str, Callable]) -> dict[str, Any]:
+             run_id: str, callbacks: dict[str, Callable], registry=None, release_id=None,release_fingerprint=None) -> dict[str, Any]:
         from hermes_state_registry import acquire
         from gateway.session_context import scoped_current_session_id
 
-        with self._scope(session.native_id):
+        from dataclasses import replace
+        from hermes_agui.core.llm_registry import fingerprint, parse_registry
+
+        if self.config.llm_control is not None and (registry is None or not release_id):
+            raise ValueError("Managed run requires a verified release")
+        config = replace(self.config, llm_registry=registry) if registry else self.config
+        cache_key = f"{release_id}:{fingerprint(parse_registry(registry))}" if registry else None
+        from hermes_agui.core.managed_llm import primary_route_key
+        primary_key = primary_route_key(registry, config.model_role) if registry else None
+        if registry:
+            import logging
+            import json
+            logging.getLogger(__name__).info(json.dumps({"event":"llm_native_run","runId":run_id,
+                "releaseId":release_id,"releaseFingerprint":release_fingerprint,
+                "configHash":fingerprint(parse_registry(registry)),"primaryRouteHash":primary_key}))
+        with self._scope(session.native_id, config):
             if session.db is None:
                 session.db = acquire(self.config.home / "state.db")
             db = session.db
+            if session.agent is not None and session.llm_primary_key != primary_key:
+                session.agent.close()
+                session.agent = None
             if session.agent is None:
-                session.agent = create_agent(self.config, session.native_id, db)
+                session.agent = create_agent(config, session.native_id, db)
+            session.llm_cache_key = cache_key
+            session.llm_primary_key = primary_key
             agent = session.agent
             # The canonical transcript is loaded by the native admission while
             # holding its durable lease, never from an unlocked host snapshot.
