@@ -1,0 +1,94 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run --config vitest.llm-control.config.ts --reporter=verbose
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:98532) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stdout | tests/acceptance/llm-control.pg.ts
+real PostgreSQL 17.12 (Postgres.app)
+
+ × tests/acceptance/llm-control.pg.ts > immutable release/audit and exact grants fence reader/worker control writes 1302ms
+   → expected 'Traceback (most recent call last):\n …' to be '' // Object.is equality
+ ✓ tests/acceptance/llm-control.pg.ts > two replicas CAS publication, durable run/job pins survive retry/restart and rollback 420ms
+ ✓ tests/acceptance/llm-control.pg.ts > real API requires deployment-admin, rejects cross scope/CSRF/secrets and reports conflicts 127ms
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"4f9d67fc-ecb3-499b-8b0e-e746fd6151fc","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-flash","configHash":"f6c0cfb8fe2e7b7cb667112bfdaba9b33318198ca70d928914d084922bec2257","embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:19.605Z","finishedAt":"2026-11-25T05:39:19.668Z","latencyMs":63,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"df57be50-6c8e-4636-b178-b3f433a43397","attempt":1,"releaseId":"release-001","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"d2ddc505-6ba7-4302-bd76-48971f30aaed","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:19.603Z","finishedAt":"2026-11-25T05:39:19.669Z","latencyMs":66,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"df57be50-6c8e-4636-b178-b3f433a43397","attempt":1,"releaseId":"release-001","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"8341cded-22e6-42e2-886d-8c85946ccb7e","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-flash","configHash":"f6c0cfb8fe2e7b7cb667112bfdaba9b33318198ca70d928914d084922bec2257","embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:19.687Z","finishedAt":"2026-11-25T05:39:19.689Z","latencyMs":2,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"df57be50-6c8e-4636-b178-b3f433a43397","attempt":1,"releaseId":"release-001","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"f5b40a6e-69f6-43f6-becf-e57b7b057631","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:19.686Z","finishedAt":"2026-11-25T05:39:19.689Z","latencyMs":3,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"df57be50-6c8e-4636-b178-b3f433a43397","attempt":1,"releaseId":"release-001","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"f8c7b105-e488-42c4-af44-e25208c5ca52","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"publication","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:19.593Z","finishedAt":"2026-11-25T05:39:20.102Z","latencyMs":509,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output","evidence","domain","persistence"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"df57be50-6c8e-4636-b178-b3f433a43397","attempt":1,"releaseId":"release-001","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"d2a82de4-5d75-4660-af01-9432218b2f8d","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-pro","configHash":"5a2010de539516835ee1869863d3c3ec3d5e5f759cf61e185848fc98afa8412b","embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:20.187Z","finishedAt":"2026-11-25T05:39:20.189Z","latencyMs":2,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"1e3e9412-131f-41fc-b7a8-0a2a5a7f1ce7","attempt":1,"releaseId":"release-f44ddaa0-f578-4ed0-8584-4b908b8bc328","releaseFingerprint":"cd5aa3dca542899f0a2c36d73698d148b4306653a21066fa2170bde182ac357f"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"fdb10136-4e32-4258-8074-99b9ed480637","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:20.185Z","finishedAt":"2026-11-25T05:39:20.190Z","latencyMs":5,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"1e3e9412-131f-41fc-b7a8-0a2a5a7f1ce7","attempt":1,"releaseId":"release-f44ddaa0-f578-4ed0-8584-4b908b8bc328","releaseFingerprint":"cd5aa3dca542899f0a2c36d73698d148b4306653a21066fa2170bde182ac357f"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"aa9aa828-99f7-4211-9c87-619f04b992e8","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-pro","configHash":"5a2010de539516835ee1869863d3c3ec3d5e5f759cf61e185848fc98afa8412b","embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:20.196Z","finishedAt":"2026-11-25T05:39:20.198Z","latencyMs":2,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"1e3e9412-131f-41fc-b7a8-0a2a5a7f1ce7","attempt":1,"releaseId":"release-f44ddaa0-f578-4ed0-8584-4b908b8bc328","releaseFingerprint":"cd5aa3dca542899f0a2c36d73698d148b4306653a21066fa2170bde182ac357f"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"23ff6fc0-0447-4b54-8216-1594270ac4eb","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:20.195Z","finishedAt":"2026-11-25T05:39:20.199Z","latencyMs":4,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"1e3e9412-131f-41fc-b7a8-0a2a5a7f1ce7","attempt":1,"releaseId":"release-f44ddaa0-f578-4ed0-8584-4b908b8bc328","releaseFingerprint":"cd5aa3dca542899f0a2c36d73698d148b4306653a21066fa2170bde182ac357f"}
+
+stderr | tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route
+{"severity":"INFO","event":"llm_execution","executionId":"b84e42b9-708b-4c7d-b7a6-b51de55bd4aa","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"publication","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:20.169Z","finishedAt":"2026-11-25T05:39:20.563Z","latencyMs":394,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output","evidence","domain","persistence"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"1e3e9412-131f-41fc-b7a8-0a2a5a7f1ce7","attempt":1,"releaseId":"release-f44ddaa0-f578-4ed0-8584-4b908b8bc328","releaseFingerprint":"cd5aa3dca542899f0a2c36d73698d148b4306653a21066fa2170bde182ac357f"}
+
+ ✓ tests/acceptance/llm-control.pg.ts > publication between parser and relations cannot change a running job's route 1037ms
+ ✓ tests/acceptance/llm-control.pg.ts > independent Runtime processes compete on the same active pointer 1073ms
+stderr | tests/acceptance/llm-control.pg.ts > pre-control-plane PostgreSQL static workers have no new table dependency
+{"severity":"INFO","event":"llm_execution","executionId":"f54087a4-54f1-46b2-b499-e9005c152bc2","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:22.058Z","finishedAt":"2026-11-25T05:39:22.058Z","latencyMs":0,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"0c71532b-ee1d-4c30-84a4-0435e9628808","attempt":1}
+
+stderr | tests/acceptance/llm-control.pg.ts > pre-control-plane PostgreSQL static workers have no new table dependency
+{"severity":"INFO","event":"llm_execution","executionId":"4957631e-dc7e-4c65-8360-23040c7b8c60","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:22.063Z","finishedAt":"2026-11-25T05:39:22.063Z","latencyMs":0,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"0c71532b-ee1d-4c30-84a4-0435e9628808","attempt":1}
+
+stderr | tests/acceptance/llm-control.pg.ts > pre-control-plane PostgreSQL static workers have no new table dependency
+{"severity":"INFO","event":"llm_execution","executionId":"6109d898-79b3-422b-9e38-9f27914ffc7d","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"publication","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:39:22.052Z","finishedAt":"2026-11-25T05:39:22.409Z","latencyMs":357,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output","evidence","domain","persistence"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"0c71532b-ee1d-4c30-84a4-0435e9628808","attempt":1}
+
+ ✓ tests/acceptance/llm-control.pg.ts > pre-control-plane PostgreSQL static workers have no new table dependency 1091ms
+ ✓ tests/acceptance/llm-control.pg.ts > release history pagination retains every ID when creation timestamps tie 27ms
+ ✓ tests/acceptance/llm-control.pg.ts > prompt publication is candidate-bound, immutable and pinned across replicas 166ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/acceptance/llm-control.pg.ts > immutable release/audit and exact grants fence reader/worker control writes
+AssertionError: expected 'Traceback (most recent call last):\n …' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ Traceback (most recent call last):
++   File "<string>", line 7, in <module>
++     ready_host(policy)
++     ~~~~~~~~~~^^^^^^^^
++   File "/Users/jiangwei/Desktop/hermes/hermes-agent/hermes_agui/core/managed_llm.py", line 135, in ready_host
++     import psycopg
++ ModuleNotFoundError: No module named 'psycopg'
++
+
+ ❯ tests/acceptance/llm-control.pg.ts:90:25
+     88| `],{cwd:"../..",encoding:"utf8",env:{...process.env,AGUI_LLM_DATABASE_…
+     89|       input:JSON.stringify({envelope,expectedHash:pinned.release_finge…
+     90|     expect(host.stderr).toBe("");expect(host.status).toBe(0);expect(ho…
+       |                         ^
+     91|     const client = await store.pool.connect();
+     92|     try {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  13:39:11
+   Duration  11.90s (transform 980ms, setup 0ms, collect 3.26s, tests 7.98s, environment 0ms, prepare 235ms)
+

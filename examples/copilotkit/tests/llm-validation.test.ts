@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { test, expect, vi, afterAll } from "vitest";
-import golden from "./fixtures/llm-part2/golden.json";
+import golden from "../server/llm/prompts/regression-v1.json";
 import { ParsedSchema } from "../server/llm/schema/parser";
 import { RelationOutputSchema } from "../server/llm/schema/relations";
 import { validateParsed, validateSpan } from "../server/llm/validation/evidence";

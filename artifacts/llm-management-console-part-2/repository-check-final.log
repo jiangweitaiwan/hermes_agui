@@ -1,0 +1,30 @@
+
+=== no-tmp (failed) ===
+advisory — _BASELINE in scripts/check_no_tmp_literals.py is stale; regenerate it with --print-baseline (fewer hits than listed is progress, not a failure):
+  website/docs/getting-started/nix-setup.md: listed in _BASELINE but clean (or gone)
+artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:5: host-config.yaml:8: scratch: /tmp
+artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:6: host-config.yaml:11: root: /tmp/managed
+artifacts/graph-memory-v2-part-1/verification/check.txt:5: host-config.yaml:8: scratch: /tmp
+artifacts/graph-memory-v2-part-1/verification/check.txt:6: host-config.yaml:11: root: /tmp/managed
+host-config.yaml:8: scratch: /tmp
+host-config.yaml:11: root: /tmp/managed
+
+6 literal /tmp path(s) flagged. Resolve scratch space through hermes_constants.get_scratch_dir() (or $TMPDIR / tempfile, which Hermes points there), tell the model to do the same in skills and prompts, or mark a deliberate line with `no-tmp: ok — <why>` (same line or the line above). See scripts/check_no_tmp_literals.py.
+
+=== blob-size (failed) ===
+::error file=artifacts/llm-management-console-part-2/node-full.log::artifacts/llm-management-console-part-2/node-full.log is 688 KiB (new file); the limit is 500 KiB
+::error file=artifacts/llm-management-console-part-2/node-final.log::artifacts/llm-management-console-part-2/node-final.log is 687 KiB (new file); the limit is 500 KiB
+
+2 file(s) over the 500 KiB blob limit. Every blob a merge adds stays in
+every clone forever, even after a later commit deletes it. Fix one of these ways:
+  - screenshots, recordings, PR assets: put them in the PR description, not in git
+  - images that must ship: compress them (oxipng -o max / pngquant / jpegoptim / webp)
+  - test data or archives: generate them in the test's tmp dir instead of committing them
+  - a file that must ship at this size: add its exact path to .github/blob-size-allowlist.txt
+    (needs a hermes-agent-core review; keep that list short)
+Reproduce locally: python scripts/ci/check_blob_size.py
+
+=== health (ok) ===
+code health: 27 files vs b011cbed4abc: 0 blocking, 0 advisory (18.3s)
+
+scripts/check: 17 checks, FAILED: no-tmp, blob-size

@@ -152,10 +152,10 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
                 from hermes_agui.runtime_memory import verify_memory
                 props = dict(value.forwarded_props or {})
                 envelope = props.pop("llmRelease", None)
-                registry, release_id, release_fingerprint = None, None, None
+                registry, release_id, release_fingerprint, instruction = None, None, None, ""
                 if bot.agent.llm_control is not None:
                     try:
-                        registry, release_id, release_fingerprint = await release_resolver.resolve(value, _bot_id, bot, envelope)
+                        registry, release_id, release_fingerprint, instruction = await release_resolver.resolve(value, _bot_id, bot, envelope)
                     except Exception:  # health: allow BLE001 -- HTTP resolver boundary must redact database credentials
                         raise HTTPException(503, "Managed release unavailable or denied") from None
                 elif envelope is not None:
@@ -164,7 +164,7 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
                 memory = verify_memory(clean, _bot_id, bot)
                 clean = clean.model_copy(update={"forwarded_props": {}}) if memory is not None else clean
                 turn = replace(adapt_input(clean), runtime_memory=memory, llm_registry=registry,
-                               llm_release_id=release_id,llm_release_fingerprint=release_fingerprint)
+                               llm_release_id=release_id,llm_release_fingerprint=release_fingerprint,llm_instruction=instruction)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         if authorize is not None:

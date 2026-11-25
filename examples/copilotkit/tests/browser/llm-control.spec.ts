@@ -34,3 +34,34 @@ test("workspace owner receives server-side 403 in the real browser",async({page}
   await expect(page.getByRole("alert")).toContainText("deployment administrator");
   expect((await page.request.get("/api/admin/llm/draft")).status()).toBe(403);
 });
+
+test("prompt editor, schema, playground and release persist through real API reload",async({page})=>{
+  await page.request.post("/api/bot-session",{data:{token:"local-browser-prompt-only"}});
+  await page.goto("/tests/fixtures/llm-control-browser.html");
+  await page.getByRole("button",{name:"Prompts",exact:true}).click();
+  await page.getByLabel("Editable task guidance").fill("Browser prompt candidate");
+  await page.getByRole("button",{name:"儲存 Prompt 草稿",exact:true}).click();
+  await expect(page.getByLabel("Editable task guidance")).toHaveValue("Browser prompt candidate");
+  await page.reload();await page.getByRole("button",{name:"Prompts",exact:true}).click();
+  await expect(page.getByLabel("Editable task guidance")).toHaveValue("Browser prompt candidate");
+  await expect(page.getByLabel("Protected contract（locked）")).toHaveAttribute("readonly","");
+  await page.getByRole("button",{name:"Schemas",exact:true}).click();
+  await expect(page.getByText("唯讀 Zod provider projection",{exact:false})).toBeVisible();
+  await page.getByRole("button",{name:"Playground",exact:true}).click();
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button",{name:"執行 baseline / candidate"}).click();
+  await expect(page.locator('section[aria-label="Playground"] pre')).toContainText('"publication": false');
+  await page.getByRole("button",{name:"Tasks",exact:true}).click();
+  await page.getByRole("button",{name:"驗證已儲存草稿",exact:true}).click();
+  await page.getByRole("button",{name:"發布",exact:true}).click();
+  await page.getByRole("dialog").getByLabel("原因").fill("Prompt browser acceptance");
+  await page.getByRole("dialog").getByRole("button",{name:"確認",exact:true}).click();
+  await expect(page.getByText("後端已確認操作成功。",{exact:true})).toBeVisible();
+  const active=await (await page.request.get("/api/admin/llm/tasks")).json();
+  expect(active.active.snapshot.tasks["v2-parser"].prompt).toContain("Browser prompt candidate");
+  const job=await (await page.request.post("/api/testing/jobs")).json();
+  expect(job.job.state).toBe("completed");expect(job.prompts[0]).toContain("Browser prompt candidate");
+  await page.getByRole("button",{name:"Embedding Migration",exact:true}).click();
+  await expect(page.getByText("切換保持 BLOCKED",{exact:false})).toBeVisible();
+  expect((await page.request.patch("/api/admin/llm/schemas/v2-parser",{data:{schema:{}}})).status()).toBe(404);
+});

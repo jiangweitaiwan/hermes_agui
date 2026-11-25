@@ -1,0 +1,58 @@
+[2m[WebServer] [22m(node:99998) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:99998) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:99998) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+[2m[WebServer] [22m(node:133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m{"severity":"INFO","event":"llm_execution","executionId":"9d7ebc64-6f84-4095-9178-1ffead048e52","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-pro","configHash":"32f82f2f36f55cd263f6554febdd4d6b89b62cccabdcf1ae1386113ef230a236","embeddingFingerprint":null,"startedAt":"2026-11-25T05:46:30.253Z","finishedAt":"2026-11-25T05:46:30.257Z","latencyMs":4,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"513bcb80-b057-4d4a-92a9-fc3f464142b2","attempt":1,"releaseId":"release-30f7bcd7-abd2-471c-bb5b-e2c75ca24ea1","releaseFingerprint":"3180ddad27d34a547bb9c3c4f095ffd9c70f7ac9f412aceae36b0c906c7b7707"}
+[2m[WebServer] [22m{"severity":"INFO","event":"llm_execution","executionId":"2f2f2e7c-47fa-490d-bb3d-f930486e3458","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-parser","taskVersion":"1","promptId":"v2-parser","promptVersion":"1","promptHash":"581d60477e86b3628d6950db7a8fa1842e6757322d49791fa025e111cc8fd0c0","schemaId":"v2-parser","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:46:30.251Z","finishedAt":"2026-11-25T05:46:30.271Z","latencyMs":20,"validation":{"stage":"v2-parser","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"513bcb80-b057-4d4a-92a9-fc3f464142b2","attempt":1,"releaseId":"release-30f7bcd7-abd2-471c-bb5b-e2c75ca24ea1","releaseFingerprint":"3180ddad27d34a547bb9c3c4f095ffd9c70f7ac9f412aceae36b0c906c7b7707"}
+[2m[WebServer] [22m{"severity":"INFO","event":"llm_execution","executionId":"71fba23a-9b75-497b-a0a8-da79e67a7f60","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-flash","configHash":"32f82f2f36f55cd263f6554febdd4d6b89b62cccabdcf1ae1386113ef230a236","embeddingFingerprint":null,"startedAt":"2026-11-25T05:46:30.304Z","finishedAt":"2026-11-25T05:46:30.320Z","latencyMs":16,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"513bcb80-b057-4d4a-92a9-fc3f464142b2","attempt":1,"releaseId":"release-30f7bcd7-abd2-471c-bb5b-e2c75ca24ea1","releaseFingerprint":"3180ddad27d34a547bb9c3c4f095ffd9c70f7ac9f412aceae36b0c906c7b7707"}
+[2m[WebServer] [22m{"severity":"INFO","event":"llm_execution","executionId":"fe767f7d-75ac-4de0-b2ee-2dec51269ea6","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"stage_output","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:46:30.293Z","finishedAt":"2026-11-25T05:46:30.322Z","latencyMs":29,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"513bcb80-b057-4d4a-92a9-fc3f464142b2","attempt":1,"releaseId":"release-30f7bcd7-abd2-471c-bb5b-e2c75ca24ea1","releaseFingerprint":"3180ddad27d34a547bb9c3c4f095ffd9c70f7ac9f412aceae36b0c906c7b7707"}
+[2m[WebServer] [22m{"severity":"INFO","event":"llm_execution","executionId":"7cde3288-41b6-46a7-b3d7-8ed8bc8aa070","sourceVersion":1,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"publication","stage":"v2-relations","taskVersion":"1","promptId":"v2-relations","promptVersion":"1","promptHash":"92e9fc4a11154c2ed2b1a20357d280481d2c6e26eae7b6a63d48b901841e11a8","schemaId":"v2-relations","schemaVersion":1,"validatorVersion":"1","provider":null,"model":null,"configHash":null,"embeddingFingerprint":null,"startedAt":"2026-11-25T05:46:30.240Z","finishedAt":"2026-11-25T05:46:30.973Z","latencyMs":733,"validation":{"stage":"v2-relations","validatorVersion":"1","checkedLayers":["output","evidence","domain","persistence"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"jobId":"513bcb80-b057-4d4a-92a9-fc3f464142b2","attempt":1,"releaseId":"release-30f7bcd7-abd2-471c-bb5b-e2c75ca24ea1","releaseFingerprint":"3180ddad27d34a547bb9c3c4f095ffd9c70f7ac9f412aceae36b0c906c7b7707"}
+  ✓  1 tests/browser/llm-control.spec.ts:2:1 › real admin API: model draft, validation, publish, conflict and rollback (8.7s)
+  ✓  2 tests/browser/llm-control.spec.ts:31:1 › workspace owner receives server-side 403 in the real browser (1.7s)
+  ✘  3 tests/browser/llm-control.spec.ts:38:1 › prompt editor, schema, playground and release persist through real API reload (5.4s)
+
+
+  1) tests/browser/llm-control.spec.ts:38:1 › prompt editor, schema, playground and release persist through real API reload 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m404[39m
+    Received: [31m429[39m
+
+      62 |   await page.getByRole("button",{name:"Embedding Migration",exact:true}).click();
+      63 |   await expect(page.getByText("切換保持 BLOCKED",{exact:false})).toBeVisible();
+    > 64 |   expect((await page.request.patch("/api/admin/llm/schemas/v2-parser",{data:{schema:{}}})).status()).toBe(404);
+         |                                                                                                      ^
+      65 | });
+      66 |
+        at /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit/tests/browser/llm-control.spec.ts:64:102
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/llm-control-prompt-editor--2910f-ist-through-real-API-reload/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/llm-control-prompt-editor--2910f-ist-through-real-API-reload/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/llm-control-prompt-editor--2910f-ist-through-real-API-reload/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/llm-control-prompt-editor--2910f-ist-through-real-API-reload/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/browser/llm-control.spec.ts:38:1 › prompt editor, schema, playground and release persist through real API reload 
+  2 passed (30.8s)

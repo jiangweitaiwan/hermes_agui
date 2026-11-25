@@ -1,4 +1,5 @@
-import { promptFor, systemPrompt } from "./prompts/registry";
+import { promptContext } from "./prompts/context";
+import { baselinePromptFor as promptFor, baselineSystemPrompt as systemPrompt } from "./prompts/registry";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { schemas, outputSchema } from "./schema/registry";
@@ -76,4 +77,4 @@ export function validateTaskContracts(tasks:Readonly<Record<string,TaskContract>
 
 /** Independent from model config, compiler mode, persisted domain schema and SQL migrations. */
 const frozenTaskFingerprint=createHash("sha256").update(canonical(Object.fromEntries(Object.entries(taskRegistry).map(([stage,task])=>[stage,{...task,prompt:systemPrompt(stage),schema:outputSchema(schemas[stage])}])))).digest("hex");
-export function taskFingerprint():string { return frozenTaskFingerprint; }
+export function taskFingerprint():string { return promptContext()?.fingerprint ?? frozenTaskFingerprint; }

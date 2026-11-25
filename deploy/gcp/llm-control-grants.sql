@@ -19,3 +19,6 @@ GRANT INSERT ON hermes_agui_runtime.llm_run_pins TO hermes_llm_runtime;
 GRANT SELECT ON hermes_agui_runtime.llm_active_release TO hermes_runtime;
 GRANT SELECT(scope,release_id,release_fingerprint) ON hermes_agui_runtime.llm_releases TO hermes_runtime;
 COMMIT;
+-- Apply after additive Runtime 012; consumers only need immutable snapshot reads.
+GRANT SELECT,INSERT ON hermes_agui_runtime.llm_prompt_versions,
+  hermes_agui_runtime.llm_prompt_evaluations,hermes_agui_runtime.llm_embedding_plans TO hermes_llm_admin;

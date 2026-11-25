@@ -55,11 +55,15 @@ def primary_route_key(raw, role):
 
 
 def validate_snapshot(snapshot, expected_hash, policy):
-    if set(snapshot) != {"version", "contract", "llm", "modelFingerprint", "taskFingerprint", "tasks"}:
+    part2 = snapshot.get("contract") == "management-part-2"
+    expected_fields = {"version", "contract", "llm", "modelFingerprint", "taskFingerprint", "tasks"}
+    if part2:
+        expected_fields |= {"prompts", "codeTaskFingerprint"}
+    if set(snapshot) != expected_fields:
         raise ValueError("Invalid release contract")
-    if (type(snapshot["version"]) is not int or snapshot["version"] != 1 or snapshot["contract"] != "management-part-1"
+    if (type(snapshot["version"]) is not int or snapshot["version"] != 1 or snapshot["contract"] not in {"management-part-1", "management-part-2"}
             or canonical_hash(snapshot) != expected_hash
-            or snapshot["taskFingerprint"] != policy["taskFingerprint"]
+            or snapshot.get("codeTaskFingerprint", snapshot["taskFingerprint"]) != policy["taskFingerprint"]
             or canonical_hash(snapshot["tasks"]) != snapshot["taskFingerprint"]):
         raise ValueError("Incompatible release contract")
     registry = parse_registry(snapshot["llm"])
@@ -80,6 +84,13 @@ def validate_snapshot(snapshot, expected_hash, policy):
         raise ValueError("Embedding is read only")
     agent_route(snapshot["llm"])
     return snapshot["llm"]
+
+
+def native_instruction(snapshot):
+    text = snapshot.get("prompts", {}).get("agent_primary", "")
+    if not isinstance(text, str) or len(text) > 4000:
+        raise ValueError("Invalid native instruction slot")
+    return text
 
 
 def resolve_run(value, bot_id, bot, envelope):
@@ -116,7 +127,8 @@ def resolve_run(value, bot_id, bot, envelope):
             (data["scope"], data["principal"], bot_id, value.thread_id, value.run_id, data["releaseId"])).fetchone()
     if row is None or row[1] != data["releaseFingerprint"]:
         raise ValueError("Persisted release pin unavailable")
-    return validate_snapshot(row[0], row[1], policy), data["releaseId"], row[1]
+    registry = validate_snapshot(row[0], row[1], policy)
+    return registry, data["releaseId"], row[1], native_instruction(row[0])
 
 
 def ready_host(policy):

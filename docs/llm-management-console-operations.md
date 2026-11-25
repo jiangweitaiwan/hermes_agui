@@ -180,3 +180,93 @@ Host subprocess 預設使用 checkout 的 `.venv/bin/python`；必須包含 lock
 獨立雲端 gate：既有 `AGUI_VERTEX_SMOKE_CONFIG`、真實 disposable PG/GCS、ADC／Tasks／Cloud Run staging
 須另行提供並明確授權。缺少資源時維持 **BLOCKED**；既有 skip、scripted model 或 local PG 不能替代。
 不得因此自動建立 IAM、掛 production credentials 或直接部署 production。
+
+## Console Part 2：Prompt／Schema／Playground
+
+Part 1 基準 source 為 `529375cb53d012fa9604144c8a6986f7d04c20d2`，報告 HEAD 為
+`b011cbe`。Part 2 沿用相同 control plane、admin allowlist、CAS、run/job pins、provider approval。
+本節為部署操作文件，**不是已完成 GCP 部署的證明**。Cloud gate 未通過不可宣稱 production ready。
+
+相容 reader 須支援 `management-part-1` 與 `management-part-2`。Graph protected contract 為
+`graph-v1`，schema/validator 仍為 code v1；Native slot 為 `native-slot-v1`。空 Graph slot 的有效字串
+與原 v1 byte-identical；有修改時版本為 `p2-<SHA256(effective text)>`。Prompt version 不等於 code contract
+version。release 的 taskFingerprint 包含所有有效文字、schema 及 validator；codeTaskFingerprint 另記部署基線。
+舊 image 無法解析 Part 2 release，必須先換相容 reader，不能先發布再讓舊 worker 消耗重試次數。
+
+部署前保存 PG PITR／備份及 GCS generations 一致參照、Runtime/Worker/Host image digests、所有流量、
+設定與 active generation/release、舊向量 keys。只在經確認的 disposable/staging 資源測試；不使用 production
+source/credentials 做 smoke。部署仍使用現有 GCP build/deploy 流程，不新增 service、scheduler、IAM 或秘密。
+
+1. 用現有 admission／delivery 控制 drain 新工作，列出仍在處理的 pinned jobs/runs；不可只停 queue
+   就假定所有 writes 已停止。Prompt rollout 不要求重建索引。
+2. Schema owner 透過既有 migrator 套用 additive `012_llm_prompts.sql`（runner 擁有 migration transaction），
+   再套用更新後 `deploy/gcp/llm-control-grants.sql`。新增 draft prompts、immutable prompt versions、
+   immutable candidate evaluations、immutable embedding plans。Host/Worker 不授任何新寫入權。
+   Fresh/rerun 與最小 grants 要在 disposable PG 驗證；既有 migration/table/history 都保留。
+3. 相同 artifact 部署 Runtime、Worker、Host 相容 readers，先不發布 Part 2 release。
+   Host 既有 policy.taskFingerprint 保持 image 的 **code** fingerprint，不能改填 active dynamic fingerprint。
+   保留原 SQL/Secret Manager/ADC 身分、pool/max-instances 預算、Vercel variables、Bot ID/template/profile seed。
+4. 在 staging 用 Console Prompts 編輯 slot、儲存、Playground 對照、Tasks 驗證、發布（reason 必填）。
+   PATCH body 沿用 expectedRevision/config，另帶完整 `prompts` map；不帶 map 保留已存 slot。
+   `prompts` 僅接受五個 Graph stages 與 agent_primary；legacy analysis/generation/merge 唯讀。
+   Protected sections 沒有修改 endpoint；輸入為 literal text，`{{...}}` 不作秘密查詢或 template execution。
+5. `/validate` 執行 `prompt-safety-v1` deterministic golden/negative suite，紀錄 candidate hash、draft revision、
+   suite version、checked/not-run layers。修改 draft 後須重新驗證。此結果不是模型 semantic accuracy；
+   正式 provider 品質／p95／token gate 應在已標註 corpus 的 staging 另跑，缺少資源記 BLOCKED。
+6. 確認新 job/run 取得新 prompt，原 pin、retry、restart 使用原 release；跨 replica 同樣核對。
+   Native slot 走原 ephemeral_system_prompt seam，原 role/tools/skills/memory/history 保留，新 run 才換 slot；
+   Graph-only 變更不重建 Native Agent。auxiliary/compression/delegation 的額外 prompts 仍 unmanaged。
+7. 觀察 review/reject、backlog、retry exhaustion、p95、provider_attempt usage、quota 與錯誤。
+   無 price book 的 cost=null，未知 usage=null，只加總 provider_attempt，不重複累計 publication。
+   本版不自動重跑歷史 jobs、不修改 evidence/wiki、不清理舊索引。
+
+新增 APIs（同 `/api/admin/llm` deployment-admin、origin、限流、redacted error 邊界）：
+
+| API | 說明 |
+|---|---|
+| GET `/prompts/:task` | Active、saved draft、locked contract、version；Native 僅 slot 與組裝說明 |
+| GET `/prompts/:task/versions?before=...` | immutable release history，25 筆 keyset page；選舊文字編輯新 draft |
+| GET `/schemas/:task` | 部署 Zod 的 provider projection/hash、examples、validator summaries；無 mutation API |
+| POST `/playground` | draftRevision、mode、synthetic input、vendorEgressAcknowledged=true |
+| GET/POST `/embedding/migrations` | 持久化 plan/status，**不啟用 selector** |
+
+Playground 每 replica 同時一個比較，每個 baseline/candidate arm 最多 10 秒，各 provider request 最多
+3 秒、retries=0、fallback=[]、maxTokens<=2048；輸入 4000 UTF-16 units、raw structured output 64KiB，
+沿用 API 64KiB body 與 30 requests/min/admin。可取消；各 arm 順序執行。無 store/queue/tool capability，
+不寫 source/job/wiki/edge/vector，不發 Cloud Tasks。單 stage 與 bounded ingest/retrieval 重用正式
+RegistryLLM/parseSource/resolveSubjects/abstractRelations/QueryParser/Storyteller/validators。
+Matcher 使用固定 homonym context、relations 使用空 parsed context、story 使用空 MemoryNet；ingest
+由 parser 串 matcher/relations，retrieval 由 query 串空 net story。向量搜尋、ACL、lease、persistence、
+publication、完整 Native harness 均 not_run。fallback 不冒稱 semantic success；結果不永久保存，
+audit 只記 actor/action，不存 raw input/output。不要把真實 session 或秘密貼入測試。
+
+## Embedding migration gate 與回滾
+
+第一版採 **既有 vectors CLI**，沒有安全的既有 all-writer drain／global watermark oracle，因此 UI 僅
+建立 immutable plan，activationEnabled=false，coverage/checkpoint/errors/verifiedAt=null。
+不接受瀏覽器自行宣告「verified」，不能一鍵切換 encoder。部署批准清單不能被 plan 擴張；provider、
+model、region、dimension/version 都先經 registry/approval 檢查，fingerprint 相同時 changed=false。
+此版本未實作 verified → activated，也不把 CLI 的 status=ok 冒稱全域覆蓋完成。
+
+運維可以用現有 CLI 在**獨立候選 config/key** 分批、可重入建立缺少 rows，舊空間持續保留：
+
+```sh
+node --import tsx server/graph/ingest-cli.ts "$DATA_ROOT" "$CANDIDATE_GRAPH_CONFIG" vectors
+```
+
+`CANDIDATE_GRAPH_CONFIG` 是經部署審核的運維檔案，不來自 browser；不要呼叫 destructive rebuild/delete。
+每個 private/shared namespace 都需盤點 wiki、V2 edge、V3 narrative，核對 active revision、source/revoke
+水位、coverage/count/error、checkpoint。只停 Cloud Tasks 並不能防止其他寫入路徑，所以缺少真正全域
+write fencing 與切換 transaction 的完整證明時，**保持舊 selector，記錄 BLOCKED**。不得手改 active pointer
+或 config 繞過 managed Embedding readonly gate。完整 activation／rollback coverage 演練尚未交付驗收。
+
+Prompt rollback 仍用既有 `/rollback` expectedGeneration CAS，只切 pointer／加 audit，重新核對 reader/code
+相容性。已 pin jobs/runs 不改，review/rejected job 不因 rollback 自動發布。程式 rollback 前停止新 admission，
+保留能讀 Part 2 snapshots 的 consumers 直到 pinned 工作 drain，再逐服務回到已保存 revisions。
+不 drop 012、不刪 prompt versions/evaluations/plans/releases/pins、不 destructive SQL rollback、不重寫 source、
+evidence 或索引。未完成的 managed 工作不能交給只認 Part 1 的 image。
+
+如需預先批准不同 encoder 的 **plan**，部署設定 `llmControl.embeddingCandidates` 可列出最多 16 個
+`{provider, model, dimension, version}`；provider 的 project/location/secret reference 仍須存在原 `approved`
+清單且不可由 UI 擴張。這個清單不改 `approved` 的 baseline graph_embedding，避免讓舊 release 因新增候選
+而失去相容性。它只批准規劃，沒有授權 activate 或改變 IAM/quota。

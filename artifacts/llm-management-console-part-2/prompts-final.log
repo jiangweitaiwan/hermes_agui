@@ -1,0 +1,18 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/llm-prompts.test.ts tests/llm-validation.test.ts --reporter=dot --maxWorkers=2 --testTimeout=15000
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:99759) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:99758) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+························
+
+ Test Files  2 passed (2)
+      Tests  24 passed (24)
+   Start at  13:44:14
+   Duration  7.61s (transform 2.21s, setup 0ms, collect 5.93s, tests 3.18s, environment 1ms, prepare 1.49s)
+

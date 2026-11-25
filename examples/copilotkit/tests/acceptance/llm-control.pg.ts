@@ -75,7 +75,7 @@ policy=v['policy']
 ready_host(policy)
 bot=NS(agent=NS(principal='user',llm_control=policy),server=NS(runtime_memory_key='host-fixture-signing',runtime_memory_project='project'))
 value=NS(thread_id='host-thread',run_id='host-run')
-registry,release,release_hash=resolve_run(value,'bot',bot,v['envelope'])
+registry,release,release_hash,instruction=resolve_run(value,'bot',bot,v['envelope'])
 assert release=='release-001'
 assert release_hash==v['expectedHash']
 value.thread_id='foreign-thread'
@@ -256,4 +256,38 @@ test("release history pagination retains every ID when creation timestamps tie",
   const total=(await store.pool.query("SELECT count(*)::int AS n FROM hermes_agui_runtime.llm_releases")).rows[0].n;
   expect(ids).toHaveLength(total);
   await expect(store.history("invalid-cursor")).rejects.toMatchObject({status:422});
+});
+
+
+test("prompt publication is candidate-bound, immutable and pinned across replicas",async()=>{
+  const prior=await store.active(),draft=await store.draft();
+  const edits={"v2-parser":"Parser candidate from real PG",agent_primary:"Native test guidance"};
+  await store.update(draft.config,draft.revision,"prompt-admin",edits);
+  const updated=await replica.draft(),snapshot=candidate(updated.config,policy,edits);
+  await expect(store.publish(updated.generation,updated.revision,hash(snapshot),"prompt-admin","untested")).rejects.toMatchObject({status:422});
+  const validation=await replica.validate("prompt-admin");
+  const published=await store.publish(validation.generation,validation.revision,validation.candidateHash,"prompt-admin","prompt regression passed");
+  const release=await replica.resolve(published.release_id);
+  expect((release.snapshot.tasks["v2-parser"] as {prompt:string}).prompt).toContain(edits["v2-parser"]);
+  expect((await store.resolve(prior.release_id)).release_fingerprint).toBe(prior.release_fingerprint);
+  const rows=await store.pool.query("SELECT * FROM hermes_agui_runtime.llm_prompt_versions WHERE task_id='v2-parser'");
+  expect(rows.rowCount).toBeGreaterThan(0);
+  await expect(store.pool.query("UPDATE hermes_agui_runtime.llm_prompt_versions SET editable_text='tampered'")).rejects.toThrow(/immutable/);
+  await store.update(updated.config,updated.revision,"prompt-admin",{"v2-parser":"another candidate"});
+  const changed=await store.draft();
+  await expect(store.publish(published.generation,changed.revision,validation.candidateHash,"prompt-admin","stale tests")).rejects.toMatchObject({status:409});
+  await store.rollback(prior.release_id,published.generation,"prompt-admin","preserve old pin");
+});
+
+test("embedding plans persist without activation and reject unapproved encoders",async()=>{
+  const {planMigration,migrationStatus}=await import("../../server/llm/embedding-migration");
+  const draft=await store.draft(),before=await store.active(),model=llm.models.find(m=>m.alias==="graph_embedding")!;
+  const body={expectedRevision:draft.revision,target:{provider:model.provider,model:model.model,dimension:model.dimension!,version:model.version!},retrievalMode:"v3",reason:"Safe migration planning"};
+  const plan=await planMigration(store,body,"migration-admin");expect(plan.state).toBe("planned");expect(plan.gate).toContain("BLOCKED");
+  expect((await migrationStatus(replica)).activationEnabled).toBe(false);
+  expect((await store.active()).release_id).toBe(before.release_id);
+  policy.embeddingCandidates=[{...body.target,version:"migration-v2"}];
+  expect((await planMigration(store,{...body,target:policy.embeddingCandidates[0]},"migration-admin")).changed).toBe(true);
+  expect((await store.active()).release_fingerprint).toBe(before.release_fingerprint);
+  await expect(planMigration(store,{...body,target:{...body.target,model:"unapproved"}},"migration-admin")).rejects.toMatchObject({status:422});
 });

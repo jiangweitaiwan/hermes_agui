@@ -1,0 +1,20 @@
+▶ not activated — using HERMES_PYTHON: /Users/jiangwei/Desktop/hermes/hermes-agent/.venv/bin/python
+▶ running per-file parallel test suite via run_tests_parallel.py
+  (TZ=UTC LANG=C.UTF-8 PYTHONHASHSEED=0; clean env)
+▶ pre-compiling bytecode cache
+▶ launching test runner
+Discovered 2 test files (~7 tests) under ['tests/hermes_agui/test_managed_instruction.py', 'tests/hermes_agui/test_managed_llm.py']; running with -j 4
+[ 14.3% |     1/~7 | ✓1 | ✗0] ✓ tests/hermes_agui/test_managed_instruction.py (1✓, 29.3s)
+[100.0% |     7/~7 | ✓7 | ✗0] ✓ tests/hermes_agui/test_managed_llm.py (6✓, 34.9s)
+
+=== Summary: 2 files, 7 tests passed, 0 failed (100% complete) in 34.9s (4 workers) ===
+  Durations cached to test_durations.json (2 files)
+
+=== Per-file subprocess time distribution ===
+  Files:   2
+  Total subprocess CPU-wall: 64.2s  (runner wall: 34.9s, parallelism: 4x)
+  P50: 34.86s  P90: 34.86s  P95: 34.86s  P99: 34.86s  Max: 34.86s
+  <1s: 0 files (0%)  <2s: 0 files (0%)
+  Top 10 slowest:
+     34.86s  tests/hermes_agui/test_managed_llm.py
+     29.29s  tests/hermes_agui/test_managed_instruction.py

@@ -44,7 +44,7 @@ class HermesAgentService:
         self._execution = ExecutionManager(max_workers, max_pending)
 
     def submit(self, session_id: str, message: Any, *, run_id: str,
-               callbacks: dict[str, Callable] | None = None, registry=None, release_id=None, release_fingerprint=None):
+               callbacks: dict[str, Callable] | None = None, registry=None, release_id=None, release_fingerprint=None, instruction=""):
         """Return a concurrent Future; async hosts can await asyncio.wrap_future.
 
         Future.cancel cancels queued work only. Use cancel(session_id, run_id)
@@ -52,7 +52,7 @@ class HermesAgentService:
         """
         self._check_access(session_id)
         return self._execution.submit(self.run, session_id, message, run_id=run_id, callbacks=callbacks,
-                                      registry=registry, release_id=release_id,release_fingerprint=release_fingerprint)
+                                      registry=registry, release_id=release_id,release_fingerprint=release_fingerprint,instruction=instruction)
 
     @contextmanager
     def _scope(self, native_id: str, config=None) -> Iterator[None]:
@@ -77,7 +77,7 @@ class HermesAgentService:
             self._authorize(self.config.principal, session_id)
 
     def run(self, session_id: str, message: Any, *, run_id: str | None = None,
-            callbacks: dict[str, Callable] | None = None, registry=None, release_id=None,release_fingerprint=None) -> dict[str, Any]:
+            callbacks: dict[str, Callable] | None = None, registry=None, release_id=None,release_fingerprint=None, instruction="") -> dict[str, Any]:
         """Execute one native turn; history is exclusively owned by Hermes storage.
 
         Returns the native result plus external_session_id, native_session_id and
@@ -91,11 +91,11 @@ class HermesAgentService:
             raise ValueError("run_id must be a nonempty string")
         with self._sessions.borrow(session_id) as session:
             return contextvars.copy_context().run(
-                self._run, session, session_id, message, run_id or str(uuid.uuid4()), callbacks, registry, release_id,release_fingerprint,
+                self._run, session, session_id, message, run_id or str(uuid.uuid4()), callbacks, registry, release_id,release_fingerprint,instruction,
             )
 
     def _run(self, session: Session, external_id: str, message: Any,
-             run_id: str, callbacks: dict[str, Callable], registry=None, release_id=None,release_fingerprint=None) -> dict[str, Any]:
+             run_id: str, callbacks: dict[str, Callable], registry=None, release_id=None,release_fingerprint=None, instruction="") -> dict[str, Any]:
         from hermes_state_registry import acquire
         from gateway.session_context import scoped_current_session_id
 
@@ -104,10 +104,13 @@ class HermesAgentService:
 
         if self.config.llm_control is not None and (registry is None or not release_id):
             raise ValueError("Managed run requires a verified release")
-        config = replace(self.config, llm_registry=registry) if registry else self.config
-        cache_key = f"{release_id}:{fingerprint(parse_registry(registry))}" if registry else None
+        if not isinstance(instruction, str) or len(instruction) > 4000 or (instruction and not release_id):
+            raise ValueError("Invalid managed instruction")
+        config = replace(self.config, llm_registry=registry, managed_instruction=instruction) if registry else self.config
+        cache_key = f"{release_id}:{release_fingerprint}:{fingerprint(parse_registry(registry))}" if registry else None
         from hermes_agui.core.managed_llm import primary_route_key
-        primary_key = primary_route_key(registry, config.model_role) if registry else None
+        from hermes_agui.core.managed_llm import canonical_hash
+        primary_key = canonical_hash([primary_route_key(registry, config.model_role), instruction]) if registry else None
         if registry:
             import logging
             import json

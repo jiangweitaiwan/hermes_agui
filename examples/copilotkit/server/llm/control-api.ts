@@ -1,3 +1,9 @@
+import type { ClientDependencies } from "./client";
+import { migrationStatus, planMigration } from "./embedding-migration";
+import { playground } from "./playground";
+import { candidate } from "./control-contract";
+import { schemaView } from "./prompt-contract";
+import { baselineSystemPrompt } from "./prompts/registry";
 import { z } from "zod";
 import type { BotAuthentication } from "../bots/auth";
 import { sameOrigin } from "../bots/api";
@@ -12,7 +18,7 @@ import { managedTransport } from "./managed-transport";
 const revision = z.number().int().positive();
 const reason = z.string().trim().min(1).max(500);
 const shapes = {
-  draft: z.object({ expectedRevision: revision, config: z.unknown() }).strict(),
+  draft: z.object({ expectedRevision: revision, config: z.unknown(), prompts:z.unknown().optional() }).strict(),
   publish: z.object({ expectedGeneration: revision, draftRevision: revision,
     candidateHash: z.string().regex(/^[a-f0-9]{64}$/), reason }).strict(),
   rollback: z.object({ target: z.string().min(1).max(100), expectedGeneration: revision, reason }).strict(),
@@ -21,6 +27,7 @@ const shapes = {
 async function readControl(store:ControlStore,path:string,url:URL){
   const readers=new Map<string,()=>unknown>([
     ["draft",()=>store.draft()],
+    ["embedding/migrations",()=>migrationStatus(store)],
     ["tasks",async()=>({mode:store.policy.mode,roles,active:await store.active(),
       nativeParameters:{retries:"additional attempts",timeoutMs:"per provider request",maxTokens:"native output budget"}})],
     ["providers",()=>providerOptions(store)],
@@ -29,6 +36,21 @@ async function readControl(store:ControlStore,path:string,url:URL){
       return store.history(before);
     }],
   ]);
+  if(path.startsWith("schemas/")){
+    try{return {...schemaView(path.slice(8)),active:(await store.active()).snapshot.tasks[path.slice(8)]};}
+    catch{throw new ControlError(404,"Unknown schema task/version");}
+  }
+  const match=/^prompts\/([^/]+)(\/versions)?$/.exec(path);
+  if(match){
+    const task=match[1];
+    if(match[2])return store.promptHistory(task,url.searchParams.get("before")??undefined);
+    const draft=await store.draft(),active=await store.active();
+    const proposed=candidate(draft.config,store.policy,draft.prompts??{});
+    if(!Object.hasOwn(proposed.tasks,task))throw new ControlError(404,"Unknown prompt task");
+    return {task,revision:draft.revision,active:active.snapshot.tasks[task]??null,draft:proposed.tasks[task],
+      editable:task.startsWith("v2-")||task.startsWith("v3-")||task==="agent_primary",
+      protectedText:task==="agent_primary"?"Native role → tools/skills/memory/history → subordinate deployment instruction slot. Runtime session prompts are private.":baselineSystemPrompt(task)};
+  }
   const reader=readers.get(path);
   if(!reader)throw new ControlError(404,"Unknown route");
   return reader();
@@ -43,17 +65,26 @@ function providerOptions(store:ControlStore){
 }
 function mutations(store:ControlStore,probe:(input:z.infer<typeof shapes.probe>,actor:string)=>Promise<unknown>){
   return new Map<string,(body:unknown,actor:string)=>Promise<unknown>>([
-    ["PATCH draft",async(body,actor)=>{const v=shapes.draft.parse(body);return store.update(v.config,v.expectedRevision,actor);}],
+    ["PATCH draft",async(body,actor)=>{const v=shapes.draft.parse(body);return store.update(v.config,v.expectedRevision,actor,v.prompts);}],
+    ["POST embedding/migrations",async(body,actor)=>planMigration(store,body,actor)],
     ["POST validate",async(body,actor)=>{z.object({}).strict().parse(body);return store.validate(actor);}],
     ["POST releases",async(body,actor)=>{const v=shapes.publish.parse(body);return store.publish(v.expectedGeneration,v.draftRevision,v.candidateHash,actor,v.reason);}],
     ["POST rollback",async(body,actor)=>{const v=shapes.rollback.parse(body);return store.rollback(v.target,v.expectedGeneration,actor,v.reason);}],
     ["POST providers/test",async(body,actor)=>probe(shapes.probe.parse(body),actor)],
   ]);
 }
+function consumeBudget(windows:Map<string,{start:number;count:number}>,principal:string){
+  const now=Date.now();
+  for(const [key,value] of windows)if(now-value.start>=60000)windows.delete(key);
+  const window=windows.get(principal)??{start:now,count:0};
+  windows.set(principal,window);
+  if(++window.count>30)throw new ControlError(429,"Rate limit");
+}
 /** Process-local limits supplement deployment instance/ingress limits; probes never accept source text. */
-export function controlApi(store: ControlStore, auth: Pick<BotAuthentication, "authenticate">) {
+export function controlApi(store: ControlStore, auth: Pick<BotAuthentication, "authenticate">,playgroundDeps:ClientDependencies={}) {
   const windows = new Map<string, { start: number; count: number }>();
   let probes = 0;
+  let playgrounds=0;
   async function probe(input: z.infer<typeof shapes.probe>, actor: string) {
     if (probes >= 2) throw new ControlError(429, "Probe capacity reached");
     probes++;
@@ -82,17 +113,18 @@ export function controlApi(store: ControlStore, auth: Pick<BotAuthentication, "a
       if (!identity) return response({ error: "Authentication required" }, 401);
       if (!store.policy.admins.includes(identity.principal)) return response({ error: "Deployment administrator required" }, 403);
       if (!sameOrigin(request)) return response({ error: "Origin denied" }, 403);
-      const now = Date.now();
-      for (const [key, value] of windows) if (now - value.start >= 60000) windows.delete(key);
-      const window = windows.get(identity.principal) ?? { start: now, count: 0 };
-      windows.set(identity.principal, window);
-      if (++window.count > 30) return response({ error: "Rate limit" }, 429);
+      consumeBudget(windows,identity.principal);
       const url = new URL(request.url), path = url.pathname.slice("/api/admin/llm/".length);
       if ([...url.searchParams.keys()].some(key => key !== "before")) return response({ error: "Unknown query or scope" }, 422);
       if (request.method === "GET")return response(await readControl(store,path,url));
       const text = await boundedText(request, 65536);
       if (text === undefined) return response({ error: "Input too large" }, 413);
       const body = JSON.parse(text);
+      if(request.method==="POST" && path==="playground"){
+        if(playgrounds>=1)throw new ControlError(429,"Playground capacity reached");
+        playgrounds++;
+        try{await store.audit(store.pool,"playground",identity.principal);return response(await playground(store,body,request.signal,playgroundDeps));}finally{playgrounds--;}
+      }
       const action=writes.get(`${request.method} ${path}`);
       if(!action)return response({error:"Unknown route"},404);
       return response(await action(body,identity.principal),request.method==="POST" && path==="releases"?201:200);

@@ -125,7 +125,7 @@ class AgentAdapter:
                 reference_token = runtime_reference.set(turn.runtime_memory)
                 try:
                     options = {"registry": turn.llm_registry, "release_id": turn.llm_release_id,
-                               "release_fingerprint":turn.llm_release_fingerprint} if turn.llm_registry else {}
+                               "release_fingerprint":turn.llm_release_fingerprint,"instruction":turn.llm_instruction} if turn.llm_registry else {}
                     future = service.submit(turn.thread_id, turn.text, run_id=turn.run_id,
                                                  callbacks=run.bridge.callbacks, **options)
                 finally:

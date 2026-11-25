@@ -1,3 +1,5 @@
+import { LLMPrompts } from "./LLMPrompts";
+import { LLMEmbedding } from "./LLMEmbedding";
 import { useCallback, useEffect, useState } from "react";
 
 interface Model { alias: string; provider: string; model: string; timeoutMs: number; retries: number; maxTokens: number; fallback: string[]; dimension?: number; version?: string }
@@ -5,10 +7,10 @@ interface Registry { version: number; providers: unknown[]; models: Model[] }
 interface Draft { config: Registry; revision: number; generation: number; release_id: string }
 interface Provider { id: string; driver: string; models: string[]; modelsByRole:Record<string,string[]>;credentialAvailable: boolean | null }
 interface Release { release_id: string; release_fingerprint: string; created_by: string; created_at: string; reason: string }
-interface Validation { candidateHash: string; revision: number; generation: number; diff: Model[]; issues: string[] }
+interface Validation { promptDiff?:unknown; regression?:unknown; candidateHash: string; revision: number; generation: number; diff: Model[]; issues: string[] }
 interface Audit { request_id:string;action:string;actor:string;created_at:string;old_release:string|null;new_release:string|null }
-async function api(path: string, method = "GET", body?: unknown) {
-  const response = await fetch(`/api/admin/llm/${path}`, { method, credentials: "same-origin",
+export async function llmApi(path: string, method = "GET", body?: unknown, signal?:AbortSignal) {
+  const response = await fetch(`/api/admin/llm/${path}`, { method, signal, credentials: "same-origin",
     headers: body === undefined ? {} : { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   if (!response.ok) {
     if (response.status === 409) throw new Error("設定已由其他管理員更新，請重新載入草稿。");
@@ -18,6 +20,7 @@ async function api(path: string, method = "GET", body?: unknown) {
   }
   return response.json();
 }
+const api=llmApi;
 const group = (role: string) => role === "agent_primary" ? "Agent" : role === "graph_embedding" ? "Embedding" :
   ["graph_query", "graph_story"].includes(role) ? "Retrieval" : "Ingest";
 interface EmptyDraftProps {busy:boolean;hasDraft:boolean;error:string}
@@ -59,13 +62,13 @@ export function LLMManagement() {
     <p>模式：{active?.mode ?? "尚未載入"} · Control plane Active：{active?.active.release_id ?? "—"}</p>
     <p>{activationText(active?.mode)}</p>
     <code>{active?.active.release_fingerprint}</code>
-    <nav aria-label="LLM tabs">{["Tasks", "Providers", "Releases"].map(name =>
+    <nav aria-label="LLM tabs">{["Tasks", "Providers", "Prompts", "Schemas", "Playground", "Embedding Migration", "Releases"].map(name =>
       <button key={name} onClick={() => setTab(name)} aria-current={tab === name ? "page" : undefined}>{name}</button>)}</nav>
     <button disabled={busy} onClick={() => void load()}>重新載入</button>
     {busy && <p role="status">處理中…</p>}{error && <p role="alert">{error}</p>}{status && <p role="status">{status}</p>}
     <EmptyDraft busy={busy} hasDraft={!!draft} error={error}/>
     {tab === "Tasks" && draft && <>
-      <p>草稿 revision {draft.revision} · Active generation {draft.generation}。Embedding、Prompt、Schema、Validator 唯讀。</p>
+      <p>草稿 revision {draft.revision} · Active generation {draft.generation}。Embedding selector、Schema、Validator 唯讀；Prompt 於 Prompts 分頁編輯。</p>
       {["Agent", "Ingest", "Retrieval", "Embedding"].map(name => <fieldset key={name} disabled={busy}>
         <legend>{name}</legend>{draft.config.models.filter(model => active?.roles.includes(model.alias) && group(model.alias) === name).map(model =>
           <fieldset key={model.alias} disabled={name === "Embedding"}><legend>{model.alias}</legend>
@@ -90,10 +93,12 @@ export function LLMManagement() {
         setValidation(await api("validate", "POST", {}));
       })}>驗證已儲存草稿</button>
       {validation && <div><h3>Active → Candidate diff</h3><pre>{JSON.stringify(validation.diff, null, 2)}</pre>
-        <code>{validation.candidateHash}</code><p>{validation.issues.length ? validation.issues.join(" / ") : "驗證通過"}</p>
+        <pre>{JSON.stringify(validation.promptDiff,null,2)}</pre><pre>{JSON.stringify(validation.regression,null,2)}</pre><code>{validation.candidateHash}</code><p>{validation.issues.length ? validation.issues.join(" / ") : "驗證通過"}</p>
         <button disabled={busy || validation.issues.length > 0} onClick={() => setConfirmation({ action: "publish" })}>發布</button></div>}
       <details><summary>唯讀 code contracts</summary><pre>{JSON.stringify(active?.active.snapshot.tasks, null, 2)}</pre></details>
     </>}
+    {["Prompts","Schemas","Playground"].includes(tab)&&<LLMPrompts tab={tab} onSaved={async()=>{setDraft(await api("draft"));setValidation(undefined);}}/>}
+    {tab==="Embedding Migration"&&<LLMEmbedding/>}
     {tab === "Providers" && <>{providers.map(provider => <article key={provider.id}><h3>{provider.id}</h3>
       <p>{provider.driver} · Credential：{provider.credentialAvailable === null ? "ADC（需真實驗收）" : provider.credentialAvailable ? "已掛載" : "尚未掛載"}</p>
       <p>{[...new Set(provider.models)].join(", ")}</p><button disabled={busy || !draft} onClick={() => void perform(async () => {

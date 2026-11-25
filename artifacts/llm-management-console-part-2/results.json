@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/graph-memory-v2",
+  "part1ImplementationCommit": "529375cb53d012fa9604144c8a6986f7d04c20d2",
+  "startingHead": "b011cbed4abc16e46c7fb718afeea54118ef56f6",
+  "implementationCommit": null,
+  "deliveryForm": "uncommitted working-tree patch; SHA-256 index below",
+  "recordedAt": "2026-11-25T05:54:24.173938+00:00",
+  "overallStatus": "PARTIAL",
+  "productionReady": false,
+  "productionDeployed": false,
+  "productionCredentialsUsed": false,
+  "productionIAMModified": false,
+  "productionDataDeleted": false,
+  "migrationHeads": {
+    "sourceBefore": {
+      "runtime": "011",
+      "host": "006"
+    },
+    "sourceAfter": {
+      "runtime": "012",
+      "host": "006"
+    },
+    "existingDeployedDatabase": "UNKNOWN; not accessed"
+  },
+  "checks": [
+    {
+      "id": "node-full",
+      "status": "PASS",
+      "passed": 210,
+      "existingSkipped": 29,
+      "command": "npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000",
+      "log": "node-final.log.gz"
+    },
+    {
+      "id": "focused-final",
+      "status": "PASS",
+      "passed": 34,
+      "command": "npm test -- tests/llm-prompts.test.ts tests/llm-control.test.ts tests/llm-validation.test.ts --reporter=dot --maxWorkers=2 --testTimeout=15000",
+      "log": "focused-verified.log"
+    },
+    {
+      "id": "native-python-full",
+      "status": "PASS",
+      "passed": 26,
+      "fileRetries": 0,
+      "command": "scripts/run_tests.sh tests/hermes_agui/test_llm_registry.py tests/hermes_agui/test_headless_agent.py tests/hermes_agui/test_managed_llm.py tests/hermes_agui/test_managed_instruction.py tests/agent/test_vertex_adapter.py",
+      "log": "python-full.log"
+    },
+    {
+      "id": "native-instruction-final",
+      "status": "PASS",
+      "passed": 2,
+      "overlapsFullSuite": 1,
+      "uniqueNativeTestsTotal": 27,
+      "fileRetries": 0,
+      "command": "scripts/run_tests.sh tests/hermes_agui/test_managed_instruction.py",
+      "log": "python-instruction-final.log"
+    },
+    {
+      "id": "host-http",
+      "status": "PASS",
+      "passed": 11,
+      "existingSkipped": 2,
+      "skipsDoNotProveCloudAcceptance": true,
+      "command": "scripts/run_tests.sh tests/hermes_agui/test_server.py tests/hermes_agui/test_dynamic_host.py",
+      "log": "python-http.log"
+    },
+    {
+      "id": "real-disposable-postgres",
+      "status": "PASS",
+      "passed": 9,
+      "skipped": 0,
+      "version": "17.12",
+      "command": "npm test -- --config vitest.llm-control.config.ts --reporter=verbose",
+      "log": "pg-final-state.log"
+    },
+    {
+      "id": "real-chrome-api-pg",
+      "status": "PASS",
+      "passed": 3,
+      "inference": "scripted wire; not live model quality",
+      "objectStorage": "filesystem; not GCS",
+      "command": "playwright test --config playwright.llm-control.config.ts",
+      "log": "browser-complete.log"
+    },
+    {
+      "id": "typecheck",
+      "status": "PASS",
+      "command": "tsc --noEmit",
+      "log": "typecheck-final-state.log"
+    },
+    {
+      "id": "frontend-build",
+      "status": "PASS",
+      "existingWarnings": [
+        "chunks larger than 500kB"
+      ],
+      "command": "npm run build",
+      "log": "build-final.log"
+    },
+    {
+      "id": "base-red-proof",
+      "status": "PASS",
+      "meaning": "Expected assertion failure on Part 1 report HEAD archive; candidate instruction is absent from pinned production system prompt",
+      "base": "b011cbed4abc16e46c7fb718afeea54118ef56f6",
+      "log": "base-red.log"
+    },
+    {
+      "id": "repository-check",
+      "status": "FAIL",
+      "baselineFailures": [
+        "no-tmp: six pre-existing paths"
+      ],
+      "resolvedNewFailures": [
+        "API handler CC 21 split; health 0 blocking / 0 advisory",
+        "large raw test logs compressed; blob-size passed"
+      ],
+      "finalEffectivePassedChecks": 16,
+      "totalChecks": 17,
+      "command": ".venv/bin/python scripts/check --base b011cbe",
+      "log": "repository-check-final.log",
+      "supplementalLogs": [
+        "health-final.log",
+        "blob-size-final.log"
+      ]
+    },
+    {
+      "id": "embedding-activation",
+      "status": "BLOCKED",
+      "reason": "Implemented immutable plans, explicit candidate hash / approved encoder fingerprint and deny-switch gate. No authoritative global coverage/revocation/watermark verifier or all-writer fencing; verified/activated transitions and safe rollback coverage not implemented."
+    },
+    {
+      "id": "live-cloud",
+      "status": "BLOCKED",
+      "reason": "No authorized disposable GCS / Vertex / compatible-provider staging / Cloud Run rollout resources supplied; no production access or deployment."
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "P2-01",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-02",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-03",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-04",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-05",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-06",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-07",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-08",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-09",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-10",
+      "status": "BLOCKED",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-11",
+      "status": "PASS",
+      "scope": "local offline / scripted inference; see report"
+    },
+    {
+      "id": "P2-12",
+      "status": "BLOCKED",
+      "scope": "local offline / scripted inference; see report"
+    }
+  ],
+  "embeddingMigration": {
+    "execution": "existing idempotent vectors CLI; no scheduler / HTTP indexing job",
+    "implementedStates": [
+      "planned"
+    ],
+    "notImplementedStates": [
+      "backfilling",
+      "catching_up",
+      "verified",
+      "activated"
+    ],
+    "activationEnabled": false,
+    "selectorChanged": false,
+    "oldIndicesPreserved": true
+  },
+  "playgroundNotRun": [
+    "persistence",
+    "ACL",
+    "lease",
+    "publication",
+    "vector search",
+    "native full harness"
+  ],
+  "remainingWork": [
+    "Authoritative global embedding inventory, coverage/revocation/source watermark proof, all-writer fencing, verified activation and rollback coverage",
+    "Live Vertex and approved compatible-provider corpus quality/latency smoke",
+    "Disposable GCS and multi-revision Cloud Run rollout/rollback exercises"
+  ],
+  "preservedUserChanges": [
+    "docs/GRAPH_MEMORY_V3_OVERVIEW.md deletion",
+    "docs/GRAPH_MEMORY_V3_PART_1_DESIGN.md deletion",
+    "docs/GRAPH_MEMORY_V3_PART_2_DESIGN_NOTES.md deletion",
+    "docs/LLM_UNIFICATION_GRAPH_VALIDATION_PLAN.md deletion",
+    "untracked docs/LLM_MANAGEMENT_CONSOLE_PART_1.md",
+    "untracked docs/LLM_MANAGEMENT_CONSOLE_PART_2.md"
+  ],
+  "sourceHashes": {
+    "deploy/gcp/llm-control-grants.sql": "30a815e2b111b4d33ce1a534089380780e8e67a0dd17a7839c773d4ac79b75ab",
+    "docs/llm-management-console-operations.md": "34e53319d3108315b28c3572c5c4ed961b85f1325befdf418d266a71f89d6e8b",
+    "docs/llm-management-console-part-2-report.md": "b9c6337b5ddeeed1cd53b62ecb1f603d8f440dce129d23550b47e488b53c2237",
+    "examples/copilotkit/frontend/LLMEmbedding.tsx": "abf1c1a9ba2a194dea128c5e6efe4eb4f7e65a76668ade9c8a021f7bb06d8979",
+    "examples/copilotkit/frontend/LLMManagement.tsx": "68beaa52a038390015d485d1204da95948f22e161ecaa87e0c8315d6c6585d17",
+    "examples/copilotkit/frontend/LLMPrompts.tsx": "12f6935a5f7423f923d99bc33bbf392686b7046ee9bf52b7c8972b783be0c04b",
+    "examples/copilotkit/server/llm/config.ts": "2c8f2e1fc6016b6b7dfcca61e492a3550cda8c214bd02e8961e100add0621e57",
+    "examples/copilotkit/server/llm/control-api.ts": "345c87d2a0e79a3e0d2ae0e2a31cd3f5eda96f7e2ddc1f8387f02c8b3c564194",
+    "examples/copilotkit/server/llm/control-contract.ts": "a39c31cf94dbe92512d5ec4a02eba7abcc165e46b04fe80d2b522c08191acfde",
+    "examples/copilotkit/server/llm/control-store.ts": "1f3b6efc631c65bff18c69c0b52fd14056a2465d6d7ee3f316ae179ee888cb9f",
+    "examples/copilotkit/server/llm/embedding-migration.ts": "8b6df54a14682be70f9d27f9ee74b26c9ed207e00ae0f227d12005b9f6d0f5cb",
+    "examples/copilotkit/server/llm/execution-release.ts": "7692ff69521e2e49c5411297889752edf875f0c5bf0459b07b9dee72c83025e0",
+    "examples/copilotkit/server/llm/playground.ts": "2d8bdbab90b98ab3a944d73f06f6510a1a6beff35e01b0a350a5ec7223037cda",
+    "examples/copilotkit/server/llm/prompt-contract.ts": "bc9709b8a16ddf2607cde56928a00d1a4d9578847b422a939d379b52bea3f7e7",
+    "examples/copilotkit/server/llm/prompt-regression.ts": "ba893f8bdf78bb2f702e10c8415013d74d83cfb1c010e0e34ea254632757dc46",
+    "examples/copilotkit/server/llm/prompts/context.ts": "1490363fe5bc8694afe7a021d5e95a4aa1da120643168d2d5df330c527fea4da",
+    "examples/copilotkit/server/llm/prompts/registry.ts": "9b2573ff2dd5708acda95377eb293f9219f55824cf70b920177cbf300b7dc05c",
+    "examples/copilotkit/server/llm/prompts/regression-v1.json": "80b72265fbcc3574b5cf106e2216707adbf807d1e4c777a7c977a44d39e245c2",
+    "examples/copilotkit/server/storage/migrations/012_llm_prompts.sql": "c5b443f096d410dc4ecef43141f3f136e590f084effe2592f55b217f49604f73",
+    "examples/copilotkit/tests/acceptance/llm-control.pg.ts": "e0a180d6bfb8ba2e801189c3bd4237ae0ba54b5bd9a0f4702d318ab0ff0cb1d8",
+    "examples/copilotkit/tests/browser/llm-control.spec.ts": "f3b8a544686dcfd7fb961361d0252cae96064e347a67e45e4fd6cbf4aa12ac8b",
+    "examples/copilotkit/tests/fixtures/llm-control-browser-server.ts": "dde4d3f2382fe53f8b44d2446e8392cab8444e2e3417997041dc918c52e14493",
+    "examples/copilotkit/tests/llm-prompts.test.ts": "f2778879f6399335ee17f71577921e0a4684b4df88ef777e40935b3dbc35a200",
+    "examples/copilotkit/tests/llm-validation.test.ts": "7264edbdfdd4ce00232279c31c881032b600043dada118694cc6e1197cefd2c6",
+    "hermes_agui/adapter.py": "fa676f716e6cf34e1e2700c6d7604e282f567c668e4b0829c0157707046ba984",
+    "hermes_agui/core/factory.py": "1148947779ac4d96b9d4500fd27bd6ef580acdbd3e79716ca0ed4e011a8739bf",
+    "hermes_agui/core/managed_llm.py": "826c6d2c273b2cd85588f8969da6dcb19129d60139fbcc534d02bce1553f82f9",
+    "hermes_agui/core/service.py": "e68eaab109789ca3f5d1a080ad885dd8dcbe645469256e3901f7f58fdeb801dc",
+    "hermes_agui/message_adapter.py": "cc30b15c225ed364a46b78c79dfeebf1c5a1a341657647cd48849456e153d907",
+    "hermes_agui/server.py": "ce77fb2115e3f3e535e0ba3c25c9167b7cd9f8279a6a6448bed0c3a14cc2e86b",
+    "hermes_agui/storage/isolated_service.py": "8252a37729f6f197ffc0cb8e42e92164714c64a2ddedf1546b9aacc082511cec",
+    "tests/hermes_agui/test_managed_instruction.py": "e6c879440b555fc7658808858c7cbb40bd14070d0fa9a9dd9ce2b05efccc27c3"
+  }
+}

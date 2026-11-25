@@ -1,0 +1,30 @@
+
+> hermes-copilotkit-example@0.1.0 test
+> vitest run tests/llm-prompts.test.ts tests/llm-control.test.ts tests/llm-validation.test.ts --reporter=dot --maxWorkers=2 --testTimeout=15000
+
+
+ RUN  v3.2.4 /Users/jiangwei/Desktop/hermes/hermes-agent/examples/copilotkit
+
+(node:1482) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1481) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+····stderr | tests/llm-control.test.ts > approved provider selection uses the existing compatible adapter without accepting an endpoint override
+{"severity":"INFO","event":"llm_execution","executionId":"63a03374-93e6-440d-b911-f919f2c23acd","sourceVersion":null,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v3-query","taskVersion":"1","promptId":"v3-query","promptVersion":"1","promptHash":"10ca169d50154c6054a8e7e4e8f1053aabae8476635d34611f13d8d41e13aa79","schemaId":"v3-query","schemaVersion":1,"validatorVersion":"1","provider":"approved-compatible","model":"approved-chat","configHash":"e3d4aa3b5a6da32b4524bed5f7b3dc4da45186b38477fb1f5de68828553a920c","embeddingFingerprint":null,"startedAt":"2026-11-25T05:51:18.933Z","finishedAt":"2026-11-25T05:51:18.940Z","latencyMs":7,"validation":{"stage":"v3-query","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"releaseId":"provider-switch","releaseFingerprint":"da149aeb654888d8de6bc277c45dc84fe06bc9315cef8eae326db8040fda73f9"}
+
+······stderr | tests/llm-control.test.ts > same execution retains its release through publication while concurrent new execution changes route
+{"severity":"INFO","event":"llm_execution","executionId":"381d8795-2076-4724-992d-644a027c2c83","sourceVersion":null,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v3-query","taskVersion":"1","promptId":"v3-query","promptVersion":"1","promptHash":"10ca169d50154c6054a8e7e4e8f1053aabae8476635d34611f13d8d41e13aa79","schemaId":"v3-query","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-flash","configHash":"f6c0cfb8fe2e7b7cb667112bfdaba9b33318198ca70d928914d084922bec2257","embeddingFingerprint":null,"startedAt":"2026-11-25T05:51:20.328Z","finishedAt":"2026-11-25T05:51:20.349Z","latencyMs":21,"validation":{"stage":"v3-query","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"releaseId":"A","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+{"severity":"INFO","event":"llm_execution","executionId":"97b05102-a6cd-4869-8be1-da4fed781f0c","sourceVersion":null,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v3-query","taskVersion":"1","promptId":"v3-query","promptVersion":"1","promptHash":"10ca169d50154c6054a8e7e4e8f1053aabae8476635d34611f13d8d41e13aa79","schemaId":"v3-query","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-pro","configHash":"87ed917dbb389195f179b8e3434d68580b72cd9ae30fe96c1854e74462037342","embeddingFingerprint":null,"startedAt":"2026-11-25T05:51:20.335Z","finishedAt":"2026-11-25T05:51:20.349Z","latencyMs":14,"validation":{"stage":"v3-query","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"releaseId":"B","releaseFingerprint":"5ad141db502b0208b71ba1ce2e5e2632cf8d2e4d65e044ac33fb97a8597852fa"}
+
+stderr | tests/llm-control.test.ts > same execution retains its release through publication while concurrent new execution changes route
+{"severity":"INFO","event":"llm_execution","executionId":"1fef8a27-67a0-4292-8ab0-b1c912f97700","sourceVersion":null,"taskFingerprint":"eabda8f0986d1faed792cdc3728622b1e21148da3b06d07e16842b44c6344188","phase":"provider_attempt","stage":"v3-query","taskVersion":"1","promptId":"v3-query","promptVersion":"1","promptHash":"10ca169d50154c6054a8e7e4e8f1053aabae8476635d34611f13d8d41e13aa79","schemaId":"v3-query","schemaVersion":1,"validatorVersion":"1","provider":"google","model":"gemini-2.5-flash","configHash":"f6c0cfb8fe2e7b7cb667112bfdaba9b33318198ca70d928914d084922bec2257","embeddingFingerprint":null,"startedAt":"2026-11-25T05:51:20.352Z","finishedAt":"2026-11-25T05:51:20.354Z","latencyMs":2,"validation":{"stage":"v3-query","validatorVersion":"1","checkedLayers":["output"],"verdict":"accepted","issues":[]},"outcome":"succeeded","promptTokens":null,"completionTokens":null,"estimatedCost":null,"releaseId":"A","releaseFingerprint":"e2e04a9fe7bfc18e726602008a8e7a4c79912183c418c62a0a2ce5c790ad60a6"}
+
+····(node:1554) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+····················
+
+ Test Files  3 passed (3)
+      Tests  34 passed (34)
+   Start at  13:51:11
+   Duration  13.28s (transform 2.61s, setup 0ms, collect 11.13s, tests 8.89s, environment 1ms, prepare 2.65s)
+

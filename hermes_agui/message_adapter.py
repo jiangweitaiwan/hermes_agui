@@ -15,6 +15,7 @@ class TurnInput:
     llm_registry: dict | None = None
     llm_release_id: str | None = None
     llm_release_fingerprint: str | None = None
+    llm_instruction: str = ""
 
 
 def adapt_input(value: RunAgentInput) -> TurnInput:

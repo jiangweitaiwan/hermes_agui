@@ -1,3 +1,5 @@
+import { promptRegression, suiteVersion } from "./prompt-regression";
+import { PromptEdits } from "./prompt-contract";
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import { candidate, ControlError, hash, verifySnapshot, type ControlPolicy, type Snapshot } from "./control-contract";
@@ -27,7 +29,7 @@ export class ControlStore {
     this.pool.on("error",()=>console.error("LLM control database connection unavailable"));
   }
   async ready() {
-    await this.pool.query(`SELECT d.revision,a.generation,r.release_fingerprint FROM ${schema}.llm_drafts d
+    await this.pool.query(`SELECT d.revision,d.prompts,a.generation,r.release_fingerprint FROM ${schema}.llm_drafts d
       LEFT JOIN ${schema}.llm_active_release a USING(scope) LEFT JOIN ${schema}.llm_releases r USING(scope,release_id) LIMIT 0`);
   }
   close() { return this.pool.end(); }
@@ -49,17 +51,18 @@ export class ControlStore {
     [this.policy.scope, action, actor, randomUUID(), reason, oldRelease ?? null, newRelease ?? null]);
   }
   async draft() {
-    const { rows } = await this.pool.query(`SELECT d.config,d.revision,COALESCE(a.generation,0) AS generation,a.release_id
+    const { rows } = await this.pool.query(`SELECT d.config,d.prompts,d.revision,COALESCE(a.generation,0) AS generation,a.release_id
       FROM ${schema}.llm_drafts d LEFT JOIN ${schema}.llm_active_release a USING(scope) WHERE d.scope=$1`, [this.policy.scope]);
     if (!rows[0]) throw new ControlError(503, "Bootstrap required");
-    return rows[0] as { config: Snapshot["llm"]; revision: number; generation: number; release_id: string };
+    return rows[0] as { config: Snapshot["llm"]; prompts: Snapshot["prompts"] | null; revision: number; generation: number; release_id: string };
   }
-  async update(raw: unknown, revision: number, actor: string) {
-    const snapshot = candidate(raw, this.policy);
+  async update(raw: unknown, revision: number, actor: string, prompts?: unknown) {
+    const parsedPrompts=prompts===undefined?undefined:PromptEdits.parse(prompts);
+    const snapshot = candidate(raw, this.policy,parsedPrompts);
     return this.transaction(async client => {
-      const { rows } = await client.query(`UPDATE ${schema}.llm_drafts SET config=$1,revision=revision+1,
+      const { rows } = await client.query(`UPDATE ${schema}.llm_drafts SET config=$1,prompts=COALESCE($5::jsonb,prompts),revision=revision+1,
         updated_by=$2,updated_at=clock_timestamp() WHERE scope=$3 AND revision=$4 RETURNING revision`,
-      [snapshot.llm, actor, this.policy.scope, revision]);
+      [snapshot.llm, actor, this.policy.scope, revision,parsedPrompts??null]);
       if (!rows[0]) throw new ControlError(409, "Draft changed; reload");
       await this.audit(client, "draft_update", actor);
       return { revision: rows[0].revision };
@@ -67,14 +70,26 @@ export class ControlStore {
   }
   async validate(actor: string) {
     const draft = await this.draft();
-    const snapshot = candidate(draft.config, this.policy);
+    const snapshot = candidate(draft.config, this.policy,draft.prompts??undefined);
     const active = await this.active();
+    const regression=promptRegression();
+    if(!regression.passed)throw new ControlError(422,"Prompt safety regression failed");
+    await this.pool.query(`INSERT INTO ${schema}.llm_prompt_evaluations(scope,candidate_hash,draft_revision,suite_version,result,created_by)
+      VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,[this.policy.scope,hash(snapshot),draft.revision,suiteVersion,regression,actor]);
     await this.audit(this.pool, "validate", actor);
     return { candidateHash: hash(snapshot), revision: draft.revision, generation: draft.generation,
-      issues: [], diff: snapshot.llm.models.filter(model => JSON.stringify(model) !==
+      issues: [], regression, promptDiff:{active:active.snapshot.prompts??{},candidate:snapshot.prompts??{}}, diff: snapshot.llm.models.filter(model => JSON.stringify(model) !==
         JSON.stringify(active.snapshot.llm.models.find(old => old.alias === model.alias))) };
   }
   private async insert(client: PoolClient, snapshot: Snapshot, actor: string, reason: string, parent: string | null, id: string) {
+    const parentTasks=parent?(await client.query(`SELECT snapshot FROM ${schema}.llm_releases WHERE scope=$1 AND release_id=$2`,[this.policy.scope,parent])).rows[0]?.snapshot.tasks:{};
+    if(snapshot.prompts)for(const [task,value] of Object.entries(snapshot.tasks)){
+      const item=value as {promptVersion:string;prompt:string;editableText?:string;protectedContractId?:string;protectedContractHash?:string;effectivePromptHash?:string;schemaVersion:number;validatorVersion:string};
+      if(!item.protectedContractHash)continue;
+      await client.query(`INSERT INTO ${schema}.llm_prompt_versions(scope,task_id,version_id,parent_id,editable_text,protected_contract_id,protected_contract_hash,effective_prompt_hash,schema_version,validator_version,created_by,change_reason)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`,
+        [this.policy.scope,task,item.promptVersion,parentTasks?.[task]?.promptVersion??null,item.editableText??"",item.protectedContractId,item.protectedContractHash,item.effectivePromptHash,item.schemaVersion,item.validatorVersion,actor,reason]);
+    }
     await client.query(`INSERT INTO ${schema}.llm_releases
       (scope,release_id,parent_release_id,snapshot,model_fingerprint,task_fingerprint,release_fingerprint,validated,created_by,reason)
       VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$9)`,
@@ -98,10 +113,14 @@ export class ControlStore {
   }
   async publish(generation: number, revision: number, candidateHash: string, actor: string, reason: string) {
     return this.transaction(async client => {
-      const draft = await client.query(`SELECT config,revision FROM ${schema}.llm_drafts WHERE scope=$1 FOR UPDATE`, [this.policy.scope]);
+      const draft = await client.query(`SELECT config,prompts,revision FROM ${schema}.llm_drafts WHERE scope=$1 FOR UPDATE`, [this.policy.scope]);
       if (draft.rows[0]?.revision !== revision) throw new ControlError(409, "Draft changed; reload");
-      const snapshot = candidate(draft.rows[0].config, this.policy);
+      const snapshot = candidate(draft.rows[0].config, this.policy,draft.rows[0].prompts??undefined);
       if (hash(snapshot) !== candidateHash) throw new ControlError(409, "Candidate changed; validate again");
+      if(snapshot.prompts){
+        const tested=await client.query(`SELECT result FROM ${schema}.llm_prompt_evaluations WHERE scope=$1 AND candidate_hash=$2 AND suite_version=$3 AND draft_revision=$4`,[this.policy.scope,candidateHash,suiteVersion,revision]);
+        if(!tested.rows[0]?.result.passed || !promptRegression().passed)throw new ControlError(422,"Validate this candidate before publishing");
+      }
       const prior = await client.query(`SELECT release_id,generation FROM ${schema}.llm_active_release WHERE scope=$1 FOR UPDATE`, [this.policy.scope]);
       if (prior.rows[0]?.generation !== generation) throw new ControlError(409, "Active release changed; reload");
       const id = `release-${randomUUID()}`;
@@ -167,6 +186,15 @@ export class ControlStore {
       }
       return {...summary,applied:apply};
     });
+  }
+  async promptHistory(task:string,before?:string){
+    if(!Object.hasOwn((await this.active()).snapshot.tasks,task) && task!=="agent_primary")throw new ControlError(404,"Unknown task");
+    const history=await this.history(before);
+    const releases=await Promise.all(history.releases.map(async row=>{
+      const release=await this.resolve(row.release_id);
+      return {...row,task:release.snapshot.tasks[task]??null};
+    }));
+    return {versions:releases,next:history.next};
   }
   async history(before?: string) {
     const cursor=historyCursor(before);

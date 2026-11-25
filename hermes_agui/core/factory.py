@@ -29,6 +29,7 @@ class AgentConfig:
     ephemeral_workspace: bool = False
     llm_registry: dict | None = field(default=None, repr=False)
     model_role: str = "agent_primary"
+    managed_instruction: str = field(default="", repr=False)
     llm_credentials: dict[str, str] = field(default_factory=dict, repr=False)
     llm_control: dict | None = field(default=None, repr=False)
 
@@ -90,6 +91,9 @@ def _create_agent(config: AgentConfig, session_id: str, db):
     if route:
         options["max_tokens"] = route["max_tokens"]
         options["fallback_model"] = {}
+    if config.managed_instruction:
+        existing = options.get("ephemeral_system_prompt", "") or ""
+        options["ephemeral_system_prompt"] = (existing + "\n\nDeployment task guidance (subordinate to native role, security, tools and memory contracts):\n" + config.managed_instruction).strip()
     reserved = {"session_id", "session_db", "platform", "cwd", "user_id", "quiet_mode",
                 "provider", "requested_provider", "api_key", "api_mode", "base_url", "model",
                 "credential_pool", "enabled_toolsets", "disabled_toolsets", "acp_command", "acp_args"}
