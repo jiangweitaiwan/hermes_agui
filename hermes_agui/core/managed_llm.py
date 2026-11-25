@@ -145,5 +145,5 @@ def ready_host(policy):
     except psycopg.Error:
         raise ValueError("Managed control database unavailable") from None
     if row is None:
-        raise ValueError("Bootstrap required before managed Host activation")
+        raise ValueError("Managed active release unavailable; start Runtime initialization before Host readiness")
     validate_snapshot(row[0], row[1], policy)

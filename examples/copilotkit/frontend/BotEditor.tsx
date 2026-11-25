@@ -44,13 +44,13 @@ export function BotEditor({ editing, templates, bots, busy, onSave, onCancel }: 
       delegationTargets: targets.filter(id => bots.some(bot => bot.id === id && bot.status === "active" && bot.id !== editing?.id)) });
   }}>
     <h3>{editing ? "編輯 Bot" : "建立 Bot"}</h3>
-    {editing && <p>模型、工具與角色設定會在新對話生效；既有對話保留已載入的設定。</p>}
+    {editing && <p>{selected?.llmManaged ? "模型／Provider 繼承 active agent_primary；全域發布於下一個新回合生效。" : "模型、工具與角色設定會在新對話生效；既有對話保留已載入的設定。"}</p>}
     <label>Bot 名稱<input value={name} onChange={e => setName(e.target.value)} maxLength={100} required /></label>
     <label>說明<textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={2000} /></label>
     <label>Harness／模型<select value={templateId} onChange={e => {
       setTemplateId(e.target.value); setSkills([]); setToolsets([]);
     }}>{templates.filter(t => !editing || t.harness === editing.harness).map(t =>
-      <option key={t.id} value={t.id}>{t.name} · {t.harness} · 啟動時範本：{t.provider}/{t.model}</option>)}</select></label>
+      <option key={t.id} value={t.id}>{t.name} · {t.harness} · {t.llmManaged ? "繼承 active release · agent_primary" : `啟動時範本：${t.provider}/${t.model}`}</option>)}</select></label>
     <Checklist title="Skills" options={options(selected?.skills ?? [])} values={skills} onChange={setSkills} />
     <Checklist title="Toolsets" options={options(selected?.toolsets ?? [])} values={toolsets} onChange={setToolsets} />
     <Checklist title="可委派的 Bot" options={bots.filter(bot => bot.status === "active" && bot.id !== editing?.id)}

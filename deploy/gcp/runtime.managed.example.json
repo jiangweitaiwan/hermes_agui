@@ -171,7 +171,7 @@
     ]
   },
   "llmControl": {
-    "mode": "static",
+    "mode": "managed",
     "scope": "deployment",
     "admins": [
       "deployment-admin"

@@ -9,7 +9,7 @@ async function main() {
   const { readFile } = await import("node:fs/promises");
   const { bootstrap } = await import("../bootstrap");
   const { WORKER_SHUTDOWN } = await import("./compiler");
-  const { application, wiki, threadMappings,releases,adminStore } = await bootstrap(JSON.parse(await readFile(process.env.AGUI_BOTS_CONFIG, "utf8")), { evolutionTimer: false });
+  const { application, wiki, threadMappings,releases,adminStore } = await bootstrap(JSON.parse(await readFile(process.env.AGUI_BOTS_CONFIG, "utf8")), { evolutionTimer: false, controlReaderOnly: true });
   const evolution = application.evolution;
   const stop = () => evolution?.controller.abort(WORKER_SHUTDOWN);
   process.once("SIGINT", stop); process.once("SIGTERM", stop);

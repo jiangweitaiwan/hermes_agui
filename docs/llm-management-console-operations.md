@@ -1,4 +1,4 @@
-# LLM Management Console Part 1 維運
+# LLM Management Console 維運（Part 3 managed 自動納管）
 
 本文件是操作程序，不是 GCP 部署證明。先讀
 [Unification 部署](llm-unification-deployment.md)、[review/reject SOP](llm-unification-part-2-operations.md)
@@ -7,22 +7,24 @@
 ## 設定及權限
 
 沒有 `llmControl` 時仍為原 static 行為，無控制面資料庫依賴。
+Static 沒有明確 control DSN 時不開 pools；已 provisioned 的 optional static Console 保留原管理功能，
+發布只改控制面，不更換 static inference，也不觸發自動初始化。
 Runtime 的 `llmControl`：`mode: static|managed`（預設 static）、固定 `scope: deployment`、
 `admins: principal[]`（部署層級身分，不能直接使用 workspace owner 清單）、`approved: RegistryConfig`。
 `approved` 是運維批准的 provider/project/location/endpoint/secret-reference/model 選單，不能經管理 API 擴張。
 既有 `llm` 是 bootstrap baseline；managed 啟用後，新工作以 DB active release 為準。
 `llmFingerprint` 仍核對啟動 baseline，release 另有完整 snapshot hash。
 
-範例：[Runtime](../deploy/gcp/runtime.managed.example.json) 預設 static，避免複製後意外啟用；
-[Host](../deploy/gcp/host.managed.example.yaml) 是 bootstrap 完成後使用的 managed 範例。
+範例：[Runtime](../deploy/gcp/runtime.managed.example.json) 明確設定 managed；
+[Host](../deploy/gcp/host.managed.example.yaml) 於 Runtime 完成自動初始化後啟動。原 static examples 保持不變。
 Host 的 `llmControl` 僅含 `mode: managed`、`approved`、`taskFingerprint`；後者必須來自相容 image
 的 `taskFingerprint()`，不是從 browser 接收。範例沒有任何真實憑證。
 保留現有 template ID、Bot ID、principal、project、profile seed 和 thread mappings。
 
 | Consumer | 新 secret reference（僅 DSN，值不放 config） | DB 身分 |
 |---|---|---|
-| Runtime inference / run pins | `AGUI_LLM_DATABASE_URL` | `hermes_llm_runtime`：SELECT 控制面、INSERT run pins |
-| Runtime admin API／可信 CLI | `AGUI_LLM_ADMIN_DATABASE_URL` | `hermes_llm_admin`：draft/pointer 寫入、release/audit/opt-in INSERT |
+| Runtime inference / run pins | `AGUI_LLM_DATABASE_URL` | `hermes_llm_runtime`：SELECT 控制面及可信 Bot registry、INSERT run pins |
+| Runtime admin API／可信 CLI | `AGUI_LLM_ADMIN_DATABASE_URL` | `hermes_llm_admin`：draft/pointer 寫入、release/audit INSERT；自動初始化 |
 | Worker／Completion／Reconcile | `AGUI_LLM_DATABASE_URL` | `hermes_llm_reader`：SELECT 控制面 |
 | Host | `AGUI_LLM_DATABASE_URL` | `hermes_llm_host_reader`：SELECT releases/active/run pins |
 
@@ -44,30 +46,41 @@ Host native custom route 重用 `tools.url_safety.create_ssrf_safe_client`，不
 目前 Node managed transport 對 IPv6-only endpoints fail closed；部署 allowlist 應使用有 public IPv4 的服務。
 Provider 變更仍需管理員確認資料傳送授權；新 secret 尚未掛載時 probe／inference 會失敗，不會自動加 IAM。
 
-## 匯入及 Bot opt-in
+## Managed 部署自動初始化與 Bot 納管
 
-先備份 DB 與其參照的 GCS generations、image digests/revisions、流量與 config artifacts。
-Runtime/Host 分庫備份及 object generations 必須保持一致參照，不自行清除 sources、evidence 或 vectors。
-先部署**相容但仍 static**的 readers，保留目前 routing，完成測試後再啟用。
-沒有既有完整 registry 的 legacy 部署，必須先明確提供 registry，工具不會猜路由。
+`llmControl.mode: managed` 本身就是 deployment-level opt-in，沒有逐 Bot 啟用開關。
+正常部署不執行 bootstrap／opt-in CLI，不需要 SQL 補 rows 或前端初始化按鈕。
+保留全部既有 Bot ID、principal、template、credential seed、ACL、thread、release、draft、audit 和 pin。
+外部 remote AG-UI Bot 保留其 remote routing；Runtime 管理的 Graph stages 仍使用 durable release pin。
+Native auxiliary/compression/MOA 的額外模型依舊 unmanaged。
 
-以下從 `examples/copilotkit` 執行，`RUNTIME_CONFIG` 為管理員審核過的檔案；DSN 由現有 secret 掛載：
+最短程序：
 
-```sh
-node --import tsx server/storage/migrate-cli.ts
-node --import tsx server/llm/control-cli.ts bootstrap "$RUNTIME_CONFIG"
-# 審核 dry-run 的 candidate hash、七角色、provider、embedding selector 後：
-node --import tsx server/llm/control-cli.ts bootstrap "$RUNTIME_CONFIG" --apply
-node --import tsx server/llm/control-cli.ts opt-in "$RUNTIME_CONFIG" "$BOT_ID"
-node --import tsx server/llm/control-cli.ts opt-in "$RUNTIME_CONFIG" "$BOT_ID" --apply
-```
+1. 由既有 schema owner migrator 套用 001–012 及更新後 grants；建立獨立 LOGIN，設定可信 `llm`
+   baseline、approved policy、admin principals、ADC／Secret Manager。沒有新 DDL migration，啟動不執行 DDL。
+2. 新部署沒有舊 jobs 時不需 drain；既有 static → managed 須先停止 admission/delivery，處理 pending/running
+   unpinned jobs，備份 PG/GCS 一致參照與 image/config。不可把歷史 job 補成最新 pin。
+3. 以相容 images/config maintenance rollout：**先 Runtime**，使用 inference DSN 與獨立 admin DSN；
+   registry、thread mappings、control plane 必須是同一 Runtime DB destination，不能跨 ledger 納管。
+4. Runtime 在同一交易內取得 control advisory lock，重讀 state；空控制面從可信 baseline 原子建立
+   release-001、draft revision 1、active generation 1 及一筆 actor=`system:managed-runtime` 的 bootstrap audit。
+   多 replica 只初始化一次。active 存在則驗證 immutable snapshot/hash/policy/code 與 draft 存在，完全不改
+   active/generation/draft/history；合法未發布 draft 不用與 baseline 或 active 相同。
+5. Runtime 就緒後才啟動 Host、Worker、Completion/Reconcile。它們只讀，不掛 admin DSN。
+   採**部署順序**而非內建 retry：active 缺失時立即 fail readiness（0 次重試）；每個 DB connect 上限 2 秒、
+   statement 上限 5 秒。修正 Runtime 初始化或部署順序後由既有 orchestration 重啟，沒有無限應用重試。
+6. 確認全部 consumer revision 相容才恢復 traffic/delivery。登入前端 LLM Management 直接編輯／驗證／發布；
+   任一既有或新建、active 且授權正確的 Native Hermes Bot 自動繼承 `agent_primary`，不用改 Bot record。
 
-`bootstrap --apply` 明確建立 `release-001`、draft revision 1 與 active generation 1；同一 baseline 重跑
-不更新 active／draft，內容不同回 409。CLI 沒有自動 cold-start bootstrap。
-`opt-in` 盤點既有 native Bot 的 principal/template/原 model/provider，`--apply` append-only 建立
-`llm_bot_roles` 並寫 audit；重跑不重複 audit。沒有改 Bot record、identity、credentials、ACL 或 thread。
-每個 Bot（包括新建立的 Bot）必須明確 opt-in；未 opt-in 的 Bot 在 managed Runtime 拒絕新 run。
-不能將 remote AG-UI Bot 誤當 Hermes native Bot。static 部署的 Bot 不受此表影響。
+缺 active 但有 release/draft/audit/pin/prompt/embedding plan/舊 opt-in 或 pinned job 歷史，一律 fail closed；
+不重新建立初始版本、不回退 static、不自動修復。baseline 無效、schema/grants 缺漏、DB down 或 snapshot
+不相容也拒絕 startup/admission。一般 logs/API 不輸出 DSN、secret、prompt/source 原文。
+若已完成舊版手動初始化，升級前後比對 active hash/generation、draft revision 與歷史 count，必須不變。
+
+舊 `llm_bot_roles` 與 bot_opt_in audit 原樣保留，正常 inference 不讀它作為 gate；沒有批量偽造 opt-in。
+`opt-in` CLI deprecated，只輸出不再需要，連 DB 都不開。`bootstrap` 僅保留離線診斷（預設 dry-run）／受控
+初始空庫復原的相容入口；apply 與 Runtime 共用 serialization／驗證，不重設既有 active 或未發布 draft，
+缺 pointer 而有歷史時拒絕。這些都不是部署前置步驟。
 
 managed 啟用前 drain pending/running 未 pin Graph jobs；startup 會拒絕這些 rows。
 保留 historical completed/failed rows，禁止任意補 pin 或在 retry 時讀新 active。
@@ -85,7 +98,7 @@ pre-011 的 static database 不需新 tables。Worker `process/tick/reconcile` �
 
 1. 核對所有 Runtime／Worker／Host image 的 code contract、task/model hashes、DB grants 及 approved policy。
    Host managed startup 用專屬 reader 核對 active snapshot；Runtime startup 同樣驗證 schema 與 contract。
-2. 停止新 admission／delivery，drain 舊 jobs，完成 bootstrap 及 Bot opt-in。
+2. 停止新 admission／delivery，必要時 drain 舊 unpinned jobs；Runtime 自動初始化，沒有 Bot opt-in。
 3. Host 使用 managed 範例；Runtime／Worker 同步把 `llmControl.mode` 改 managed，保留原 native loop、
    Graph config、ACL、review gate、Cloud Tasks topology；確認全部 consumer 相容後才恢復新工作。
 4. 在 Vercel 現有 AppShell 開啟 **LLM Management**。維持既有 `VITE_RUNTIME_URL` 與 Firebase public config；
@@ -93,7 +106,7 @@ pre-011 的 static database 不需新 tables。Worker `process/tick/reconcile` �
    只有明列在 deployment `admins` 的 principal 可操作 API。
 5. Tasks 修改 model/provider／timeoutMs／retries／maxTokens／fallback → 儲存草稿 → 驗證已儲存草稿 →
    審核 active diff/hash → 確認 vendor 授權與 reason → 發布。後端回 201 才算成功。
-   409 必須重新載入並驗證；不能覆寫別人的 revision。Embedding／Prompt／Schema／Validator 唯讀。
+   409 必須重新載入並驗證；不能覆寫別人的 revision。Embedding／Schema／Validator 保持 readonly；Prompt 使用 Part 2 的 protected slot 流程。
 
 管理 API prefix `/api/admin/llm/`：GET tasks/providers/draft/releases（`before` 是不透明的 timestamp+ID keyset cursor，25 rows）；
 PATCH draft `{expectedRevision, config}`；POST validate `{}`；POST releases
@@ -110,7 +123,8 @@ Provider probe 使用固定 synthetic input，不讀真實 session，不代表�
 
 ## Run／Job 與故障
 
-Runtime 在可信 run preparation boundary，按 principal+Bot+Host thread+run ID 原子 INSERT durable pin，
+Runtime 在可信 run preparation boundary，按 principal+Bot+Host thread+run ID 原子 INSERT durable pin；pin transaction 與 Bot lifecycle
+共用 `(53859273,1)` advisory lock，重查 registry principal/harness/active/deletedAt，避免已停用或刪除 Bot 新建 pin，
 同一 persisted run 重送讀原 pin；snapshot 由 server resolver 載入並核對完整 hash／code contract。
 retrieval parser、storyteller 與 native Agent primary 使用同一 release。Embedding selector 以 bootstrap baseline
 固定，candidate 不得改任何 embedding model/provider/project/location/dimension/version。
@@ -155,6 +169,8 @@ DB／resolver 故障時，新 managed run 不讀 static 或 cached active，安�
 
 程式回滾：先停止新 managed admission／delivery，隔離未完成 pinned jobs；保留可讀新 snapshot 的 reader，
 待原 pin drain/retry 完成，才恢復相容 static images/config。舊 image 不了解 pin 時不得接 managed job。
+舊 image 仍要求逐 Bot opt-in，不能直接恢復 managed admission，也不為程式回滾補造 opt-in。
+必要時保留新版相容 reader，停止新 admission 並依 SOP 回到已保存可用 static revision。
 不 drop migration 011、不清 pin、不單獨回復舊 DB、不修改 vectors／Task topology。
 
 測試命令（Node 22+，Python 使用既有 test environment）：

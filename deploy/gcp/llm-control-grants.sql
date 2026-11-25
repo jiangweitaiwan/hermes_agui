@@ -1,4 +1,4 @@
--- Schema owner applies after Runtime 011. Operators create LOGIN identities separately.
+-- Schema owner applies after Runtime 011/012. Operators create LOGIN identities separately.
 -- No Host database-owner identity is granted access to the Runtime control plane.
 BEGIN;
 GRANT USAGE ON SCHEMA hermes_agui_runtime TO hermes_llm_admin,hermes_llm_runtime,hermes_llm_reader,hermes_llm_host_reader;
@@ -9,6 +9,8 @@ GRANT SELECT ON hermes_agui_runtime.llm_drafts,hermes_agui_runtime.llm_releases,
 GRANT SELECT ON hermes_agui_runtime.llm_releases,hermes_agui_runtime.llm_run_pins,
   hermes_agui_runtime.llm_active_release TO hermes_llm_host_reader;
 GRANT SELECT ON hermes_agui_runtime.bot_registry TO hermes_llm_admin;
+GRANT SELECT(id,principal,record) ON hermes_agui_runtime.bot_registry TO hermes_llm_runtime;
+GRANT SELECT(llm_release_id) ON hermes_agui_runtime.graph_jobs TO hermes_llm_admin;
 GRANT INSERT ON hermes_agui_runtime.llm_drafts,hermes_agui_runtime.llm_releases,
   hermes_agui_runtime.llm_active_release,hermes_agui_runtime.llm_admin_events,
   hermes_agui_runtime.llm_bot_roles TO hermes_llm_admin;

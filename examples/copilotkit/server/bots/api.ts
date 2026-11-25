@@ -41,8 +41,8 @@ function routes(manager: BotManager) {
   const roots: Record<string, Action> = {
     "GET /api/bots": (_request, identity) => Response.json(manager.listBots(identity)),
     "POST /api/bots": async (request, identity) => Response.json(await manager.createBot(await body(request), identity), { status: 201 }),
-    "GET /api/bots/options": () => Response.json(manager.options.templates.map(({ id, name, harness, model, provider, skills, toolsets }) =>
-      ({ id, name, harness, model, provider, skills, toolsets }))),
+    "GET /api/bots/options": () => Response.json(manager.options.templates.map(({ id, name, harness, model, provider, skills, toolsets, llmManaged }) =>
+      ({ id, name, harness, model, provider, skills, toolsets, llmManaged }))),
   };
   return (request: Request, path: string, identity: Identity) => {
     const root = roots[`${request.method} ${path}`];

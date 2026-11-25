@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 test("real admin API: model draft, validation, publish, conflict and rollback", async ({page})=>{
   await page.request.post("/api/bot-session",{data:{token:"local-browser-admin-only"}});
   await page.goto("/tests/fixtures/llm-control-browser.html");
@@ -64,4 +64,65 @@ test("prompt editor, schema, playground and release persist through real API rel
   await page.getByRole("button",{name:"Embedding Migration",exact:true}).click();
   await expect(page.getByText("切換保持 BLOCKED",{exact:false})).toBeVisible();
   expect((await page.request.patch("/api/admin/llm/schemas/v2-parser",{data:{schema:{}}})).status()).toBe(404);
+});
+
+
+test("managed deployment creates native Bot in the browser and chats without bootstrap or opt-in",async({page})=>{
+  const submit=async(chat:Locator,text:string)=>{
+    const response=page.waitForResponse(value=>value.request().method()==="POST" && value.url().includes("/api/copilotkit/agent/") && value.url().endsWith("/run"));
+    await chat.locator("textarea").fill(text);await chat.locator("textarea").press("Enter");
+    // Await the actual finite SSE run, then assert its UI projection; keep the existing 60s test budget.
+    expect(await (await response).finished()).toBeNull();
+  };
+  await page.request.post("/api/bot-session",{data:{token:"local-browser-native-only"}});
+  await page.goto("/tests/fixtures/llm-control-browser.html");
+  await page.getByRole("button",{name:"開啟 Existing Native",exact:true}).click();
+  const existing=page.locator("section[data-thread-id]:visible");
+  await expect(existing.getByRole("status")).toHaveText("已連線");
+  await submit(existing,"existing native managed message");
+  await expect(existing).toContainText("Managed native answer.");
+  await page.getByRole("button",{name:"新增 Bot",exact:true}).click();
+  const form=page.getByRole("form",{name:"建立 Bot",exact:true});
+  await expect(form.getByRole("option")).toContainText("繼承 active release");
+  await form.getByLabel("Bot 名稱").fill("Automatic Native");
+  await form.getByLabel("todo",{exact:true}).check();
+  const createdResponse=page.waitForResponse(value=>value.request().method()==="POST" && new URL(value.url()).pathname==="/api/bots");
+  await form.getByRole("button",{name:"建立 Bot",exact:true}).click();
+  const created=await (await createdResponse).json();
+  const chat=page.locator(`section[data-bot-id="${created.id}"][data-thread-id]:visible`);
+  await expect(chat.getByRole("status")).toHaveText("已連線");
+  const thread=await chat.getAttribute("data-thread-id");
+  await submit(chat,"first managed message");
+  await expect(chat).toContainText("Managed native answer.");
+  await expect(chat.locator("textarea")).toBeEnabled();
+  await submit(chat,"second managed message");
+  await expect(chat.getByText("Managed native answer.",{exact:true})).toHaveCount(2);
+  expect(await chat.getAttribute("data-thread-id")).toBe(thread);
+  expect((await (await page.request.get("/api/testing/opt-in-count")).json()).n).toBe(0);
+  await page.getByRole("group",{name:"agent_primary",exact:true}).getByRole("combobox",{name:"Model",exact:true}).selectOption("gemini-2.5-pro");
+  await page.getByRole("button",{name:"儲存草稿",exact:true}).click();
+  await expect(page.getByText("草稿已儲存，尚未發布。",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Prompts",exact:true}).click();
+  await page.getByRole("combobox",{name:"Task",exact:true}).selectOption("agent_primary");
+  await page.getByLabel("Editable task guidance").fill("Browser native release instruction");
+  await page.getByRole("button",{name:"儲存 Prompt 草稿",exact:true}).click();
+  await page.getByRole("button",{name:"Tasks",exact:true}).click();
+  await page.getByRole("button",{name:"驗證已儲存草稿",exact:true}).click();
+  await expect(page.getByText("驗證通過",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"發布",exact:true}).click();
+  await page.getByRole("dialog").getByLabel("原因").fill("Native automatic management");
+  await page.getByRole("dialog").getByRole("button",{name:"確認",exact:true}).click();
+  await expect(page.getByText("後端已確認操作成功。",{exact:true})).toBeVisible();
+  await submit(chat,"third managed message");
+  await expect(chat.getByText("Managed native answer.",{exact:true})).toHaveCount(3);
+  const requests=await (await page.request.get("/api/testing/native-requests")).json();
+  expect(requests.length).toBeGreaterThanOrEqual(2);
+  const active=await (await page.request.get("/api/admin/llm/tasks")).json();
+  const model=active.active.snapshot.llm.models.find((m:{alias:string})=>m.alias==="agent_primary").model;
+  expect(requests.at(-1).model.endsWith(model)).toBe(true);
+  expect(requests[0].model).not.toBe(requests.at(-1).model);
+  expect(JSON.stringify(requests.at(-1).messages)).toContain("Browser native release instruction");
+  expect(JSON.stringify(requests.at(-1).messages)).toContain("first managed message");
+  await page.reload();
+  await expect(page.getByText("Automatic Native",{exact:true})).toBeVisible();
 });

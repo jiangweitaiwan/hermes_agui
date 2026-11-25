@@ -25,7 +25,7 @@ const group = (role: string) => role === "agent_primary" ? "Agent" : role === "g
   ["graph_query", "graph_story"].includes(role) ? "Retrieval" : "Ingest";
 interface EmptyDraftProps {busy:boolean;hasDraft:boolean;error:string}
 function EmptyDraft({busy,hasDraft,error}:EmptyDraftProps){
-  return !busy && !hasDraft && !error ? <p>尚未建立 release；請由可信 CLI 匯入。</p> : null;
+  return !busy && !hasDraft && !error ? <p>Managed active release 尚未就緒；請檢查 Runtime 初始化、schema/grants 與部署順序。</p> : null;
 }
 const activationText=(mode?:string)=>mode==="managed"?"新工作將使用此版本；既有工作保持原 pin。":"目前為 static；發布僅更新控制面，工作仍使用啟動設定，需啟用 managed 才生效。";
 

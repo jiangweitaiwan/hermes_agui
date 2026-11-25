@@ -8,18 +8,24 @@ export function parseControl(registry:any){
   if(!registry?.llmControl)return undefined;
   const policy=ControlSettings.parse(registry.llmControl);
   candidate(registry.llm,policy);
-  if(policy.mode==="managed" && (process.env.AGUI_STORAGE_BACKEND!=="gcp" || !registry.management || registry.graph?.evolution?.compiler))throw new Error("Managed mode requires durable registry Graph and trusted management");
+  if(policy.mode==="managed" && (process.env.AGUI_STORAGE_BACKEND!=="gcp" || !registry.management || registry.storage?.botRegistry!=="postgres" || registry.storage?.threadMappings!=="postgres" || registry.graph?.evolution?.compiler))throw new Error("Managed mode requires durable registry Graph and trusted management");
   return policy;
 }
-export async function openControl(policy?:ControlPolicy){
-  if(!policy)return {};
+export async function openControl(policy?:ControlPolicy, baseline?:unknown, initialize = true){
+  const managed=policy?.mode==="managed";
+  if(!policy || (!managed && !process.env.AGUI_LLM_DATABASE_URL))return {};
   const releases=new ControlStore(process.env.AGUI_LLM_DATABASE_URL ?? "",policy);
   let adminStore:ControlStore|undefined;
   try{
-    await releases.ready();
-    if(policy.mode==="managed")await releases.active();
-    if(process.env.AGUI_LLM_ADMIN_DATABASE_URL){adminStore=new ControlStore(process.env.AGUI_LLM_ADMIN_DATABASE_URL,policy);await adminStore.ready();}
+    await releases.ready(managed && initialize);
+    if(initialize && process.env.AGUI_LLM_ADMIN_DATABASE_URL){adminStore=new ControlStore(process.env.AGUI_LLM_ADMIN_DATABASE_URL,policy);await adminStore.ready();}
     if(adminStore && adminStore.target!==releases.target)throw new Error("Control reader/admin database destinations must match");
+    if(managed && initialize){
+      if(!adminStore)throw new Error("Managed Runtime initialization requires the dedicated admin binding");
+      await adminStore.ensureInitialRelease(baseline);
+    }
+    // Readers fail readiness immediately. Deploy Runtime first; orchestration may retry startup.
+    if(managed)await releases.active();
     return {releases,adminStore};
   }catch(error){await releases.close();await adminStore?.close();throw error;}
 }

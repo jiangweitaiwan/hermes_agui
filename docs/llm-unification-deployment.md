@@ -122,3 +122,14 @@ node --import ./examples/copilotkit/node_modules/tsx/dist/loader.mjs examples/co
 Google API references: [structured output](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/capabilities/control-generated-output),
 [GenerationConfig JSON schema field](https://docs.cloud.google.com/java/docs/reference/google-cloud-vertexai/latest/com.google.cloud.vertexai.api.GenerationConfig.Builder),
 [text embedding predict contract](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/embeddings/get-text-embeddings).
+
+
+## Console managed mode (Part 3)
+
+For dynamic LLM management, follow [the current operations procedure](llm-management-console-operations.md).
+`llmControl.mode=managed` is the deployment opt-in: Runtime automatically initializes a fresh migrated database,
+then every eligible existing/new native Bot inherits active `agent_primary`. No bootstrap/opt-in CLI or UI action
+is required. Keep the one-time static→managed unpinned-job drain and maintenance rollout; start Runtime before
+read-only Host/Workers. Retain all historical releases, drafts, pins and legacy role records. Never mix old
+opt-in-gated images with new managed admission; do not fabricate role rows for rollback. No GCP deployment
+has been performed by this source change.

@@ -9,6 +9,7 @@ import { loadWiki, loadDurableWiki } from "./graph/provider";
 import { loadEvolution } from "./graph/evolution";
 import { PostgresThreadMappings } from "./storage/thread-mappings";
 import type { RuntimeSettings } from "./runtime";
+import { databaseTarget } from "./llm/database-target";
 import { ControlStore } from "./llm/control-store";
 import { managedRunPreparation } from "./llm/run-pinning";
 import { parseControl,openControl,bindManagedQueue,adminControl } from "./llm/control-bootstrap";
@@ -54,9 +55,12 @@ function validateCloudDeployment(registry:any,cloud:ReturnType<typeof configureC
 }
 
 /** Shared composition for the HTTP Runtime and trusted one-shot worker commands. */
-export async function bootstrap(registry: any, execution: { evolutionTimer?: boolean } = {}) {
+export async function bootstrap(registry: any, execution: { evolutionTimer?: boolean; controlReaderOnly?: boolean } = {}) {
   const policy=parseControl(registry);
   const managed=policy?.mode==="managed";
+  if(managed && databaseTarget(process.env.AGUI_RUNTIME_DATABASE_URL ?? "")!==databaseTarget(process.env.AGUI_LLM_DATABASE_URL ?? "")) {
+    throw new Error("Managed admission and Bot registry must use the same database destination");
+  }
   registry = configureLLMDeployment(registry);
   const cloud = configureCloud(registry?.cloud);
   validateCloudDeployment(registry,cloud);
@@ -70,7 +74,7 @@ export async function bootstrap(registry: any, execution: { evolutionTimer?: boo
   let releases:ControlStore|undefined;
   let adminStore:ControlStore|undefined;
   try {
-    ({releases,adminStore}=await openControl(policy));
+    ({releases,adminStore}=await openControl(policy, registry?.llm, !execution.controlReaderOnly));
     threadMappings = await threadStorage(registry);
     application = createApplication(settings, {
       managedRun:managed?managedRunPreparation(releases!):undefined,

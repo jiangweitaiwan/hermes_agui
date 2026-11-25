@@ -37,6 +37,7 @@ function configureTemplates(copy:any,registry:ModelRegistry){
     if(copy.llmControl?.mode==="managed" && role!=="agent_primary")throw new Error("Managed Bots use the deployment agent_primary role");
     if(!configured(role))throw new Error("Unknown Bot model role");
     if(template.model || template.provider)throw new Error("Conflicting legacy Bot routing and LLM registry");
+    if(copy.llmControl?.mode==="managed")template.llmManaged=true;
     const model=registry.model(role),provider=registry.provider(model.provider);
     if(!provider.capabilities.includes("chat")||model.dimension)throw new Error("Bot role requires chat capability");
     template.model=model.model;template.provider=provider.driver==="vertex"?"vertex":provider.id;

@@ -79,18 +79,24 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
       return { botId, principal: scope.principal, projectId: scope.projectId };
     },
   };
+  const managedRun: PrepareManagedRun | undefined = options.managedRun && ((id, settings, input, prepare) => {
+    const stored = management?.manager.options.registry.get(id);
+    if (!stored || !stored.principal) throw new Error("Managed run requires a trusted registry binding");
+    return options.managedRun!(id, settings, input, prepare,
+      { principal: stored.principal, harness: stored.record.harness });
+  });
   const runtime = createRuntimeHandler(bots, memory, management ? { allowed: (request, id) => {
     const identity = management.auth.authenticate(request);
     if (!identity) return false;
     try { return management.manager.owned(id, identity).record.status === "active"; } catch { return false; }
-  } } : undefined, streamIngestion, threads,options.managedRun);
+  } } : undefined, streamIngestion, threads,managedRun);
   const refresh = (handler: (request: Request) => Promise<Response>) => async (request: Request) => {
     try { await management?.manager.sync(); }
     catch { return new Response("Bot registry unavailable", { status: 503 }); }
     return handler(request);
   };
   const delegation = options.delegation ? new DelegationCoordinator(bots, { ...options.delegation, allow },
-    (id, input) => options.managedRun ? options.managedRun(id,bots[id],input,value=>prepareRunInput(id,bots[id],value,memory))
+    (id, input) => managedRun ? managedRun(id,bots[id],input,value=>prepareRunInput(id,bots[id],value,memory))
       : prepareRunInput(id, bots[id], input, memory), streamIngestion, threads) : undefined;
   const dispatchRuntime = refresh(runtime);
   return {

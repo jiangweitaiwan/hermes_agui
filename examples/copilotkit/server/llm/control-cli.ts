@@ -4,9 +4,10 @@ import { ControlStore } from "./control-store";
 
 async function main() {
   const [command, filename, ...flags] = process.argv.slice(2);
-  if (!["bootstrap","opt-in"].includes(command) || !filename) throw new Error("Usage: control-cli bootstrap|opt-in RUNTIME_CONFIG [BOT_ID] [--apply]");
+  if (!["bootstrap","opt-in"].includes(command) || !filename) throw new Error("Offline diagnostic: control-cli bootstrap RUNTIME_CONFIG [--apply] (normal managed startup initializes automatically); opt-in is deprecated");
   const positional=flags.filter(flag=>flag!=="--apply");
   if(command==="bootstrap"?positional.length!==0:positional.length!==1 || !/^[a-z][a-z0-9_-]{0,63}$/.test(positional[0]))throw new Error("Invalid CLI arguments");
+  if(command==="opt-in") { console.log(JSON.stringify({deprecated:true,required:false,message:"Managed deployment automatically manages eligible native Bots"})); return; }
   const input = JSON.parse(await readFile(filename, "utf8"));
   const policy = ControlSettings.parse(input.llmControl);
   const snapshot = candidate(input.llm, policy);
@@ -15,7 +16,7 @@ async function main() {
   try {
     await store.ready();
     const actor=`cli:${(await store.pool.query("SELECT current_user AS actor")).rows[0].actor}`;
-    const result=command==="bootstrap"?await store.bootstrap(input.llm,actor,true):await store.optInBot(positional[0],actor,flags.includes("--apply"));
+    const result=await store.bootstrap(input.llm,actor,true);
     console.log(JSON.stringify(result));
   }
   finally { await store.close(); }

@@ -38,12 +38,26 @@ beforeAll(async () => {
   await store.ready(); await replica.ready();
   expect((await store.bootstrap(llm, "operator", false)).applied).toBe(false);
   await expect(store.active()).rejects.toThrow();
-  await store.bootstrap(llm, "operator", true);
+    const script=`import {openControl} from './server/llm/control-bootstrap.ts';
+let raw='';for await(const part of process.stdin)raw+=part;
+const v=JSON.parse(raw);
+process.env.AGUI_LLM_DATABASE_URL=v.url;process.env.AGUI_LLM_ADMIN_DATABASE_URL=v.url;
+const runtime=await openControl(v.policy,v.llm);
+try{console.log(JSON.stringify({releaseId:(await runtime.releases.active()).release_id}));}
+finally{await runtime.releases.close();await runtime.adminStore.close();}`;
+  const initialize=()=>new Promise<any>((done,reject)=>{
+    const child=spawn(process.execPath,["--import","tsx","--input-type=module","-e",script],{stdio:["pipe","pipe","pipe"]});
+    let output="";child.stdout.on("data",part=>{output+=part;});child.stderr.resume();child.on("error",reject);
+    child.on("close",code=>code===0?done(JSON.parse(output)):reject(new Error("initialization process failed")));
+    child.stdin.end(JSON.stringify({url:url.href,policy,llm}));
+  });
+  expect(await Promise.all([initialize(),initialize()])).toEqual([{releaseId:"release-001"},{releaseId:"release-001"}]);
+  expect((await store.history()).events).toMatchObject([{action:"bootstrap",actor:"system:managed-runtime"}]);
   expect((await replica.bootstrap(llm, "operator", true)).applied).toBe(false);
   await store.pool.query(`INSERT INTO hermes_agui_runtime.bot_registry(id,principal,record) VALUES ('bot','user',$1)`,
-    [{ id: "bot", harness: "hermes", templateId: "native", model: "gemini-2.5-flash", provider: "vertex" }]);
-  await expect(store.pinRun("user", "bot", "t", "r")).rejects.toThrow(/migration/);
-  await store.optInBot("bot", "operator", true); await store.optInBot("bot", "operator", true);
+    [{ id: "bot", harness: "hermes", templateId: "native", model: "gemini-2.5-flash", provider: "vertex", status:"active" }]);
+  expect((await store.pinRun("user", "bot", "t", "r")).release_id).toBe("release-001");
+
   objects = await realpath(await mkdtemp(join(tmpdir(), "llm-p1-objects-")));
   wiki = new PostgresWikiStore(url.href, new FilesystemGraphObjects(objects));
   await wiki.ready(); queue = new PostgresDocumentIngestor(wiki); queue.useReleases(store); await queue.ready();
@@ -58,6 +72,13 @@ test("immutable release/audit and exact grants fence reader/worker control write
   for(const role of dbRoles)await store.pool.query(`CREATE ROLE ${role} ${role==="hermes_llm_host_reader"?"LOGIN":"NOLOGIN"}`);
   try {
     await store.pool.query(await readFile("../../deploy/gcp/llm-control-grants.sql","utf8"));
+    const executorUrl=new URL(url);executorUrl.searchParams.set("options","-c role=hermes_llm_runtime");
+    const executor=new ControlStore(executorUrl.href,policy);
+    try{
+      await executor.ready(true);
+      expect((await executor.pinRun("user","bot","executor-thread","executor-run")).release_id).toBe("release-001");
+      await expect(executor.ensureInitialRelease(llm)).rejects.toMatchObject({status:503});
+    }finally{await executor.close();}
     const pinned=await store.pinRun("user","bot","host-thread","host-run");
     const prepared=await managedRunPreparation(store)("bot",{agentUrl:"http://localhost/agent",token:"fixture-token",
       memory:{key:"host-fixture-signing",principal:"user",projectId:"project"}},
@@ -94,6 +115,8 @@ else:
       expect((await client.query("SELECT release_id FROM hermes_agui_runtime.llm_active_release")).rows).toHaveLength(1);
       await expect(client.query("UPDATE hermes_agui_runtime.llm_active_release SET generation=generation+1")).rejects.toThrow(/permission denied/);
       await expect(client.query("SELECT * FROM hermes_agui_runtime.bot_registry")).rejects.toThrow(/permission denied/);
+      await client.query("SET ROLE hermes_llm_host_reader");
+      await expect(client.query("INSERT INTO hermes_agui_runtime.llm_drafts(scope,config,revision,updated_by) VALUES('deployment','{}',1,'host')")).rejects.toThrow(/permission denied/);
     } finally { await client.query("RESET ROLE"); client.release(); }
     await expect(store.pool.query("UPDATE hermes_agui_runtime.llm_releases SET reason='overwrite'")).rejects.toThrow(/immutable/);
     await expect(store.pool.query("DELETE FROM hermes_agui_runtime.llm_admin_events")).rejects.toThrow(/immutable/);
@@ -133,7 +156,7 @@ test("two replicas CAS publication, durable run/job pins survive retry/restart a
   await expect(store.pool.query("UPDATE hermes_agui_runtime.graph_jobs SET llm_release_id=$1 WHERE id=$2", [active.release_id, id])).rejects.toThrow(/immutable/);
   await expect(store.rollback(active.release_id, 2, "deployment-admin", "stale CAS")).rejects.toMatchObject({ status: 409 });
   const history = await store.history();
-  expect(history.events.map(e => e.action)).toEqual(expect.arrayContaining(["publish", "rollback", "bot_opt_in", "validate"]));
+  expect(history.events.map(e => e.action)).toEqual(expect.arrayContaining(["publish", "rollback", "bootstrap", "validate"]));
   expect(JSON.stringify(history)).not.toContain("Alice");
 });
 test("real API requires deployment-admin, rejects cross scope/CSRF/secrets and reports conflicts", async () => {
@@ -160,6 +183,7 @@ test("real API requires deployment-admin, rejects cross scope/CSRF/secrets and r
     [corrupt,corrupt.modelFingerprint,corrupt.taskFingerprint,hash(corrupt)]);
   await expect(store.resolve("incompatible")).rejects.toThrow();
   await store.pool.query("UPDATE hermes_agui_runtime.llm_active_release SET release_id='incompatible'");
+  await expect(store.ensureInitialRelease(llm)).rejects.toMatchObject({status:503});
   const id=await queue.enqueue(ns,{title:"Fail closed",mime:"text/plain",content:"No candidate may publish.",idempotencyKey:"incompatible-job"});
   let calls=0;
   await new WikiCompiler(queue,{json:async()=>{calls++;throw new Error("must not infer");}},120000,"v2").processJob(ns,id);
@@ -290,4 +314,137 @@ test("embedding plans persist without activation and reject unapproved encoders"
   expect((await planMigration(store,{...body,target:policy.embeddingCandidates[0]},"migration-admin")).changed).toBe(true);
   expect((await store.active()).release_fingerprint).toBe(before.release_fingerprint);
   await expect(planMigration(store,{...body,target:{...body.target,model:"unapproved"}},"migration-admin")).rejects.toMatchObject({status:422});
+});
+
+
+test("restart preserves published active and unpublished draft plus historical opt-in",async()=>{
+  // Simulate the append-only rows created by the previous deployed image, never a new run prerequisite.
+  await store.pool.query(`INSERT INTO hermes_agui_runtime.llm_bot_roles
+    (scope,bot,principal,template,role,legacy_model,legacy_provider,created_by)
+    VALUES('deployment','bot','user','native','agent_primary','gemini-2.5-flash','vertex','legacy-admin')`);
+  await store.audit(store.pool,"bot_opt_in","legacy-admin","Historical upgrade fixture");
+  const draft=await store.draft();
+  await store.update(draft.config,draft.revision,"admin",{agent_primary:"Unpublished preserved slot"});
+  const before={draft:await store.draft(),active:await store.active(),history:await store.history()};
+  expect((await replica.ensureInitialRelease(llm)).applied).toBe(false);
+  expect({draft:await replica.draft(),active:await replica.active(),history:await replica.history()}).toEqual(before);
+  expect((await replica.pool.query("SELECT count(*)::int n FROM hermes_agui_runtime.llm_bot_roles")).rows[0].n).toBe(1);
+});
+
+test("registry principal, lifecycle and harness gate pinning without opt-in rows",async()=>{
+  await expect(store.pinRun("foreign","bot","thread","forged")).rejects.toMatchObject({status:403});
+  await expect(store.pinRun("user","missing","thread","forged")).rejects.toMatchObject({status:403});
+  const lifecycle=await store.pool.connect();
+  try{
+    await lifecycle.query("SELECT pg_advisory_lock(53859273,1)");
+    await lifecycle.query(`UPDATE hermes_agui_runtime.bot_registry SET record=record || '{"status":"disabled"}' WHERE id='bot'`);
+    const pin=replica.pinRun("user","bot","thread","revoked-race");
+    // Wait for the actual DB lock waiter, never a timing assumption.
+    for(let i=0;i<100;i++){
+      const waiting=await lifecycle.query("SELECT 1 FROM pg_locks WHERE locktype='advisory' AND NOT granted");
+      if(waiting.rowCount)break;
+      if(i===99)throw new Error("admission did not reach lifecycle fence");
+    }
+    await lifecycle.query("SELECT pg_advisory_unlock(53859273,1)");
+    await expect(pin).rejects.toMatchObject({status:403});
+    expect((await store.pool.query("SELECT 1 FROM hermes_agui_runtime.llm_run_pins WHERE run='revoked-race'")).rowCount).toBe(0);
+    await lifecycle.query(`UPDATE hermes_agui_runtime.bot_registry SET record=record || '{"status":"active","deletedAt":"2026-11-01"}' WHERE id='bot'`);
+    await expect(store.pinRun("user","bot","thread","deleted")).rejects.toMatchObject({status:403});
+  }finally{
+    await lifecycle.query("SELECT pg_advisory_unlock_all()");
+    await lifecycle.query(`UPDATE hermes_agui_runtime.bot_registry SET record=record - 'deletedAt' || '{"status":"active"}' WHERE id='bot'`);
+    lifecycle.release();
+  }
+  await store.pool.query(`INSERT INTO hermes_agui_runtime.bot_registry(id,principal,record) VALUES('remote','user','{"id":"remote","harness":"remote_ag_ui","status":"active"}')`);
+  await expect(store.pinRun("user","remote","thread","native-forgery")).rejects.toMatchObject({status:403});
+  const input={threadId:"thread",runId:"remote-run",messages:[],state:{},tools:[],context:[],forwardedProps:{}};
+  const output=await managedRunPreparation(store)("remote",{agentUrl:"http://remote.invalid/agent",token:"remote-token"},input,async value=>{
+    expect(executionRelease()).toBeDefined();return value;
+  },{principal:"user",harness:"remote_ag_ui"});
+  expect(output.forwardedProps).toEqual({});
+});
+
+test("missing active with history and invalid baseline fail closed without repair",async()=>{
+  const before=await store.draft();
+  await store.pool.query("DELETE FROM hermes_agui_runtime.llm_active_release");
+  try{
+    await expect(replica.ensureInitialRelease(llm)).rejects.toMatchObject({status:503});
+    expect((await store.pool.query("SELECT 1 FROM hermes_agui_runtime.llm_active_release")).rowCount).toBe(0);
+    await expect(replica.ensureInitialRelease({})).rejects.toMatchObject({status:422});
+  }finally{
+    await store.pool.query("INSERT INTO hermes_agui_runtime.llm_active_release(scope,release_id,generation,updated_by) VALUES('deployment',$1,$2,'test-restore')",[before.release_id,before.generation]);
+  }
+});
+
+test("fresh initialization rolls back completely after audit failure and retries safely",async()=>{
+  const name=`llm_p3_fault_${randomUUID().replaceAll("-","")}`;
+  await admin.query(`CREATE DATABASE ${name} ENCODING 'UTF8' TEMPLATE template0`);
+  const target=new URL(url);target.pathname=`/${name}`;
+  const fresh=new ControlStore(target.href,policy);
+  try{
+    execFileSync(process.execPath,["--import","tsx","server/storage/migrate-cli.ts"],{env:{...process.env,AGUI_RUNTIME_DATABASE_URL:target.href}});
+    await expect(fresh.ensureInitialRelease({})).rejects.toMatchObject({status:422});
+    await fresh.pool.query(`CREATE FUNCTION hermes_agui_runtime.fail_initial_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'injected audit failure'; END $$;
+      CREATE TRIGGER fail_initial_audit BEFORE INSERT ON hermes_agui_runtime.llm_admin_events
+      FOR EACH ROW EXECUTE FUNCTION hermes_agui_runtime.fail_initial_audit()`);
+    await expect(fresh.ensureInitialRelease(llm)).rejects.toThrow("injected audit failure");
+    for(const table of ["llm_releases","llm_drafts","llm_active_release","llm_admin_events"])
+      expect((await fresh.pool.query(`SELECT 1 FROM hermes_agui_runtime.${table}`)).rowCount).toBe(0);
+    await fresh.pool.query("DROP TRIGGER fail_initial_audit ON hermes_agui_runtime.llm_admin_events");
+    const roles=["hermes_llm_admin","hermes_llm_runtime","hermes_llm_reader","hermes_llm_host_reader","hermes_runtime"];
+    for(const role of roles)await fresh.pool.query(`CREATE ROLE ${role} NOLOGIN`);
+    try{
+      await fresh.pool.query(await readFile("../../deploy/gcp/llm-control-grants.sql","utf8"));
+      const adminUrl=new URL(target);adminUrl.searchParams.set("options","-c role=hermes_llm_admin");
+      const readerUrl=new URL(target);readerUrl.searchParams.set("options","-c role=hermes_llm_reader");
+      const initializer=new ControlStore(adminUrl.href,policy),reader=new ControlStore(readerUrl.href,policy);
+      const previous={reader:process.env.AGUI_LLM_DATABASE_URL,admin:process.env.AGUI_LLM_ADMIN_DATABASE_URL};
+      try{
+        await fresh.pool.query("REVOKE INSERT ON hermes_agui_runtime.llm_releases FROM hermes_llm_admin");
+        await expect(initializer.ensureInitialRelease(llm)).rejects.toMatchObject({status:503});
+        expect((await fresh.pool.query("SELECT 1 FROM hermes_agui_runtime.llm_releases")).rowCount).toBe(0);
+        await fresh.pool.query("GRANT INSERT ON hermes_agui_runtime.llm_releases TO hermes_llm_admin");
+        expect((await initializer.ensureInitialRelease(llm)).applied).toBe(true);
+        expect((await fresh.history()).events).toHaveLength(1);
+        await expect(reader.pool.query("INSERT INTO hermes_agui_runtime.llm_drafts(scope,config,revision,updated_by) VALUES('deployment','{}',1,'reader')")).rejects.toThrow(/permission denied/);
+        process.env.AGUI_LLM_DATABASE_URL=readerUrl.href;process.env.AGUI_LLM_ADMIN_DATABASE_URL=adminUrl.href;
+        const {openControl}=await import("../../server/llm/control-bootstrap");
+        await fresh.pool.query("REVOKE INSERT ON hermes_agui_runtime.llm_releases FROM hermes_llm_admin");
+        await expect(initializer.ensureInitialRelease(llm)).rejects.toMatchObject({status:503});
+        await fresh.pool.query("GRANT INSERT ON hermes_agui_runtime.llm_releases TO hermes_llm_admin");
+        await fresh.pool.query("ALTER TABLE hermes_agui_runtime.llm_prompt_versions RENAME TO unavailable_prompt_versions");
+        try{await expect(initializer.ensureInitialRelease(llm)).rejects.toThrow();}
+        finally{await fresh.pool.query("ALTER TABLE hermes_agui_runtime.unavailable_prompt_versions RENAME TO llm_prompt_versions");}
+        const worker=await openControl(policy,undefined,false);
+        expect(worker.adminStore).toBeUndefined();await worker.releases!.close();
+        await fresh.pool.query("DELETE FROM hermes_agui_runtime.llm_active_release");
+        await expect(openControl(policy,undefined,false)).rejects.toMatchObject({status:503});
+        const optionalStatic=await openControl({...policy,mode:"static"});
+        expect(optionalStatic.adminStore).toBeDefined();
+        await optionalStatic.releases!.close();await optionalStatic.adminStore!.close();
+        expect((await fresh.pool.query("SELECT 1 FROM hermes_agui_runtime.llm_active_release")).rowCount).toBe(0);
+      }finally{
+        for(const [key,value] of Object.entries({AGUI_LLM_DATABASE_URL:previous.reader,AGUI_LLM_ADMIN_DATABASE_URL:previous.admin})){
+          if(value===undefined)delete process.env[key];else process.env[key]=value;
+        }
+        await initializer.close();await reader.close();
+      }
+    }finally{
+      for(const role of roles){await fresh.pool.query(`DROP OWNED BY ${role}`);await fresh.pool.query(`DROP ROLE ${role}`);}
+    }
+    const {openControl}=await import("../../server/llm/control-bootstrap");
+    await expect(openControl({...policy,mode:"static"})).resolves.toEqual({});
+  }finally{await fresh.close();await admin.query(`DROP DATABASE ${name} WITH (FORCE)`);}
+});
+
+test("managed activation preserves the unpinned pending-job drain gate",async()=>{
+  const legacy=new PostgresDocumentIngestor(wiki);
+  const own={...ns,botId:"unpinned-gate"};
+  const id=await legacy.enqueue(own,{title:"legacy",mime:"text/plain",content:"legacy pending",idempotencyKey:"drain-before-managed"});
+  const {bindManagedQueue}=await import("../../server/llm/control-bootstrap");
+  const application={evolution:{queue:legacy}} as Parameters<typeof bindManagedQueue>[0];
+  await expect(bindManagedQueue(application,store)).rejects.toThrow("Drain unpinned jobs");
+  expect((await store.pool.query("SELECT llm_release_id FROM hermes_agui_runtime.graph_jobs WHERE id=$1",[id])).rows[0].llm_release_id).toBeNull();
+  await legacy.cancel(own,id);
 });

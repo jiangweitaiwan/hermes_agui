@@ -28,9 +28,14 @@ export class ControlStore {
       query_timeout: 5000, statement_timeout: 5000, idle_in_transaction_session_timeout: 5000 });
     this.pool.on("error",()=>console.error("LLM control database connection unavailable"));
   }
-  async ready() {
+  async ready(admission = false) {
     await this.pool.query(`SELECT d.revision,d.prompts,a.generation,r.release_fingerprint FROM ${schema}.llm_drafts d
       LEFT JOIN ${schema}.llm_active_release a USING(scope) LEFT JOIN ${schema}.llm_releases r USING(scope,release_id) LIMIT 0`);
+    if (admission) {
+      await this.pool.query(`SELECT id,principal,record FROM ${schema}.bot_registry LIMIT 0`);
+      const grant = await this.pool.query(`SELECT has_table_privilege(current_user,'${schema}.llm_run_pins','INSERT') AS allowed`);
+      if (!grant.rows[0].allowed) throw new ControlError(503, "Managed admission grants incomplete");
+    }
   }
   close() { return this.pool.end(); }
   private async transaction<T>(run: (client: PoolClient) => Promise<T>) {
@@ -53,7 +58,7 @@ export class ControlStore {
   async draft() {
     const { rows } = await this.pool.query(`SELECT d.config,d.prompts,d.revision,COALESCE(a.generation,0) AS generation,a.release_id
       FROM ${schema}.llm_drafts d LEFT JOIN ${schema}.llm_active_release a USING(scope) WHERE d.scope=$1`, [this.policy.scope]);
-    if (!rows[0]) throw new ControlError(503, "Bootstrap required");
+    if (!rows[0]) throw new ControlError(503, "Managed control state unavailable; verify Runtime initialization");
     return rows[0] as { config: Snapshot["llm"]; prompts: Snapshot["prompts"] | null; revision: number; generation: number; release_id: string };
   }
   async update(raw: unknown, revision: number, actor: string, prompts?: unknown) {
@@ -95,21 +100,53 @@ export class ControlStore {
       VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$9)`,
     [this.policy.scope, id, parent, snapshot, snapshot.modelFingerprint, snapshot.taskFingerprint, hash(snapshot), actor, reason]);
   }
+  private async verifyInitializer(client: PoolClient) {
+    const writes = new Map([
+      ["llm_drafts", ["INSERT", "UPDATE"]], ["llm_active_release", ["INSERT", "UPDATE"]],
+      ["llm_releases", ["INSERT"]], ["llm_admin_events", ["INSERT"]],
+      ["llm_prompt_versions", ["INSERT"]], ["llm_prompt_evaluations", ["INSERT"]],
+      ["llm_embedding_plans", ["INSERT"]], ["llm_run_pins", []], ["llm_bot_roles", []],
+    ]);
+    for (const [table, privileges] of writes) {
+      const result = await client.query(`SELECT bool_and(has_table_privilege(current_user,$1,privilege)) AS allowed
+        FROM unnest($2::text[]) AS privilege`, [`${schema}.${table}`, ["SELECT", ...privileges]]);
+      if (!result.rows[0].allowed) throw new ControlError(503, "Managed Runtime control grants incomplete");
+    }
+    const sequence = await client.query(`SELECT has_sequence_privilege(current_user,
+      '${schema}.llm_admin_events_event_id_seq','USAGE') AS allowed`);
+    if (!sequence.rows[0].allowed) throw new ControlError(503, "Managed Runtime audit grants incomplete");
+    await client.query(`SELECT llm_release_id FROM ${schema}.graph_jobs LIMIT 0`);
+  }
   async bootstrap(raw: unknown, actor: string, apply = false) {
     const snapshot = candidate(raw, this.policy);
     if (!apply) return { candidateHash: hash(snapshot), applied: false };
     return this.transaction(async client => {
-      const existing = await client.query(`SELECT snapshot FROM ${schema}.llm_releases WHERE scope=$1 AND release_id='release-001'`, [this.policy.scope]);
-      if (existing.rows[0]) {
-        if (hash(existing.rows[0].snapshot) !== hash(snapshot)) throw new ControlError(409, "Bootstrap differs from existing release");
-        return { candidateHash: hash(snapshot), applied: false };
+      await this.verifyInitializer(client);
+      const active = await client.query(`SELECT r.* FROM ${schema}.llm_active_release a
+        JOIN ${schema}.llm_releases r USING(scope,release_id) WHERE a.scope=$1`, [this.policy.scope]);
+      const draft = await client.query(`SELECT revision FROM ${schema}.llm_drafts WHERE scope=$1`, [this.policy.scope]);
+      if (active.rows[0]) {
+        const release = this.verified(active.rows[0]);
+        if (!draft.rowCount) throw new ControlError(503, "Managed control state incomplete; restore from verified backup");
+        return { candidateHash: release.release_fingerprint, applied: false };
       }
-      await this.insert(client, snapshot, actor, "Explicit registry bootstrap", null, "release-001");
+      // Missing pointers must never turn historical state into a fresh deployment.
+      for (const table of ["llm_releases", "llm_drafts", "llm_active_release", "llm_run_pins",
+        "llm_bot_roles", "llm_admin_events", "llm_prompt_versions", "llm_prompt_evaluations", "llm_embedding_plans"]) {
+        const history = await client.query(`SELECT 1 FROM ${schema}.${table} WHERE scope=$1 LIMIT 1`, [this.policy.scope]);
+        if (history.rowCount) throw new ControlError(503, "Managed control history has no active release; restore from verified backup");
+      }
+      const jobs = await client.query(`SELECT 1 FROM ${schema}.graph_jobs WHERE llm_release_id IS NOT NULL LIMIT 1`);
+      if (jobs.rowCount) throw new ControlError(503, "Managed job history has no active release");
+      await this.insert(client, snapshot, actor, "Trusted baseline initialization", null, "release-001");
       await client.query(`INSERT INTO ${schema}.llm_drafts(scope,config,revision,updated_by) VALUES ($1,$2,1,$3)`, [this.policy.scope, snapshot.llm, actor]);
       await client.query(`INSERT INTO ${schema}.llm_active_release(scope,release_id,generation,updated_by) VALUES ($1,'release-001',1,$2)`, [this.policy.scope, actor]);
-      await this.audit(client, "bootstrap", actor, "Explicit registry bootstrap", undefined, "release-001");
+      await this.audit(client, "bootstrap", actor, "Trusted baseline initialization", undefined, "release-001");
       return { candidateHash: hash(snapshot), applied: true };
     });
+  }
+  async ensureInitialRelease(raw: unknown) {
+    return this.bootstrap(raw, "system:managed-runtime", true);
   }
   async publish(generation: number, revision: number, candidateHash: string, actor: string, reason: string) {
     return this.transaction(async client => {
@@ -161,30 +198,23 @@ export class ControlStore {
     const { rows } = await this.pool.query(`SELECT * FROM ${schema}.llm_releases WHERE scope=$1 AND release_id=$2`, [this.policy.scope, id]);
     return this.verified(rows[0]);
   }
-  async pinRun(principal: string, bot: string, thread: string, run: string): Promise<Release> {
-    const approved=await this.pool.query(`SELECT 1 FROM ${schema}.llm_bot_roles WHERE scope=$1 AND bot=$2 AND principal=$3`,[this.policy.scope,bot,principal]);
-    if(!approved.rowCount)throw new ControlError(503,"Bot requires explicit role migration");
-    const { rows } = await this.pool.query(`INSERT INTO ${schema}.llm_run_pins(scope,principal,bot,thread,run,release_id)
-      SELECT scope,$2,$3,$4,$5,release_id FROM ${schema}.llm_active_release WHERE scope=$1
-      ON CONFLICT DO NOTHING RETURNING release_id`, [this.policy.scope, principal, bot, thread, run]);
-    const prior = rows[0] ?? (await this.pool.query(`SELECT release_id FROM ${schema}.llm_run_pins
-      WHERE scope=$1 AND principal=$2 AND bot=$3 AND thread=$4 AND run=$5`, [this.policy.scope, principal, bot, thread, run])).rows[0];
-    if (!prior) throw new ControlError(503, "Active release unavailable");
-    return this.resolve(prior.release_id);
-  }
-  async optInBot(bot:string,actor:string,apply=false){
-    return this.transaction(async client=>{
-      const result=await client.query(`SELECT principal,record FROM ${schema}.bot_registry WHERE id=$1 FOR SHARE`,[bot]);
-      const row=result.rows[0],record=row?.record.record ?? row?.record;
-      if(!row || record.harness!=="hermes" || record.deletedAt)throw new ControlError(422,"Eligible native Bot required");
-      const summary={bot,principal:row.principal,template:record.templateId,role:"agent_primary",legacyModel:record.model,legacyProvider:record.provider};
-      if(apply){
-        const inserted=await client.query(`INSERT INTO ${schema}.llm_bot_roles(scope,bot,principal,template,role,legacy_model,legacy_provider,created_by)
-          VALUES ($1,$2,$3,$4,'agent_primary',$5,$6,$7) ON CONFLICT DO NOTHING RETURNING bot`,
-        [this.policy.scope,bot,row.principal,record.templateId,record.model,record.provider,actor]);
-        if(inserted.rowCount)await this.audit(client,"bot_opt_in",actor,`Opt in Bot ${bot}`);
+  async pinRun(principal: string, bot: string, thread: string, run: string, harness: "hermes" | "remote_ag_ui" = "hermes"): Promise<Release> {
+    return this.transaction(async client => {
+      // Same key as PostgresBotRegistry.write: deletion/disable and admission serialize.
+      await client.query("SELECT pg_advisory_xact_lock(53859273, 1)");
+      const botRow = (await client.query(`SELECT principal,record FROM ${schema}.bot_registry WHERE id=$1`, [bot])).rows[0];
+      if (!botRow || botRow.principal !== principal || botRow.record.status !== "active" ||
+          botRow.record.deletedAt || botRow.record.harness !== harness) {
+        throw new ControlError(403, "Unknown or inactive Bot binding");
       }
-      return {...summary,applied:apply};
+      const { rows } = await client.query(`INSERT INTO ${schema}.llm_run_pins(scope,principal,bot,thread,run,release_id)
+        SELECT scope,$2,$3,$4,$5,release_id FROM ${schema}.llm_active_release WHERE scope=$1
+        ON CONFLICT DO NOTHING RETURNING release_id`, [this.policy.scope, principal, bot, thread, run]);
+      const prior = rows[0] ?? (await client.query(`SELECT release_id FROM ${schema}.llm_run_pins
+        WHERE scope=$1 AND principal=$2 AND bot=$3 AND thread=$4 AND run=$5`, [this.policy.scope, principal, bot, thread, run])).rows[0];
+      if (!prior) throw new ControlError(503, "Active release unavailable");
+      return this.verified((await client.query(`SELECT * FROM ${schema}.llm_releases WHERE scope=$1 AND release_id=$2`,
+        [this.policy.scope, prior.release_id])).rows[0]);
     });
   }
   async promptHistory(task:string,before?:string){

@@ -1,0 +1,351 @@
+{
+  "schema_version": 1,
+  "completed_at_utc": "2026-11-25T21:32:54.592571+00:00",
+  "branch": "codex/graph-memory-v2",
+  "baseline_commit": "a149486198a48cc8f32d63a28908fd09a23e129a",
+  "delivery_head": "a149486198a48cc8f32d63a28908fd09a23e129a",
+  "delivery_is_uncommitted_working_tree": true,
+  "source_digest_sha256": "d3514a4eb160d66bd49b2bf98675cd1d75462f2e71b81e385dcac74a0897fec3",
+  "source_file_sha256": {
+    "deploy/gcp/README.md": "3c44036ebc9408eda1882e1a46bed97c815548c57ac5fd76e253917486d2e685",
+    "deploy/gcp/llm-control-grants.sql": "5c8e1818d1dc7ea3f138ca936d34abd5d8997a3ca38bdc8cebf294510eaca7c7",
+    "deploy/gcp/llm-control.env.example": "246766191b8b80546df74b555ef63498d51a533f2feb3d2ae6e879eab87e5b3b",
+    "deploy/gcp/runtime.managed.example.json": "3c9bd3a500cc938fb587ee9ec440b1ed08d0ce5f2fde2a787a1855aaeaeeeca3",
+    "docs/llm-management-console-operations.md": "632535d26b49c41cc32fe91aa2502a8300f9df882e88e1c366f6215c8de22047",
+    "docs/llm-unification-deployment.md": "dcce45e059fcb96125c69e06d262198b92cd4cb6b87ad7eb89269556f3f932f4",
+    "examples/copilotkit/frontend/BotEditor.tsx": "becf9f3e208069f531c979a4f235cc737afa04ad3b902383640a4e003e1cb8b6",
+    "examples/copilotkit/frontend/BotManagement.tsx": "7b4bc4d789029e77351a8683947da6566e22ceb24bda750d1ce9312bd79b7832",
+    "examples/copilotkit/frontend/LLMManagement.tsx": "14d6661ae73786b3f0e567844922f1192123e444c3cc5649a4548fc474dc14ae",
+    "examples/copilotkit/server/application.ts": "16d8ffe3cb871feb0a1f0e338e8f93b076595edb7081dd4970a4dbe6b994419d",
+    "examples/copilotkit/server/bootstrap.ts": "98eb2facd37aed940d0dd5022456e883aef6c21dd38146e3deae180f5fd9748c",
+    "examples/copilotkit/server/bots/api.ts": "f995e68a1bdf35134afef3cad345d22fc4bd2d650b589752ed6da60ee9ebd0b6",
+    "examples/copilotkit/server/bots/types.ts": "2913238313747c2f9a3565d6448d5c0c928732b73136a7000aef8e02a4325d3e",
+    "examples/copilotkit/server/graph/worker-cli.ts": "b02e07a3de296cf546096ba4f515314f9922fe793b7eec025a61b5f3bec5a844",
+    "examples/copilotkit/server/llm/control-bootstrap.ts": "0c7beaab58896573e818329eb9c9127f921baff2ade919e7217192856511ac51",
+    "examples/copilotkit/server/llm/control-cli.ts": "9a628228784731c62226a3f2f9760a2be3b742abedcdb3dd459f87200bd369f7",
+    "examples/copilotkit/server/llm/control-store.ts": "158b29af055ccf87493da9bc43e335676f624c21ca8a08faac99d73f3baab20a",
+    "examples/copilotkit/server/llm/deployment.ts": "6f2f358844069444c9381f897c2a571e37a922784d0c0e7796694556eb416c34",
+    "examples/copilotkit/server/llm/run-pinning.ts": "98f1c27b3711b547ba9803fe96de8bb1707afea4b189c63f3226a053d0fc102f",
+    "examples/copilotkit/tests/acceptance/llm-control.pg.ts": "1412a3048b0a5f3149a22bd02ef113929cbe20c8dcbc35c35ed0511e5d69d614",
+    "examples/copilotkit/tests/browser/llm-control.spec.ts": "ed55cfe942c349407c396070b7b15b5c8008c4ade2fcb7855af5e68ec9814aad",
+    "examples/copilotkit/tests/fixtures/llm-control-browser-server.ts": "0ed69b3985ec4166a9050972bb2bd244e8234fbb49237cbd0fb9583a3099b693",
+    "examples/copilotkit/tests/fixtures/llm-control-browser.html": "d6240c0fef526d571fc53c9e91db924d15f22cb47eda1d65489b3336da46fddc",
+    "examples/copilotkit/tests/fixtures/llm-control-browser.tsx": "f39b5d19cd6a2a812725a87f5d36bac5a2bd4c118b8e41ab43250e32700ece5b",
+    "examples/copilotkit/tests/fixtures/llm-managed-host.py": "f1d7a6e230ffa8b06a3f37916d8fb2f5a4fc3981b2c2fa5c2686b78a3f266899",
+    "examples/copilotkit/tests/llm-managed-startup.test.ts": "dc1edc4473f9fb28a26da8795fcb7101a7798f54c60f0a567e7c4debe2d3e6d4",
+    "hermes_agui/core/managed_llm.py": "1239d89df0c74b68bc397ebe353a70026938ce4a28d321cd807864ad0d26a9a1"
+  },
+  "source_manifest_excludes": [
+    "unchanged user-supplied Part 3 specification",
+    "this results file",
+    "Part 3 report"
+  ],
+  "manual_bootstrap_required": false,
+  "bot_opt_in_required": false,
+  "legacy_role_execution_gate": false,
+  "managed_native_route": "trusted Bot registry + original caller/thread ACL -> durable run pin -> immutable release.agent_primary -> native adapter",
+  "runtime_is_only_normal_initializer": true,
+  "initializer_actor": "system:managed-runtime",
+  "readiness": {
+    "strategy": "Runtime-first deployment order; readers immediately fail readiness without active",
+    "application_retry_count": 0,
+    "connection_timeout_seconds": 2,
+    "statement_timeout_seconds": 5
+  },
+  "required_grant_changes": [
+    "SELECT(id,principal,record) ON bot_registry TO hermes_llm_runtime",
+    "SELECT(llm_release_id) ON graph_jobs TO hermes_llm_admin"
+  ],
+  "additive_ddl_migration_required": false,
+  "historical_tables_and_rows_retained": true,
+  "local_acceptance": "PASS",
+  "acceptance": [
+    {
+      "id": "P3-01",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: beforeAll fresh migrations + two openControl startup processes",
+        "browser-final: direct Console login"
+      ]
+    },
+    {
+      "id": "P3-02",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: concurrent independent processes yield release-001 and one system audit",
+        "postgres-final: audit fault rollback and safe retry"
+      ]
+    },
+    {
+      "id": "P3-03",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: restart preserves published active and unpublished draft plus historical opt-in"
+      ]
+    },
+    {
+      "id": "P3-04",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: immutable legacy role and bot_opt_in audit upgrade fixture preserved"
+      ]
+    },
+    {
+      "id": "P3-05",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "browser-final: pre-activation existing-native has conflicting legacy model/provider but real primary inference succeeds",
+        "source-green-proof"
+      ]
+    },
+    {
+      "id": "P3-06",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "browser-final: real Bot Manager creates Bot, two same-thread native runs, zero role rows"
+      ]
+    },
+    {
+      "id": "P3-07",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: wrong principal, missing Bot, deleted Bot, lifecycle-lock disable race, no persisted denied pin",
+        "postgres-final: real Python Host rejects forged thread reference",
+        "node-full: existing owner ACL and delegation contracts"
+      ]
+    },
+    {
+      "id": "P3-08",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: remote Graph execution context without native envelope",
+        "postgres-final: pre-control static database compiles without control tables",
+        "node-focused-final: no-registry static startup with unreachable control DSNs"
+      ]
+    },
+    {
+      "id": "P3-09",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "browser-final: native Pro + instruction slot published and used on next run",
+        "postgres-final: running Graph stage/retry/restart and old run pin remain unchanged"
+      ]
+    },
+    {
+      "id": "P3-10",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: missing active with history, invalid baseline, incompatible active, missing schema, insufficient insert grants, DB unavailable"
+      ]
+    },
+    {
+      "id": "P3-11",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "postgres-final: actual executor can pin but cannot initialize, actual Host cannot INSERT draft",
+        "postgres-final: reader-only startup never opens admin pool even with admin environment, missing active fails readiness",
+        "postgres-final: unpinned pending-job drain gate"
+      ]
+    },
+    {
+      "id": "P3-12",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "browser-final: 4 cases, real Chrome + API + disposable PG + native Python Host; vendor wire scripted"
+      ]
+    },
+    {
+      "id": "P3-13",
+      "status": "PASS",
+      "scope": "local",
+      "evidence": [
+        "node-full",
+        "node-focused-final",
+        "postgres-final",
+        "browser-final",
+        "python-full-initial + python-affected-retry",
+        "final-typecheck-build"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "node-full",
+      "command": "npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000",
+      "status": "PASS",
+      "summary": "32 files passed, 10 skipped; 210 tests passed, 29 skipped",
+      "log_name": "p3-node-full.log",
+      "log_sha256": "6c937f961f5f377da0d8349d64208fe672299683a9e43f97ed96d7cf0e74e823",
+      "passed": 210,
+      "skipped": 29
+    },
+    {
+      "id": "node-focused-final",
+      "command": "npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000 tests/llm-managed-startup.test.ts tests/llm-control.test.ts tests/llm-prompts.test.ts",
+      "status": "PASS",
+      "summary": "3 files, 15 passed, including additional legacy static startup contract",
+      "log_name": "p3-node-focused-final.log",
+      "log_sha256": "7e86c84c165bea637cc8fb52bae14a112ede957e8b96e07e832a6927a1fa9124",
+      "passed": 15
+    },
+    {
+      "id": "postgres-final",
+      "command": "npm test -- --config vitest.llm-control.config.ts --reporter=verbose",
+      "status": "PASS",
+      "summary": "14 passed; real PostgreSQL, independent Runtime startup processes, actual grants, rollback and lifecycle fences",
+      "log_name": "p3-pg-final.log",
+      "log_sha256": "093caa0a7d2ccc24c1fe0ef028f21127f8ff038227255d92ab88d253fcf90b43",
+      "passed": 14
+    },
+    {
+      "id": "browser-final",
+      "command": "playwright test --config playwright.llm-control.config.ts",
+      "status": "PASS",
+      "summary": "4 passed (57.4s), including existing and newly created native Bots, same-thread continuation and native model/prompt publication",
+      "log_name": "p3-browser-final.log",
+      "log_sha256": "d4491bf5d65ea5dbbba3c13058e68c4d11ce843dab9588ac1ef577a50386a79d",
+      "passed": 4,
+      "real_native_host": true,
+      "vendor_transport": "scripted local HTTP"
+    },
+    {
+      "id": "python-full-initial",
+      "command": "HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh tests/hermes_agui/ tests/agent/test_vertex_adapter.py",
+      "status": "FAIL",
+      "summary": "33 files: 107 passed, 3 local HTTP/subprocess timeouts, 10 skipped; preserved first-run failure",
+      "log_name": "p3-python-full.log",
+      "log_sha256": "9b0d4db52e27ad463f6e524f6518362e2c588002d4ee65a1db904c93c683eb4a",
+      "passed": 107,
+      "failed": 3,
+      "skipped": 10
+    },
+    {
+      "id": "python-affected-retry",
+      "command": "HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j 1 tests/hermes_agui/test_runtime_entrypoint.py tests/hermes_agui/test_runtime_memory.py",
+      "status": "PASS",
+      "summary": "2 files, 10 passed, 0 failed in 94.9s; unchanged timeout values; original failures all resolved without product changes",
+      "log_name": "p3-python-retry.log",
+      "log_sha256": "001061df63d348e1654184d7b3ad28fd763859458275f6db44a0b56918bfd2e6",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "id": "final-typecheck-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "summary": "tsc --noEmit and Vite production build passed; 9075 modules transformed, 39.40s build; existing chunk warning retained",
+      "log_name": "p3-build-final.log",
+      "log_sha256": "a02304ad1f28797cb4b21aa9c8d689c2573250dd67bb566aa7d4863376fc922c"
+    },
+    {
+      "id": "repository-check",
+      "command": "python scripts/check --base a149486198a48cc8f32d63a28908fd09a23e129a",
+      "status": "FAIL",
+      "summary": "17 checks; only existing no-tmp baseline violations failed",
+      "log_name": "p3-check.log",
+      "log_sha256": "3c475832b729e51b8c50a0da6900daa263da08f1febc2504686942dd9dccdffd",
+      "baseline_failure": true,
+      "baseline_locations": [
+        "host-config.yaml:8",
+        "host-config.yaml:11",
+        "artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:5",
+        "artifacts/graph-memory-v2-part-1/verification/baseline-no-tmp.txt:6",
+        "artifacts/graph-memory-v2-part-1/verification/check.txt:5",
+        "artifacts/graph-memory-v2-part-1/verification/check.txt:6"
+      ]
+    },
+    {
+      "id": "final-code-health",
+      "command": "python scripts/check --only health --base a149486198a48cc8f32d63a28908fd09a23e129a",
+      "status": "PASS",
+      "summary": "20 files; 0 blocking, 0 advisory",
+      "log_name": "p3-health-final.log",
+      "log_sha256": "3b59ee9160aa65b6458e09fae91ce1eb124540206171b09657457ecf0c59ef33"
+    },
+    {
+      "id": "baseline-red-proof",
+      "command": "node --import tsx admission-probe.mjs BASE_ARCHIVE_EXAMPLE",
+      "status": "PASS",
+      "summary": "Expected behavioral failure on base: 503 Bot requires explicit role migration; not an import/collection failure",
+      "log_name": "p3-red-proof.log",
+      "log_sha256": "4c8056e228343a6996bc0958e7d671720dbfdcbe1f1bef4eb52db280f8087585",
+      "expected_probe_exit_code": 1
+    },
+    {
+      "id": "source-green-proof",
+      "command": "node --import tsx admission-probe.mjs CURRENT_EXAMPLE",
+      "status": "PASS",
+      "summary": "Same native Bot without role row pins release-001",
+      "log_name": "p3-green-proof.log",
+      "log_sha256": "e326570204b4d11fc9d83a478f64c138062fa77c5f3934c59447bddd9c3d8fc3",
+      "expected_probe_exit_code": 0
+    },
+    {
+      "id": "ruff-new-fixture-and-host",
+      "command": "ruff check examples/copilotkit/tests/fixtures/llm-managed-host.py hermes_agui/core/managed_llm.py",
+      "status": "PASS",
+      "summary": "All checks passed"
+    },
+    {
+      "id": "diff-whitespace",
+      "command": "git diff --check",
+      "status": "PASS"
+    }
+  ],
+  "python_unique_tests_passed_after_affected_retry": 110,
+  "existing_skips": {
+    "node": 29,
+    "python": 10,
+    "counted_as_pass": false
+  },
+  "environment": {
+    "node": "22.16.0",
+    "postgresql": "17.12 (Postgres.app), fresh disposable loopback cluster",
+    "python": "existing PM test environment with declared ag-ui extra; staged lockfile-matching psycopg 3.3.9",
+    "browser": "real installed Chrome via existing Playwright config",
+    "model_calls": "local scripted HTTP only",
+    "graph_objects": "filesystem"
+  },
+  "initial_attempt_notes": [
+    "Initial sandbox denied shared-memory/loopback; re-ran only authorized disposable local tests with sandbox escalation.",
+    "Default checkout interpreter lacked ag-ui; used an existing PM test environment, without raw pip/uv or lock changes.",
+    "Initial browser fixtures required a portal target, real native tool selection, correct created-Bot ID, SSE completion boundary and accessible combobox locator; final full browser suite passed unchanged timeout budgets.",
+    "Oversubscribed first Python regression had three timeouts; the two affected files passed with one file worker and unchanged timing limits."
+  ],
+  "external_gates": [
+    {
+      "id": "vertex-adc-and-provider-semantic-smoke",
+      "status": "BLOCKED",
+      "reason": "No authorized disposable cloud resources or credentials supplied"
+    },
+    {
+      "id": "gcs-cloud-tasks-cloud-run-staging",
+      "status": "BLOCKED",
+      "reason": "No cloud deployment executed or authorized"
+    },
+    {
+      "id": "part2-complete-embedding-activation",
+      "status": "BLOCKED",
+      "reason": "Existing coverage/watermark/activation limitation retained; activation gate remains disabled"
+    }
+  ],
+  "production_ready": false,
+  "production_deployment_performed": false,
+  "production_credentials_used": false,
+  "cleanup": {
+    "disposable_postgres_cluster_stopped": true,
+    "native_host_and_browser_fixtures_stopped": true
+  }
+}
