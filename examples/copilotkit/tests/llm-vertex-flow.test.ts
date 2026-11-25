@@ -5,7 +5,7 @@ import {test,expect} from "vitest";
 import {createServer} from "node:http";
 import {mkdtempSync,realpathSync,rmSync,readFileSync} from "node:fs";
 import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {join,resolve} from "node:path";
 import {ModelRegistry} from "../server/llm/config";
 import {RegistryLLM,embeddingClient} from "../server/llm/client";
 import {namespaceKey,WikiStore} from "../server/graph/wiki-store";
@@ -41,7 +41,7 @@ test("Vertex mock HTTP → session ingest → real worker/evidence persistence �
  const port=(server.address() as {port:number}).port;
  const deps={token:async()=>"fixture-token",transport:((url:any,init:any)=>fetch(`http://127.0.0.1:${port}${new URL(String(url)).pathname}`,init)) as typeof fetch};
  try{
-  const native=spawnSync("../../.venv/bin/python",["tests/fixtures/llm-native-session.py"],{input:JSON.stringify({user:`研究會議：${meeting}`}),encoding:"utf8",timeout:60000});
+  const native=spawnSync(resolve("../../.venv/bin/python"),["tests/fixtures/llm-native-session.py"],{input:JSON.stringify({user:`研究會議：${meeting}`}),encoding:"utf8",timeout:60000});
   expect(native.status,native.stderr).toBe(0);const completion=JSON.parse(native.stdout);expect(completion.nativeSessionId).toBeTruthy();
   const id=await new SessionIngestor(queue).enqueue({namespace:ns,threadId:"one",runId:"one",messageId:"m",user:completion.user,assistants:[{id:"reply",text:completion.text}],referenceTime:{instant:"2026-11-03T08:00:00.000Z",timezone:"Asia/Taipei"}});
   expect(id).toBeTruthy();await new WikiCompiler(queue,new RegistryLLM(config(),"graph_parser",deps),120000,"v2").processJob(ns,id!);

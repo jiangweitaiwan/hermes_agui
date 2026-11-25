@@ -1,7 +1,7 @@
 import {test,expect} from "vitest";
 import {mkdtempSync,realpathSync,rmSync,mkdirSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {join,resolve} from "node:path";
 import {spawnSync} from "node:child_process";
 import {WikiStore} from "../server/graph/wiki-store";
 import {DocumentIngestor} from "../server/graph/ingest-queue";
@@ -45,7 +45,7 @@ test("session ingest → other thread → story → signed runtime → actual Py
  expect(Buffer.byteLength(JSON.stringify(decoded.context))).toBeLessThanOrEqual(4096);
  expect(trace.net.edges.every((e:any)=>JSON.stringify(decoded.context).includes(e.description))).toBe(true);
  expect(trace.net.edges).toHaveLength(5);expect(trace.candidate.claims).toHaveLength(6);
- const result=spawnSync("../../.venv/bin/python",["-c",`
+ const result=spawnSync(resolve("../../.venv/bin/python"),["-c",`
 import sys,json
 sys.path.insert(0, "../..")
 from types import SimpleNamespace as S

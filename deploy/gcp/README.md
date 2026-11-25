@@ -1,7 +1,9 @@
-# Manual Cloud Run source package
+# Cloud Run deployment package
 
-See [deployment instructions](../../docs/cloud-run-deployment.md) for the complete parameter and command reference.
-No deployment automation is included. See the [latest local acceptance report](../../docs/cloud-native-part-2-final-acceptance.md).
+The [LLM console CI/CD workflow](../../.github/workflows/llm-images.yml) builds and publishes images.
+Manual GitHub dispatch can also deploy the three existing Cloud Run services after managed rollout confirmation.
+See [pipeline setup and rollout gates](../../docs/llm-management-console-operations.md#github-actions--cloud-build--cloud-run-管線)
+and the [latest local acceptance report](../../docs/cloud-native-part-2-final-acceptance.md).
 Images and three entrypoint startup checks pass locally with SDK doubles; the complete L01–L10 gate has not passed. Real cloud tests remain NOT RUN.
 
 | Artifact | Consumer |

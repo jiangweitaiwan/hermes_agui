@@ -1,0 +1,42 @@
+# Host and Runtime/Worker are built and verified from the same submitted commit.
+steps:
+  - id: host-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.agui
+      - --tag=${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
+      - --label=org.opencontainers.image.version=${_IMAGE_TAG}
+      - .
+  - id: node-contracts
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        docker build --file=deploy/gcp/Dockerfile.llm-ci \
+          --build-arg=HOST_IMAGE=${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG} \
+          --tag=hermes-llm-contracts .
+        docker run --rm --volume=/workspace:/workspace \
+          --workdir=/workspace/examples/copilotkit \
+          --env=HERMES_PYTHON=/opt/hermes/.venv/bin/python \
+          hermes-llm-contracts -ceu '
+            ln -s /opt/hermes/.venv /workspace/.venv
+            npm ci --ignore-scripts --no-audit --no-fund
+            npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000
+            npm run build
+          '
+  - id: runtime-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=examples/copilotkit/Dockerfile
+      - --tag=${_IMAGE_PREFIX}/hermes-runtime:${_IMAGE_TAG}
+      - --label=org.opencontainers.image.version=${_IMAGE_TAG}
+      - examples/copilotkit
+images:
+  - ${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
+  - ${_IMAGE_PREFIX}/hermes-runtime:${_IMAGE_TAG}
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 4800s

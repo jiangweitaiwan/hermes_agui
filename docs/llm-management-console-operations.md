@@ -286,3 +286,97 @@ evidence 或索引。未完成的 managed 工作不能交給只認 Part 1 的 im
 `{provider, model, dimension, version}`；provider 的 project/location/secret reference 仍須存在原 `approved`
 清單且不可由 UI 擴張。這個清單不改 `approved` 的 baseline graph_embedding，避免讓舊 release 因新增候選
 而失去相容性。它只批准規劃，沒有授權 activate 或改變 IAM/quota。
+
+## GitHub Actions → Cloud Build → Cloud Run 管線
+
+`.github/workflows/llm-images.yml` 的 **LLM console CI/CD** 在 push `main` 時建置 images；
+手動 **Run workflow** 可建置後部署。WIF 僅信任此 repository 的 `main` 及此 workflow，
+不接受 PR／其他 branch。所有 runs 共用 concurrency group，避免 build／rollout 互相交錯。
+
+部署座標（非 secrets，已寫入 workflow）：
+
+| 項目 | 設定 |
+|---|---|
+| Project／number | `copilotkit-agui`／`746997613973` |
+| Cloud Build／Cloud Run／Artifact Registry region | `asia-east1` |
+| Artifact Registry repository | `hermes` |
+| Source staging bucket／prefix | `copilotkit-agui-hermes-data/llm-source/` |
+| Build SA | `746997613973-compute@developer.gserviceaccount.com` |
+| GitHub CI SA | `github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com` |
+| WIF provider | `projects/746997613973/locations/global/workloadIdentityPools/github-hermes/providers/github` |
+| Services | `hermes-runtime`、`hermes-host`、`hermes-worker`（皆已存在） |
+
+### 一次性 WIF／IAM 設定
+
+由獲授權的專案管理員審閱後執行：
+
+```sh
+bash deploy/gcp/setup-github-cicd.sh
+```
+
+腳本建立專用 CI SA、WIF pool／provider，啟用必要 APIs，新增所需 IAM bindings。
+Provider 同時限制 numeric repository ID `1456731156`、owner ID `108518895`、`main` ref、
+精確 workflow_ref 與 `llm-build`／`llm-deploy` environment subject；不使用 SA JSON keys。
+重跑時保留既有資源；同名 provider 的信任條件不同則拒絕覆寫，交由管理員審閱。
+
+CI SA 權限：project 的 build editor、service usage consumer、Run viewer；
+僅三個指定 services 的 Run developer；僅 build SA 與三個既有 workload SAs 的 actAs；
+僅 `hermes` repository 的 Artifact Registry reader。Build SA 補該 repository writer、project logs writer。
+這些是新增 bindings，不收回既有 SA 權限，也不更換 workload 身分或現有服務 IAM。
+
+資料 bucket 的 uniform bucket-level access 須已開啟。CI SA 的 legacyBucketReader 只允許
+bucket metadata／object 名稱 listing；objectCreator／objectViewer 以 IAM condition 限定
+`llm-source/`。Build SA 的 source objectViewer 同樣限定該 prefix。
+腳本不授 CI 刪除應用資料的權限；build SA 既有 project grants 的範圍不在此腳本中變更。
+
+GitHub Environments 使用 `llm-build`、`llm-deploy`。建議設定僅允許 `main` 與 deployment reviewers；
+即使 environment 未設 branch policy，GCP WIF 條件仍拒絕非 `main`。
+所有座標已在 workflow，不需額外 GitHub Secrets／Variables。IAM 操作需要管理員明確授權，
+腳本存在並不代表已在雲端執行。
+
+### 建置與發布
+
+GitHub runner 在 auth 之前以 `git archive HEAD` 建立已追蹤 source，避免上傳 Action 產生的
+WIF credentials 或本機未追蹤 config。請勿 commit 真實設定／secrets。
+`deploy/gcp/cloudbuild.llm-images.yaml` 先建置 Host，透過 `Dockerfile.llm-ci` 在該候選 Host
+加入固定版本 Node 執行 unit suite（含真實 Python／TypeScript contract）、型別檢查與前端 build；
+跨語言測試將 interpreter path 正規化為絕對路徑，避免 standalone Python 3.14 的 prefix warning；
+不抑制 stderr，也不跳過真實 Python verifier。最後建置 Runtime，全部成功後才發布以下 artifacts：
+
+- `hermes-host`：根目錄 `Dockerfile.agui`，含 `agui-cloud` dependencies 與 native import checks。
+- `hermes-runtime`：`examples/copilotkit/Dockerfile`，Runtime／Worker 共用 image。
+
+Tag 為 `<commit SHA>-<GitHub run ID>-<attempt>`；不寫 `latest`。使用 Cloud Logging 儲存 build logs。
+Action 從 build JSON 只接受 `SUCCESS` 且兩個完整 SHA256 digests 都存在的結果，再將 immutable
+`image@sha256:...` 傳至 deployment。Push 不是 registry 原子交易，部分 artifact 成功不算候選集合。
+
+### 手動 dispatch 與部署 gate
+
+先確認 migration 001–012、grants、所需 acceptance gates，以及 admission／delivery 已停止、jobs 已 drain
+（或確認為無流量／無 jobs 的測試環境）。然後在 `main` 執行 **Run workflow**：
+
+- `deploy=true`：建置後部署。必須同時勾選 `managed_rollout_confirmed=true`，否則提交 build 前就失敗。
+- `deploy=false`：只建置並發布 images，不需勾選 rollout confirmation。
+
+Push `main` 只建置，不沿用之前某次 rollout 的人工確認。需要自動 CD 時由上述 dispatch 明確啟動。
+GitHub CI SA 不讀 DSN 或 Secret Manager 值；部署只更新 image 與 HTTP startup probe，保留現有
+config secret mounts、SQL attachment、workload SA、env、commands／args、資源預算與 ingress／IAM。
+三個服務不存在任一個時，preflight 直接失敗，不用不完整 config 自動重建服務。
+
+`scripts/ci/deploy_llm_cloud_run.sh` 依序更新 Runtime → Host → Worker，使用 `--no-traffic`
+與明確啟用的 deployment health check。每個新 revision 必須通過 `/health` startup probe，
+且 latestCreatedRevision 必須等於 latestReadyRevision，才建立下一個 consumer。
+三個 candidates 都通過後，才依序將三個 services 的流量切至本次明確 revision（不使用模糊的 `latest`）。
+Worker 沿用原有 command／args，不會以 Runtime mode 啟動。
+
+Cloud Run 跨服務切流不是原子交易。失敗時 workflow 停止，不自動重送、不自動 schema rollback；
+維持 admission／delivery 暫停，核對各服務 revision／traffic，再按前述 SOP 復原相容 image。
+即使三個 startup gates 都成功，仍須完成跨服務驗收，才由操作人員恢復 admission／delivery。
+保留原 revisions、DB、pins、GCS generations 與 Tasks topology。
+
+Unit suite 與 Docker imports 不能替代 disposable PG、Playwright、Python 行為測試或
+Vertex／GCS／Tasks／Cloud Run staging acceptance；未執行的 gate 仍記 BLOCKED，不宣稱 production ready。
+
+參考：[Google WIF Action](https://github.com/google-github-actions/auth)、
+[Cloud Build 自訂 SA 與 logs](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts)、
+[Cloud Run startup probes](https://docs.cloud.google.com/run/docs/configuring/healthchecks)。
