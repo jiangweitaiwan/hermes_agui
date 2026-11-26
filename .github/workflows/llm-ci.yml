@@ -26,14 +26,19 @@ jobs:
           --health-cmd "pg_isready -U hermes"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
-      HERMES_HOME: ${{ runner.temp }}/hermes-ci-home
-      HERMES_RUNTIME_DIR: ${{ runner.temp }}/hermes-ci-tools
       AGUI_LLM_TEST_ADMIN_URL: postgres://hermes@127.0.0.1:5432/postgres
       HERMES_AGUI_TEST_DB_SOCKET: /var/run/postgresql
       COMPATIBILITY_BASE_COMMIT: ${{ vars.COMPATIBILITY_BASE_COMMIT }}
-      CI_EVIDENCE_DIR: ${{ runner.temp }}/llm-ci-evidence
+
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Initialize runner environment
+        shell: bash
+        run: |
+          echo "HERMES_HOME=$RUNNER_TEMP/hermes-ci-home" >> "$GITHUB_ENV"
+          echo "HERMES_RUNTIME_DIR=$RUNNER_TEMP/hermes-ci-tools" >> "$GITHUB_ENV"
+          echo "CI_EVIDENCE_DIR=$RUNNER_TEMP/llm-ci-evidence" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
           fetch-depth: 0
