@@ -4,6 +4,14 @@
 [Unification 部署](llm-unification-deployment.md)、[review/reject SOP](llm-unification-part-2-operations.md)
 與 [Part 1 報告](llm-management-console-part-1-report.md)。不得使用 production credentials 做測試。
 
+Production CI/CD 改造目前只加入離線 CI 與 source-bound BUILT candidate manifest，
+**未完成 staging／production 驗收，不得啟用 production 自動部署**。
+查看 [實作盤點](CICD_PRODUCTION_AUTOMATION_INVENTORY.md)、
+[初始化與 gate 說明](../deploy/gcp/cicd/README.md) 與
+[本次報告](CICD_PRODUCTION_AUTOMATION_REPORT.md)。
+既有 `managed_rollout_confirmed` 沒有被固定為 true；它也不能取代計畫要求的 live acceptance、
+maintenance fencing、durable recovery 或 jobs template 驗證。
+
 ## 設定及權限
 
 沒有 `llmControl` 時仍為原 static 行為，無控制面資料庫依賴。

@@ -40,7 +40,7 @@ test("playground calls production parser and adapter with candidate prompt, with
 test("Python Host accepts the dynamic snapshot only with its deployed code contract",async()=>{
   const {spawnSync}=await import("node:child_process");const {resolve}=await import("node:path");
   const {llm,policy}=controlFixture(),baseline=candidate(llm,policy),snapshot=candidate(llm,policy,{agent_primary:"native slot", "v2-parser":"candidate"});
-  const host=spawnSync(resolve("../../.venv/bin/python"),["-c",`
+  const host=spawnSync(process.env.HERMES_PYTHON ?? resolve("../../.venv/bin/python"),["-c",`
 import json,sys
 from hermes_agui.core.managed_llm import validate_snapshot,native_instruction
 v=json.load(sys.stdin)

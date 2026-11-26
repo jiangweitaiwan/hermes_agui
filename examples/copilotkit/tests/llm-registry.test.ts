@@ -83,7 +83,7 @@ test("legacy OpenRouter chat and embedding retain wire contracts",async()=>{
 test("shared deployment JSON resolves to the same Python/TypeScript fingerprint",async()=>{
  const {readFileSync}=await import("node:fs");const {spawnSync}=await import("node:child_process");const {resolve}=await import("node:path");
  const input=JSON.parse(readFileSync("../../deploy/gcp/llm-registry.vertex.example.json","utf8"));
- const result=spawnSync(resolve("../../.venv/bin/python"),["-c",`import sys,json
+ const result=spawnSync(process.env.HERMES_PYTHON ?? resolve("../../.venv/bin/python"),["-c",`import sys,json
 sys.path.insert(0,'../..')
 from hermes_agui.core.llm_registry import parse_registry,fingerprint
 print(fingerprint(parse_registry(json.load(sys.stdin))))`],{input:JSON.stringify(input),encoding:"utf8"});

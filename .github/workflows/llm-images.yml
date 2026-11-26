@@ -8,7 +8,7 @@ on:
       deploy:
         description: Deploy the built images to existing Cloud Run services
         type: boolean
-        default: true
+        default: false
       managed_rollout_confirmed:
         description: Migrations/grants complete; staging rollout approved or production gates passed; admission/delivery drained (or empty staging)
         type: boolean
@@ -33,7 +33,13 @@ env:
   GCP_BUILD_SOURCE_BUCKET: copilotkit-agui-hermes-data
 
 jobs:
+  ci:
+    uses: ./.github/workflows/llm-ci.yml
+    permissions:
+      contents: read
+
   build:
+    needs: ci
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     environment: llm-build
@@ -47,6 +53,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: llm-offline-ci
+          path: ${{ runner.temp }}/llm-ci-evidence
       - name: Validate configuration and prepare tracked source
         shell: bash
         env:
@@ -70,6 +80,7 @@ jobs:
           done
           mkdir -p "$RUNNER_TEMP/llm-source"
           git archive HEAD | tar -x -C "$RUNNER_TEMP/llm-source"
+          python3 scripts/ci/source_identity.py create "$RUNNER_TEMP/llm-source" > "$RUNNER_TEMP/llm-source.sha256"
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -90,8 +101,14 @@ jobs:
             --ignore-file=/dev/null \
             --gcs-source-staging-dir="gs://${GCP_BUILD_SOURCE_BUCKET}/llm-source" \
             --service-account="projects/${GCP_PROJECT_ID}/serviceAccounts/${GCP_BUILD_SERVICE_ACCOUNT}" \
-            --substitutions="_IMAGE_PREFIX=${image_prefix},_IMAGE_TAG=${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --substitutions="_IMAGE_PREFIX=${image_prefix},_IMAGE_TAG=${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT},_SOURCE_COMMIT=${GITHUB_SHA},_SOURCE_SHA256=$(cat "$RUNNER_TEMP/llm-source.sha256")" \
             --suppress-logs --format=json --quiet > "$RUNNER_TEMP/llm-build.json"
+          python3 -m scripts.ci.llm_release_manifest \
+            --build "$RUNNER_TEMP/llm-build.json" --prefix "$image_prefix" \
+            --commit "$GITHUB_SHA" --tag "${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --source-sha256 "$(cat "$RUNNER_TEMP/llm-source.sha256")" \
+            --gates "$RUNNER_TEMP/llm-ci-evidence/offline-ci.json" \
+            --output "$RUNNER_TEMP/llm-release-manifest.json"
           python3 scripts/ci/llm_build_outputs.py "$RUNNER_TEMP/llm-build.json" "$image_prefix" "$GITHUB_OUTPUT"
           {
             echo '### Published candidate images'
@@ -99,6 +116,12 @@ jobs:
             echo "- Runtime / Worker: ${image_prefix}/hermes-runtime:${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             echo 'Resolved immutable image digests are passed to the deploy job. Build logs and results are in Cloud Build.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: llm-release-manifest
+          path: ${{ runner.temp }}/llm-release-manifest.json
+          if-no-files-found: error
+          retention-days: 90
 
   deploy:
     needs: build

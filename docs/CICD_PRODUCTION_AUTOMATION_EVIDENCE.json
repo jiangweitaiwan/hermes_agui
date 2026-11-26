@@ -1,0 +1,154 @@
+{
+  "format": 1,
+  "recorded_at_utc": "2026-11-26T05:40:40.492403+00:00",
+  "status": "BLOCKED",
+  "reason": "Partial implementation; wrap-up requested by user; no approved live staging acceptance or Part 2 controller",
+  "base_commit": "7c31d402dc46640084cdbe199266c0a036b931a6",
+  "branch": "production-cicd-automation",
+  "source_is_uncommitted": true,
+  "production_auto_deploy_enabled": false,
+  "gcp_mutations_performed": false,
+  "cloud_build_executed": false,
+  "live_vertex_gcs_tasks_acceptance": "NOT_RUN",
+  "production_rollout_and_rollback": "NOT_RUN",
+  "all_inference_calls_in_tests": "scripted local HTTP; not live cloud approval",
+  "source_file_sha256": {
+    ".github/CODEOWNERS": "b470847cff3a40340b0cf19e5490043f8d059d50b1495d18eb70bd156feec951",
+    ".github/workflows/llm-ci.yml": "585d4c2dd2f71ff094d0fd7489becc1fbdcb43f31b7f0de7fcf704fbe5be0dd2",
+    ".github/workflows/llm-images.yml": "eeb57f8e6fd68feeb631f3619307903f7cc99d9a623253465afd6b1d855c7145",
+    "deploy/gcp/cloudbuild.llm-images.yaml": "3bd27205cf17c4ae57fb80c61a8eec3dc23e91cf18942b9c40b8069240523f5a",
+    "deploy/gcp/cicd/migration-baseline.json": "1a0ee44271eca063706a419b3a9b9907da52c0e5e72056c633971d3125d80396",
+    "scripts/ci/llm_offline_ci.sh": "7613e572dd780359d901931829ae79ca526c4f6fa71e73801859b37e75388d22",
+    "scripts/ci/llm_release_manifest.py": "c57391a2fcb57858c9b2f0de31057b7bee9f7116d282c0cc66dd5241daa778f7",
+    "scripts/ci/migration_gate.py": "60dd6625adbcbdef0fc3ba279eb8c22f3dc5ad9df6f83c4977d8a0de05717626",
+    "scripts/ci/python_audit.py": "e99b605ca7e143d8dcb22dcb40b9a59935eaaa6e8a077d486c3d1b6a81180eb1",
+    "scripts/ci/source_identity.py": "a41f7a5981f367f0653b7f3db4f43a8de14180ca5d5d23d5f6c3f1e2df622f66",
+    "examples/copilotkit/server/graph/postgres-wiki-store.ts": "d960cef582e4de06e9208f0d9bb05563533cd814c3f6db42012228a340512da4",
+    "examples/copilotkit/tests/acceptance/llm-control.pg.ts": "df160b01d294bef98e97ff773f603e9af99c21c1ee85f87a93a143e6856085c5",
+    "examples/copilotkit/tests/llm-vertex-flow.test.ts": "0d00afef0a7202a5c5ae40b857de7f08005063320b6c8703068494f8901c1a50",
+    "examples/copilotkit/tests/llm-registry.test.ts": "c393bff012e39decb5d8fcf35e4fc96e93f070d2b627a4edd2204c6007584d6b",
+    "examples/copilotkit/tests/llm-prompts.test.ts": "2c1176556e79485d635fb066715bef7a583e5be497fc8ecdc76c6587515de727",
+    "examples/copilotkit/tests/graph-v3-runtime.test.ts": "45b65087122d0ef0e8eff1ede1af37587a2c573cca854389a90d2778cd024a3b",
+    "tests/scripts/test_llm_release_manifest.py": "c6219cf93e729b43037df5e7f8aad48d78a1ebe385bc77972c79bd8290bbba83",
+    "tests/scripts/test_cicd_integrity.py": "634841f7ed02eebdd502e1c16de3f1d73af4f28e7b65861b3c04a11f65c3558b"
+  },
+  "results": [
+    {
+      "gate": "pipeline",
+      "exit_code": 0,
+      "summary": "21 passed",
+      "local_log": "/private/tmp/hermes-cicd-pipeline-final.log",
+      "log_sha256": "811119879a2c85dabf707a6bdf94d65b0d17a58d938d00f97c7d17c001f19d19"
+    },
+    {
+      "gate": "postgres_after_readiness_fix",
+      "exit_code": 0,
+      "summary": "15 passed; real PG, scripted model, filesystem objects",
+      "local_log": "/private/tmp/hermes-cicd-pg-fixed.log",
+      "log_sha256": "42e1be80b85c6d6c52dd95eafe79a88226c2806710ac42029993d76aba791a01"
+    },
+    {
+      "gate": "python_full_initial",
+      "exit_code": 1,
+      "summary": "98 passed, 6 failed, 2 errors, 6 skipped",
+      "local_log": "/private/tmp/hermes-cicd-linux-python.log",
+      "log_sha256": "e98db81ffe15dada111fc07df5fdd47b479be9c9c99731ce7abdcb21fbaa3e66"
+    },
+    {
+      "gate": "python_corrected_setup_targeted",
+      "exit_code": 0,
+      "summary": "6 files, 15 passed",
+      "local_log": "/private/tmp/hermes-cicd-linux-python-corrected.log",
+      "log_sha256": "f599f8a05485d5e84377cbfc040e875514ea52f0cd91e8f7f23f5c1d7e8e457d"
+    },
+    {
+      "gate": "node_full_initial",
+      "exit_code": 1,
+      "summary": "208 passed, 3 failed, 29 skipped, 2 worker errors",
+      "local_log": "/private/tmp/hermes-cicd-node-livehost.log",
+      "log_sha256": "563f82884e555173ddad3215b49b4961d6d8763df3fa3bad97ea0a4f4afcf8b7"
+    },
+    {
+      "gate": "node_targeted_initial",
+      "exit_code": 1,
+      "summary": "13 passed, 1 failed (fixed interpreter path absent), 1 live skipped",
+      "local_log": "/private/tmp/hermes-cicd-node-corrected.log",
+      "log_sha256": "c47c64c678543f497bfe308ac6a202391774c5a3c9ce584f21602c445dc0d1e9"
+    },
+    {
+      "gate": "node_vertex_corrected",
+      "exit_code": 0,
+      "summary": "1 mock-flow passed; 1 LIVE skipped, not counted as PASS",
+      "local_log": "/private/tmp/hermes-cicd-node-vertex-final.log",
+      "log_sha256": "3170942da2d2e1e5c7666037747f1e0d37390bdc6d6e688d60a0d11e40fe7c3c"
+    },
+    {
+      "gate": "node_interpreter_contracts",
+      "exit_code": 0,
+      "summary": "22 passed",
+      "local_log": "/private/tmp/hermes-cicd-node-interpreter-final.log",
+      "log_sha256": "d3ea9cc3a6daccb5ceb27f8a4c70f1b2d98263ccd647a6fa51cbabfb8476b182"
+    },
+    {
+      "gate": "browser",
+      "exit_code": 1,
+      "summary": "3 passed, 1 Native SSE completion timeout; unchanged 60s test budget",
+      "local_log": "/private/tmp/hermes-cicd-browser-final.log",
+      "log_sha256": "ca52613a5892088a7b2a156c2c5047c534149b4e0cf2f81231d281308795727e"
+    },
+    {
+      "gate": "frontend_build",
+      "exit_code": 0,
+      "summary": "PASS before final server-only readiness change",
+      "local_log": "/private/tmp/hermes-cicd-build.log",
+      "log_sha256": "d868660545aaa3f98fde4c288c3f11255ccf428c854754a1634f28ac361325a0"
+    },
+    {
+      "gate": "final_tsc",
+      "exit_code": 0,
+      "summary": "PASS",
+      "local_log": "/private/tmp/hermes-cicd-tsc-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": "final_changed_code_checks",
+      "exit_code": 0,
+      "summary": "health/ruff/footguns PASS; 12 files, zero blocking/advisory",
+      "local_log": "/private/tmp/hermes-cicd-wrap-check.log",
+      "log_sha256": "4117d2f779543854dc7cf209b54e4f92c1914c008097484b9b26e1326809c992"
+    },
+    {
+      "gate": "full_check",
+      "exit_code": 1,
+      "summary": "17 checks; only 6 existing no-tmp findings",
+      "local_log": "/private/tmp/hermes-cicd-check-final.log",
+      "log_sha256": "2d6e44eaaaec753b2587c799e58d3dfe527dfd1f96adef72f4309b362a9329cf"
+    },
+    {
+      "gate": "npm_audit",
+      "exit_code": 1,
+      "summary": "47 advisories: 7 low,14 moderate,24 high,2 critical",
+      "local_log": "/private/tmp/hermes-cicd-npm-audit.json",
+      "log_sha256": "ea279c9b5c0985c8bc8dc6a0b4271def887231f7b5f36c0320672abf2bbe6e85"
+    },
+    {
+      "gate": "python_audit",
+      "exit_code": 1,
+      "summary": "86 installed packages; GHSA-mf5v-w3w3-f6cg in opentelemetry-api 1.45.1",
+      "local_log": "/private/tmp/hermes-cicd-python-audit-final.log",
+      "log_sha256": "17e5cdb70c890e6f413e913cad4bc168d696f9ecea21c4b6364dfd9bd06029df"
+    }
+  ],
+  "job_template_sha256": {
+    "hermes-completion": "69aa5b1ca6d6f17222c68d33aa6fae356dda549319d4414ffa48d9e067be69a8",
+    "hermes-reconcile": "26d2e2d18c5512ad54364a0154a1e1b70f71aa39557181a6088a53e287999d8e"
+  },
+  "limitations": [
+    "No image OS CVE scan",
+    "L01-L10 executable definitions not located",
+    "No durable deployment lock, maintenance fence, migration jobs, or production rollout/recovery controller",
+    "Existing Python job commands conflict with proposed Node Runtime digest mapping",
+    "Full browser acceptance remains FAILED",
+    "No GitHub workflow execution on these uncommitted changes"
+  ]
+}

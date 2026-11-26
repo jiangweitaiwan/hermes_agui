@@ -1,0 +1,27 @@
+{
+  "baseline_commit": "7c31d402dc46640084cdbe199266c0a036b931a6",
+  "compatibility": "UNVERIFIED: checksum baseline only; no production migration authorization",
+  "files": {
+    "deploy/gcp/database-grants.sql": "f0f9cf69998fdbff4a21c37ef45bb6ae4de5c1348118d9bc247d7a5f9dc42d60",
+    "deploy/gcp/llm-control-grants.sql": "5c8e1818d1dc7ea3f138ca936d34abd5d8997a3ca38bdc8cebf294510eaca7c7",
+    "examples/copilotkit/server/storage/migrations/001_threads.sql": "f7b04cf0c45ffb747855c34576c453226d7dbfa9bb948178ef3580b75f3ca9a3",
+    "examples/copilotkit/server/storage/migrations/002_delegations.sql": "7313087c8bdda2d38d9144ca6f3ac4c04f5d030e6ac208cb95c70098f4d62a72",
+    "examples/copilotkit/server/storage/migrations/003_bot_registry.sql": "74eb262180bbc7455cfedf2a2542830af1ade63b5e7f73bdaa68f444a5db1f35",
+    "examples/copilotkit/server/storage/migrations/004_graph_wiki.sql": "48bf4f24ac182fefec5c4809b662f47512dee4d656b6684e0760ab1924464620",
+    "examples/copilotkit/server/storage/migrations/005_graph_sources.sql": "326d29f65405d7dd57b6b7023f13601c46a81a4ec9f7213a65c910f53cfb94b3",
+    "examples/copilotkit/server/storage/migrations/006_graph_jobs.sql": "ad00980c5a974ba3a0754bed9cfeacc888c67c7071786ad17c4242b5881e79a3",
+    "examples/copilotkit/server/storage/migrations/007_bot_operations.sql": "02a17792e329a62a5fcff8f805efe923ef02beda2a2663e36f9a6bf4334b50a6",
+    "examples/copilotkit/server/storage/migrations/008_task_deliveries.sql": "981aa3237de3b10d19cff047af6e886bbf5730d28c747f95fc64f1ec1bc19ea1",
+    "examples/copilotkit/server/storage/migrations/009_graph_memory_v2.sql": "d6d9438dbfe8cb7b493f5b0ba98085d4519984e9336fe72514d95351c2152a87",
+    "examples/copilotkit/server/storage/migrations/010_graph_fact_tokens.sql": "46e2e290e73a7778682614db6e1e75e1153a1ac6b27185dde6181c8ea72b4678",
+    "examples/copilotkit/server/storage/migrations/011_llm_control.sql": "85580f1624bb68725b22f89e7aa9a302c13fb816f8034a1a39115e845b4fadfa",
+    "examples/copilotkit/server/storage/migrations/012_llm_prompts.sql": "c5b443f096d410dc4ecef43141f3f136e590f084effe2592f55b217f49604f73",
+    "hermes_agui/storage/migrations/001_host.sql": "9598e2ef45cb2807c2dfdc5e395e9174bdcea89945ff5f8200b4b9ed8aaf9092",
+    "hermes_agui/storage/migrations/002_run_outbox.sql": "6a934aa7f23ccbf4dbf56eee2234418427bd19d079ae332b2786d43733cfdfdb",
+    "hermes_agui/storage/migrations/003_completion_evidence.sql": "3a902410159932a8ba70ab4104a1f6309743f028aed77badb9e5348d213d49c6",
+    "hermes_agui/storage/migrations/004_managed_bots.sql": "b4f4508c245693d754ccf16741e4c33e851e51aa99e68d44582fde1015aef0af",
+    "hermes_agui/storage/migrations/005_management_operations.sql": "e8f0db513b6049a388e7c987f96e9ed0da8e8dd180b5a5e187c70376a5816bd5",
+    "hermes_agui/storage/migrations/006_run_events.sql": "b814e29258d7b0a489fae36f0304c2f973b58b6feb6b0fb698deda5a9a6a3397"
+  },
+  "format": 1
+}

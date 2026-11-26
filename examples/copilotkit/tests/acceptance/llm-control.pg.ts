@@ -67,6 +67,16 @@ afterAll(async () => {
   await admin.query(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`); await admin.end();
   if (objects) await rm(objects, { recursive: true });
 });
+test("readiness probes retain the source-column boundary", async () => {
+  await wiki.ready();
+  await store.pool.query("ALTER TABLE hermes_agui_runtime.graph_sources RENAME COLUMN ns TO unavailable_ns");
+  try {
+    await expect(wiki.ready()).rejects.toMatchObject({ code: "42703" });
+  } finally {
+    await store.pool.query("ALTER TABLE hermes_agui_runtime.graph_sources RENAME COLUMN unavailable_ns TO ns");
+  }
+  await wiki.ready();
+});
 test("immutable release/audit and exact grants fence reader/worker control writes", async () => {
   const dbRoles=["hermes_llm_admin","hermes_llm_runtime","hermes_llm_reader","hermes_llm_host_reader","hermes_runtime"];
   for(const role of dbRoles)await store.pool.query(`CREATE ROLE ${role} ${role==="hermes_llm_host_reader"?"LOGIN":"NOLOGIN"}`);

@@ -31,16 +31,23 @@ export class PostgresWikiStore implements RetrievalStore, EmbeddingStore {
   }
 
   async ready() {
-    await this.pool.query(`SELECT ns,edge_id,token FROM ${schema}.graph_fact_tokens LIMIT 0`);
-    await this.pool.query(`SELECT r.generation FROM ${schema}.graph_revisions r
-      JOIN ${schema}.graph_pages p USING (ns,page,revision)
-      JOIN ${schema}.graph_namespaces n ON n.id=p.ns
-      JOIN ${schema}.graph_sections s USING (ns,page)
-      JOIN ${schema}.graph_page_owners o USING (ns,page)
-      JOIN ${schema}.graph_embeddings v USING (ns,page)
-      JOIN ${schema}.graph_edges e ON e.ns=p.ns AND e.source=p.page
-      JOIN ${schema}.graph_revision_provenance provenance ON provenance.ns=r.ns AND provenance.page=r.page AND provenance.revision=r.revision
-      JOIN ${schema}.graph_sources sources ON sources.ns=r.ns LIMIT 0`);
+    // Readiness checks schema/grants, not relationships between stored rows.
+    // A large LIMIT 0 join can exhaust the statement budget during planning.
+    const probes = {
+      graph_fact_tokens: "ns,edge_id,token",
+      graph_revisions: "ns,page,revision,generation",
+      graph_pages: "ns,page,revision",
+      graph_namespaces: "id",
+      graph_sections: "ns,page",
+      graph_page_owners: "ns,page",
+      graph_embeddings: "ns,page",
+      graph_edges: "ns,source",
+      graph_revision_provenance: "ns,page,revision",
+      graph_sources: "ns",
+    };
+    for (const [table, columns] of Object.entries(probes)) {
+      await this.pool.query(`SELECT ${columns} FROM ${schema}.${table} LIMIT 0`);
+    }
   }
 
   async import(namespace: Namespace, inputs: PageInput[], publish?: (client: PoolClient) => Promise<void>) {

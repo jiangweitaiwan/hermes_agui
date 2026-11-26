@@ -1,15 +1,28 @@
 # Host and Runtime/Worker are built and verified from the same submitted commit.
 steps:
   - id: host-image
-    name: gcr.io/cloud-builders/docker
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
     args:
       - build
       - --file=Dockerfile.agui
       - --tag=${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
       - --label=org.opencontainers.image.version=${_IMAGE_TAG}
+      - --label=org.opencontainers.image.revision=${_SOURCE_COMMIT}
       - .
+  - id: verify-source
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
+    args:
+      - run
+      - --rm
+      - --volume=/workspace:/workspace:ro
+      - --entrypoint=python
+      - ${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
+      - /workspace/scripts/ci/source_identity.py
+      - verify
+      - /workspace
+      - --sha256=${_SOURCE_SHA256}
   - id: node-contracts
-    name: gcr.io/cloud-builders/docker
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
     entrypoint: bash
     args:
       - -ceu
@@ -27,12 +40,13 @@ steps:
             npm run build
           '
   - id: runtime-image
-    name: gcr.io/cloud-builders/docker
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
     args:
       - build
       - --file=examples/copilotkit/Dockerfile
       - --tag=${_IMAGE_PREFIX}/hermes-runtime:${_IMAGE_TAG}
       - --label=org.opencontainers.image.version=${_IMAGE_TAG}
+      - --label=org.opencontainers.image.revision=${_SOURCE_COMMIT}
       - examples/copilotkit
 images:
   - ${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}

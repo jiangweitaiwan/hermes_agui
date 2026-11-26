@@ -1,0 +1,5 @@
+# Pipeline and privileged infrastructure changes require repository-owner review.
+/.github/workflows/ @jiangweitaiwan
+/.github/CODEOWNERS @jiangweitaiwan
+/scripts/ci/ @jiangweitaiwan
+/deploy/gcp/ @jiangweitaiwan
