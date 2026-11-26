@@ -3,3 +3,9 @@
 /.github/CODEOWNERS @jiangweitaiwan
 /scripts/ci/ @jiangweitaiwan
 /deploy/gcp/ @jiangweitaiwan
+
+/examples/copilotkit/server/llm/ @jiangweitaiwan
+/examples/copilotkit/server/bootstrap.ts @jiangweitaiwan
+/hermes_agui/core/managed_llm.py @jiangweitaiwan
+/hermes_agui/storage/ @jiangweitaiwan
+/examples/copilotkit/server/storage/ @jiangweitaiwan

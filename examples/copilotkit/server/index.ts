@@ -19,7 +19,7 @@ const registry = process.env.AGUI_BOTS_CONFIG
   ? JSON.parse(await (await import("node:fs/promises")).readFile(process.env.AGUI_BOTS_CONFIG, "utf8"))
   : undefined;
 const { bootstrap } = await import("./bootstrap");
-const { application, wiki, threadMappings, settings, tasks,llmAdmin,releases,adminStore } = await bootstrap(registry);
+const { application, wiki, threadMappings, settings, tasks,llmAdmin,releases,adminStore } = await bootstrap(registry, { controlReaderOnly: process.argv.includes("--worker") });
 // Local operational counters only; no prompts, identifiers, source text or credentials.
 const metricsTimer = application.evolution && !cloudSettings() ? setInterval(async () => {
   const evolution = application.evolution!;

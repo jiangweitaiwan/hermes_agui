@@ -21,6 +21,15 @@ steps:
       - verify
       - /workspace
       - --sha256=${_SOURCE_SHA256}
+  - id: host-job-integrity
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
+    args:
+      - run
+      - --rm
+      - --entrypoint=python
+      - ${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
+      - -c
+      - "import importlib; [importlib.import_module(n) for n in ('hermes_agui.host', 'hermes_agui.storage.completion_delivery', 'hermes_agui.storage.reconcile')]; import sqlite3; assert sqlite3.sqlite_version_info >= (3, 51, 3)"
   - id: node-contracts
     name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
     entrypoint: bash
@@ -36,7 +45,7 @@ steps:
           hermes-llm-contracts -ceu '
             ln -s /opt/hermes/.venv /workspace/.venv
             npm ci --ignore-scripts --no-audit --no-fund
-            npm test -- --reporter=dot --maxWorkers=2 --testTimeout=15000
+            npm test -- tests/runtime.test.ts tests/cloud.test.ts tests/llm-registry.test.ts --maxWorkers=2
             npm run build
           '
   - id: runtime-image
@@ -48,6 +57,17 @@ steps:
       - --label=org.opencontainers.image.version=${_IMAGE_TAG}
       - --label=org.opencontainers.image.revision=${_SOURCE_COMMIT}
       - examples/copilotkit
+  - id: image-integrity
+    name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        for image in hermes-host hermes-runtime; do
+          test "$$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' ${_IMAGE_PREFIX}/$${image}:${_IMAGE_TAG})" = '${_SOURCE_COMMIT}'
+          test "$$(docker image inspect --format '{{.Config.User}}' ${_IMAGE_PREFIX}/$${image}:${_IMAGE_TAG})" = '10000:10000'
+        done
+
 images:
   - ${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG}
   - ${_IMAGE_PREFIX}/hermes-runtime:${_IMAGE_TAG}

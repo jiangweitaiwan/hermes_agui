@@ -1,59 +1,38 @@
-# CI/CD initialization and handoff
+# 精簡 CI/CD 啟用與復原
 
-此目錄目前交付 Part 1 的 SQL integrity baseline。**不是 production enablement bundle**。
-`migration-baseline.json` 只固定基準 Host 001–006、Runtime 001–012 與兩份 grants 的 bytes；
-它不是相容性批准，不可當作 old-image-on-new-schema、live grants 或 migration job 執行證據。
-新增 SQL 預設阻擋；不得單純重算 checksum 就宣稱取得 additive compatibility review。
+完整規格見 [精簡計畫](../../../docs/CICD_PRODUCTION_AUTOMATION_PLAN.md)，實際驗證見 [報告](../../../docs/CICD_PRODUCTION_AUTOMATION_REPORT.md)。
 
-## Offline gate
+- `llm-ci.yml`：PR／main 共用精簡 deployment gates；只使用 disposable PG，沒有 production credentials。
+- `llm-images.yml`：通過 CI 後 Cloud Build；一次性 `AUTO_DEPLOY_ENABLED=true` 後 main push 自動部署。dispatch 預設只 build，選 deploy 也不能略過任何 gate。
+- `llm-acceptance.yml`：手動獨立 full Python/Node/browser/Graph/scanner acceptance，不阻擋一般 push。
+- `migration-baseline.json`：SQL/grants bytes integrity，**不授權 migration**。本管線永不執行正式 DDL。
+- `rollout_policy.py`：相對 repository var `COMPATIBILITY_BASE_COMMIT` 阻擋高風險改動。首次引入管線本身需人工審查並設定新基準；不能用舊基準宣稱本次 infra 變更是普通更新。
 
-PR 使用 `.github/workflows/llm-ci.yml`，main build 呼叫同一 reusable workflow；沒有第二套 PG／browser 環境。
-同一 disposable PG17 cluster 供 Host migration、Runtime control、browser gate 依序使用。
-`llm_offline_ci.sh` 要求呼叫端已透過 lockfile 安裝 Node dependencies 與匹配 Chromium，
-並設定獨立的 PM `HERMES_PYTHON`、`AGUI_LLM_TEST_ADMIN_URL`、`HERMES_AGUI_TEST_DB_SOCKET`、`CI_EVIDENCE_DIR`。
-PG user 為 `hermes`，只能使用允許建立／移除隨機 DB 與測試 roles 的 disposable cluster。
-Python durable fixtures 要求 Unix socket directory，CI 將 PostgreSQL service socket 掛到 runner，
-並先以既有 Host/Runtime migrator 準備共享的 disposable `postgres` DB；不能拿 TCP hostname 假裝 socket path。
+## 一次性設定
 
-安全閾值：npm high/critical 直接 fail，Python 任一已知 advisory 直接 fail。
-Registry/scanner 無法執行、沒有任何 audited dependency、第三方 package 被 scanner skipped 都 fail。
-唯一 source exception 是本地 `hermes-agent` project（無 PyPI advisory identity；由本 repo CI 驗證），
-不豁免其第三方依賴；沒有 advisory 忽略清單。若需 advisory 例外，應另以經 reviewer 批准、附 advisory、
-理由、scope、到期日的 change 實作，不能在 workflow 使用 `continue-on-error` 或 `|| true`。
-目前尚未提供 image OS CVE scanner；因此 offline security PASS 不等於完整 image supply-chain 驗收。
+依計畫審查 WIF/IAM setup，分離 build submit/executor/deploy/smoke 身分；不使用 service account JSON key。
+設定 repository vars `GCP_DEPLOY_SERVICE_ACCOUNT`、`GCP_SMOKE_SERVICE_ACCOUNT`、`COMPATIBILITY_BASE_COMMIT`。
+另設定 `APPROVED_ROLLBACK_IMAGES` 為經審查的**完整 immutable image URLs JSON array**；不要把 tag 或未驗證 image 放進去。
+後續同 contract label 的已部署 image 可自動相容；contract 變更需重新審查現有所有 consumers。
 
-main build 從 `git archive HEAD` 產生 file-hash manifest，在既有 Cloud Build 容器驗證來源，
-映像標記 source commit。release manifest 綁定 build ID、commit、兩 digest、SQL checksum 及全部 offline gate。
-候選狀態僅 `BUILT`，`staging=NOT_RUN`、`production=BLOCKED`。
-GitHub artifacts 供審閱，不能充當計畫 Part 2 所需 runner 外 durable rollback state store。
+Runtime 既有 args 必須包含 `--require-existing-control`，且既有 active/draft 已就緒。首次以原管理 SOP 部署此版本並加該 flag；CD 不會替你初始化資料或重寫 args。
+兩 Jobs 必須已有正確 Python command/args、不可變 image、service identity、SQL/secrets/timeout/retry；controller 只換 Host image。
+保留 private Cloud Run IAM，指定 smoke SA 只有三服務 invoker，deploy SA 只可為該 smoke SA mint ID token。CI 不讀 application tokens。
+啟用前核對 secret/config versions 與相容基準；凍結 secret mount references 的不相容改動，不能在 rollout 中改指向內容。
 
-## 管理員初始化順序（尚未執行）
+## 失敗與復原
 
-1. 提供已批准的獨立 staging project 與 environment manifest：真實 services/Jobs、DB/roles、GCS、Tasks、
-   Scheduler、Firebase synthetic principals、Vertex project/region/quota、Secret **references**。
-   不要填入 production DSN 或複製 production data；名稱需管理員確認，不能沿用範例猜測建立。
-2. 依 inventory 的既有 compose/env/config 範例衍生 staging。盤點各 DB 的 owner/runtime roles 與 pool budget。
-   Migration owner SA 與日常 Runtime SA 分開。Host／Runtime migration job 執行既有 runner；
-   schema owner DSN 只由 Secret Manager 注入 migration job，CI 不取得值或 Secret Accessor。
-3. Build submit、Cloud Build executor、staging deploy、production deploy、migration job executor 分權。
-   WIF 限定 repo ID、owner ID、main、原 workflow path、各自 environment subject；新增 environment 前更新精確 trust。
-   不執行現有共用 SA setup 當作完成分權，也不自動撤銷既有服務 IAM。
-   可修改 migration job image/command 的權限等同其 SA 權限，不能給 production 日常 deploy SA。
-4. 建立 runner 外 durable state/audit store、lease/fencing 權限與 recovery reader；另存 DB outage 可讀的 redacted rollback manifest。
-   確認 PITR 與所需 GCS generations 可復原，不只檢查設定為 enabled。
-5. 實作並以手動 SOP 先部署所有 reader/writer 的 maintenance-compatible 版本。
-   用 disposable PG 驗證 admission pause race、child/CLI/writer gate、drain、expired lease、crash recovery。
-   已有工作保留原 pin，delivery 與 Scheduler 只在證明 drain 後暫停，完整保存原本 paused 狀態。
-6. 補齊 L01–L10 原始規格、live acceptance adapter、synthetic identity/namespace、清理權限。
-   staging 執行 Vertex actual request/embedding、GCS generations、Tasks delivery、Graph、Jobs 與全 failure/rollback 矩陣。
-7. 完成 Part 2 controller、migration compatibility、jobs template preservation、main-head check、production bounded smoke／metrics／recovery。
-   經受控首次 staging 與 production 演練，保留 commit-bound redacted evidence。
-8. 設定 main protection／required `LLM offline CI` 與 reviewer ownership；檢查 GitHub environment 無逐次 reviewer。
-   最後才由管理員開啟 `AUTO_DEPLOY_ENABLED`。目前 workflow **沒有**以此變數啟動 production 的路徑。
+候選使用 `ci-candidate` tag，沒有正式 traffic。GET `/health` 驗證 startup；另一個無 app credential 的 GET 必須 401/403。這不驗證 live inference，且不呼叫會寫入的 API／Job。
+全部候選通過後更新 Jobs，再切流；最後對正式 URLs 做相同 readonly smoke。
+startup/smoke 失敗不切流；部分更新失敗依已保存 allocation（包含 split traffic）與舊 Job image 回復，read-back 驗證。
+保留原有 tags，移除自己的 candidate tag；不刪除舊 revisions、不執行 down migration。
 
-## 目前 recovery 限制
+若 report 為 `RECOVERY_REQUIRED`、runner 被強制終止，或發現既存 `ci-candidate` tag：
 
-現有 `scripts/ci/deploy_llm_cloud_run.sh` 只有 startup gate 與逐一切流，沒有 durable recovery、jobs 更新或自動 rollback。
-在 Part 2 完成前，不得拿它作 unattended production controller；`managed_rollout_confirmed` 仍只屬原人工 SOP，
-未被固定 true，也不代表新 live gate 已通過。需要 maintenance 的情況須依原 operations 文件由管理員處理，
-不可因這次 Part 1 CI 通過就恢復流量、修改 pins、回復 DB 或啟用自動部署。
+1. 關閉 `AUTO_DEPLOY_ENABLED`，避免另一個 rollout；不要與 Console/其他 workflow 同時寫入。
+2. 下載 `llm-deploy-report`／release manifest，唯讀比對三服務 traffic/tags/revisions、兩 Jobs template/image、已審查 contract/schema。不要回復資料庫或 release pins。
+3. 只有能證明相容才將**已改變的** traffic/Jobs 回復報告的版本；若資源已被外部修改，先人工判讀，不能盲目 replay。
+4. 驗證 readonly smoke、移除本次 candidate tag，再重新啟用。GitHub artifacts 不是 durable controller；硬終止後不承諾自動續跑。
+
+本地 entrypoint：設定 PM test interpreter、disposable PG URLs/socket、`CI_EVIDENCE_DIR`、reviewed `COMPATIBILITY_BASE_COMMIT`，執行 `bash scripts/ci/llm_offline_ci.sh`。
+正式執行只由 main 上的 workflow 使用 WIF。缺少基準、相容證據、schema、IAM 或 startup readiness 一律停止，不以人工 boolean 繞過。

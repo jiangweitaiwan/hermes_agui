@@ -1,4 +1,4 @@
-name: LLM offline CI
+name: LLM deployment gates
 
 on:
   pull_request:
@@ -30,11 +30,13 @@ jobs:
       HERMES_RUNTIME_DIR: ${{ runner.temp }}/hermes-ci-tools
       AGUI_LLM_TEST_ADMIN_URL: postgres://hermes@127.0.0.1:5432/postgres
       HERMES_AGUI_TEST_DB_SOCKET: /var/run/postgresql
+      COMPATIBILITY_BASE_COMMIT: ${{ vars.COMPATIBILITY_BASE_COMMIT }}
       CI_EVIDENCE_DIR: ${{ runner.temp }}/llm-ci-evidence
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Prepare pinned PM tools and one lockfile test environment
         run: |
           set -euo pipefail
@@ -52,12 +54,11 @@ jobs:
           python3 -m pm.build_env --source . --out "$RUNNER_TEMP/llm-test-env" \
             --extra agui --extra agui-cloud --group dev --group test
           echo "HERMES_PYTHON=$RUNNER_TEMP/llm-test-env/bin/python" >> "$GITHUB_ENV"
-      - name: Install matching Chromium
+      - name: Install locked Node dependencies
         working-directory: examples/copilotkit
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          ./node_modules/.bin/playwright install --with-deps chromium
-      - name: Python, Node, build, real PG/API/browser and security gates
+      - name: Typecheck, build, core API, disposable PG and compatibility gates
         run: bash scripts/ci/llm_offline_ci.sh
       - name: Retain redacted offline gate evidence
         if: always()

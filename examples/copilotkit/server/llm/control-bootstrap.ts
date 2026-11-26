@@ -11,7 +11,7 @@ export function parseControl(registry:any){
   if(policy.mode==="managed" && (process.env.AGUI_STORAGE_BACKEND!=="gcp" || !registry.management || registry.storage?.botRegistry!=="postgres" || registry.storage?.threadMappings!=="postgres" || registry.graph?.evolution?.compiler))throw new Error("Managed mode requires durable registry Graph and trusted management");
   return policy;
 }
-export async function openControl(policy?:ControlPolicy, baseline?:unknown, initialize = true){
+export async function openControl(policy?:ControlPolicy, baseline?:unknown, initialize = true, requireExisting = false){
   const managed=policy?.mode==="managed";
   if(!policy || (!managed && !process.env.AGUI_LLM_DATABASE_URL))return {};
   const releases=new ControlStore(process.env.AGUI_LLM_DATABASE_URL ?? "",policy);
@@ -22,7 +22,8 @@ export async function openControl(policy?:ControlPolicy, baseline?:unknown, init
     if(adminStore && adminStore.target!==releases.target)throw new Error("Control reader/admin database destinations must match");
     if(managed && initialize){
       if(!adminStore)throw new Error("Managed Runtime initialization requires the dedicated admin binding");
-      await adminStore.ensureInitialRelease(baseline);
+      if(requireExisting)await adminStore.draft();
+      else await adminStore.ensureInitialRelease(baseline);
     }
     // Readers fail readiness immediately. Deploy Runtime first; orchestration may retry startup.
     if(managed)await releases.active();

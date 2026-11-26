@@ -65,3 +65,25 @@ def test_migration_integrity_rejects_unknown_bytes(tmp_path, mutation):
         (tmp_path / GRANTS[0]).write_text("GRANT ALL ON SCHEMA public TO PUBLIC;")
     with pytest.raises(ValueError, match="BLOCKED"):
         verify_sql(tmp_path, declaration)
+
+
+def test_policy_allows_ordinary_code_and_blocks_contract_or_infra_changes(tmp_path):
+    import subprocess
+    from scripts.ci.rollout_policy import check
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(tmp_path), *args], text=True).strip()
+    git('init', '-q')
+    git('config', 'user.email', 'fixture@example.invalid')
+    git('config', 'user.name', 'Fixture')
+    (tmp_path / 'deploy').mkdir()
+    (tmp_path / 'deploy' / 'config.yaml').write_text('approved')
+    (tmp_path / 'app.py').write_text('old')
+    git('add', '.')
+    git('commit', '-qm', 'reviewed')
+    baseline = git('rev-parse', 'HEAD')
+    original = check(tmp_path, baseline)
+    (tmp_path / 'app.py').write_text('ordinary fix')
+    assert check(tmp_path, baseline) == original
+    (tmp_path / 'deploy' / 'config.yaml').write_text('changed infrastructure')
+    with pytest.raises(ValueError, match='MANUAL_REQUIRED'):
+        check(tmp_path, baseline)

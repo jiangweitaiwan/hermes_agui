@@ -74,7 +74,8 @@ export async function bootstrap(registry: any, execution: { evolutionTimer?: boo
   let releases:ControlStore|undefined;
   let adminStore:ControlStore|undefined;
   try {
-    ({releases,adminStore}=await openControl(policy, registry?.llm, !execution.controlReaderOnly));
+    ({releases,adminStore}=await openControl(policy, registry?.llm, !execution.controlReaderOnly,
+      process.argv.includes("--require-existing-control")));
     threadMappings = await threadStorage(registry);
     application = createApplication(settings, {
       managedRun:managed?managedRunPreparation(releases!):undefined,

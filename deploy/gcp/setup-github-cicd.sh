@@ -3,8 +3,10 @@
 set -euo pipefail
 project=copilotkit-agui
 project_number=746997613973
-ci_sa="github-hermes-cicd@${project}.iam.gserviceaccount.com"
-build_sa="746997613973-compute@developer.gserviceaccount.com"
+ci_sa="github-hermes-build@${project}.iam.gserviceaccount.com"
+deploy_sa="github-hermes-deploy@${project}.iam.gserviceaccount.com"
+smoke_sa="github-hermes-smoke@${project}.iam.gserviceaccount.com"
+build_sa="hermes-build-executor@${project}.iam.gserviceaccount.com"
 pool=github-hermes
 provider=github
 repo_id=1456731156
@@ -16,11 +18,12 @@ actual_number="$(gcloud projects describe "$project" --format='value(projectNumb
 gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com \
   iamcredentials.googleapis.com sts.googleapis.com run.googleapis.com --project="$project" --quiet
 
-existing="$(gcloud iam service-accounts list --project="$project" --filter="email=${ci_sa}" --format='value(email)')"
-if [[ -z "$existing" ]]; then
-  gcloud iam service-accounts create github-hermes-cicd --project="$project" \
-    --display-name='Hermes GitHub build and deployment' --quiet
-fi
+for account in "$ci_sa" "$deploy_sa" "$smoke_sa" "$build_sa"; do
+  existing="$(gcloud iam service-accounts list --project="$project" --filter="email=${account}" --format='value(email)')"
+  if [[ -z "$existing" ]]; then
+    gcloud iam service-accounts create "${account%%@*}" --project="$project" --quiet
+  fi
+done
 existing="$(gcloud iam workload-identity-pools list --project="$project" --location=global \
   --filter="name:/${pool}" --format='value(name)')"
 if [[ -z "$existing" ]]; then
@@ -42,26 +45,38 @@ else
   [[ "$actual_condition" == "$condition" ]] || { echo 'Existing provider condition differs; review before changing trust.' >&2; exit 1; }
 fi
 
-for environment in llm-build llm-deploy; do
-  gcloud iam service-accounts add-iam-policy-binding "$ci_sa" --project="$project" \
+for binding in "llm-build:$ci_sa" "llm-deploy:$deploy_sa"; do
+  environment="${binding%%:*}"
+  account="${binding#*:}"
+  gcloud iam service-accounts add-iam-policy-binding "$account" --project="$project" \
     --role=roles/iam.workloadIdentityUser \
     --member="principal://iam.googleapis.com/projects/${project_number}/locations/global/workloadIdentityPools/${pool}/subject/repo:jiangweitaiwan/hermes_agui:environment:${environment}" \
     --condition=None --quiet > /dev/null
 done
-for role in roles/cloudbuild.builds.editor roles/serviceusage.serviceUsageConsumer roles/run.viewer; do
+for role in roles/cloudbuild.builds.editor roles/serviceusage.serviceUsageConsumer; do
   gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:${ci_sa}" \
     --role="$role" --condition=None --quiet > /dev/null
 done
-for account in "$build_sa" "hermes-runtime@${project}.iam.gserviceaccount.com" \
+gcloud iam service-accounts add-iam-policy-binding "$build_sa" --project="$project" \
+  --member="serviceAccount:${ci_sa}" --role=roles/iam.serviceAccountUser --condition=None --quiet > /dev/null
+for account in "hermes-runtime@${project}.iam.gserviceaccount.com" \
   "hermes-host@${project}.iam.gserviceaccount.com" "hermes-worker@${project}.iam.gserviceaccount.com"; do
   gcloud iam service-accounts add-iam-policy-binding "$account" --project="$project" \
-    --member="serviceAccount:${ci_sa}" --role=roles/iam.serviceAccountUser --condition=None --quiet > /dev/null
+    --member="serviceAccount:${deploy_sa}" --role=roles/iam.serviceAccountUser --condition=None --quiet > /dev/null
 done
 for service in hermes-runtime hermes-host hermes-worker; do
   gcloud run services add-iam-policy-binding "$service" --project="$project" --region=asia-east1 \
-    --member="serviceAccount:${ci_sa}" --role=roles/run.developer --condition=None --quiet > /dev/null
+    --member="serviceAccount:${deploy_sa}" --role=roles/run.developer --condition=None --quiet > /dev/null
+  gcloud run services add-iam-policy-binding "$service" --project="$project" --region=asia-east1 \
+    --member="serviceAccount:${smoke_sa}" --role=roles/run.invoker --condition=None --quiet > /dev/null
 done
-for grant in "${ci_sa}:roles/artifactregistry.reader" "${build_sa}:roles/artifactregistry.writer"; do
+for job in hermes-completion hermes-reconcile; do
+  gcloud run jobs add-iam-policy-binding "$job" --project="$project" --region=asia-east1 \
+    --member="serviceAccount:${deploy_sa}" --role=roles/run.developer --condition=None --quiet > /dev/null
+done
+gcloud iam service-accounts add-iam-policy-binding "$smoke_sa" --project="$project" \
+  --member="serviceAccount:${deploy_sa}" --role=roles/iam.serviceAccountOpenIdTokenCreator --condition=None --quiet > /dev/null
+for grant in "${deploy_sa}:roles/artifactregistry.reader" "${build_sa}:roles/artifactregistry.writer"; do
   account="${grant%%:*}"
   role="${grant#*:}"
   gcloud artifacts repositories add-iam-policy-binding hermes --project="$project" --location=asia-east1 \
@@ -83,4 +98,5 @@ gcloud storage buckets add-iam-policy-binding "gs://${bucket}" --member="service
   --role=roles/storage.objectViewer --condition="$source_condition" --quiet > /dev/null
 
 echo "WIF provider: projects/${project_number}/locations/global/workloadIdentityPools/${pool}/providers/${provider}"
-echo "CI service account: ${ci_sa}"
+echo "Build submit: ${ci_sa}; executor: ${build_sa}; deploy: ${deploy_sa}; smoke: ${smoke_sa}"
+echo "Review and revoke obsolete shared CI IAM separately; this script does not remove existing grants."

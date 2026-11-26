@@ -9,10 +9,6 @@ on:
         description: Deploy the built images to existing Cloud Run services
         type: boolean
         default: false
-      managed_rollout_confirmed:
-        description: Migrations/grants complete; staging rollout approved or production gates passed; admission/delivery drained (or empty staging)
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -28,8 +24,10 @@ env:
   GCP_IMAGE_REGION: asia-east1
   GCP_ARTIFACT_REPOSITORY: hermes
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/746997613973/locations/global/workloadIdentityPools/github-hermes/providers/github
-  GCP_SUBMIT_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
-  GCP_BUILD_SERVICE_ACCOUNT: 746997613973-compute@developer.gserviceaccount.com
+  GCP_SUBMIT_SERVICE_ACCOUNT: github-hermes-build@copilotkit-agui.iam.gserviceaccount.com
+  GCP_BUILD_SERVICE_ACCOUNT: hermes-build-executor@copilotkit-agui.iam.gserviceaccount.com
+  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+  GCP_SMOKE_SERVICE_ACCOUNT: ${{ vars.GCP_SMOKE_SERVICE_ACCOUNT }}
   GCP_BUILD_SOURCE_BUCKET: copilotkit-agui-hermes-data
 
 jobs:
@@ -53,23 +51,17 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: llm-offline-ci
           path: ${{ runner.temp }}/llm-ci-evidence
       - name: Validate configuration and prepare tracked source
         shell: bash
-        env:
-          DEPLOY: ${{ inputs.deploy || false }}
-          ROLLOUT_CONFIRMED: ${{ inputs.managed_rollout_confirmed || false }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != refs/heads/main ]]; then
             echo '::error::Cloud builds and deployment must use main.'
-            exit 1
-          fi
-          if [[ "$DEPLOY" == true && "$ROLLOUT_CONFIRMED" != true ]]; then
-            echo '::error::Confirm managed rollout prerequisites before requesting deployment.'
             exit 1
           fi
           for name in GCP_PROJECT_ID GCP_BUILD_REGION GCP_IMAGE_REGION GCP_ARTIFACT_REPOSITORY GCP_WORKLOAD_IDENTITY_PROVIDER GCP_SUBMIT_SERVICE_ACCOUNT GCP_BUILD_SERVICE_ACCOUNT GCP_BUILD_SOURCE_BUCKET; do
@@ -125,7 +117,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy && inputs.managed_rollout_confirmed
+    if: vars.AUTO_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: llm-deploy
@@ -136,14 +128,62 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SUBMIT_SERVICE_ACCOUNT }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
           project_id: ${{ env.GCP_PROJECT_ID }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
-      - name: Deploy Runtime, Host and Worker with startup gates
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: llm-release-manifest
+          path: ${{ runner.temp }}/llm-release
+      - name: Image-only deployment with candidate smoke and partial rollback
         env:
-          HOST_IMAGE: ${{ needs.build.outputs.host_image }}
-          RUNTIME_IMAGE: ${{ needs.build.outputs.runtime_image }}
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_ROLLBACK_IMAGES: ${{ vars.APPROVED_ROLLBACK_IMAGES }}
+          RELEASE_MANIFEST: ${{ runner.temp }}/llm-release/llm-release-manifest.json
+          DEPLOY_REPORT: ${{ runner.temp }}/llm-deploy-report.json
         run: bash scripts/ci/deploy_llm_cloud_run.sh
+      - name: Retain deployment result even after failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: llm-deploy-report
+          path: ${{ runner.temp }}/llm-deploy-report.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Deployment summary
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/llm-deploy-report.json" ]]; then
+            { echo '### Cloud Run deployment'; echo '```json'; cat "$RUNNER_TEMP/llm-deploy-report.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Deployment did not start; see failed prerequisite.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  report:
+    if: always()
+    needs: [ci, build, deploy]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Release outcome
+        env:
+          COMMIT: ${{ github.sha }}
+          GATES: ${{ needs.ci.result }}
+          BUILD: ${{ needs.build.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          HOST: ${{ needs.build.outputs.host_image }}
+          RUNTIME: ${{ needs.build.outputs.runtime_image }}
+        run: |
+          {
+            echo '### Release result'
+            echo "Commit: $COMMIT"
+            echo "Critical gates: $GATES; image build/integrity: $BUILD; deployment job: $DEPLOY"
+            echo "Host / Completion / Reconcile: $HOST"
+            echo "Runtime / Worker: $RUNTIME"
+            echo 'Revision names and DEPLOYED / FAILED_SAFE / ROLLED_BACK / RECOVERY_REQUIRED are in llm-deploy-report when rollout started. A skipped deploy is not a successful deployment.'
+          } >> "$GITHUB_STEP_SUMMARY"

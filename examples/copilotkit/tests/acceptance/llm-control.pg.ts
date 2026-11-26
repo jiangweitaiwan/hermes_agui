@@ -458,3 +458,24 @@ test("managed activation preserves the unpinned pending-job drain gate",async()=
   expect((await store.pool.query("SELECT llm_release_id FROM hermes_agui_runtime.graph_jobs WHERE id=$1",[id])).rows[0].llm_release_id).toBeNull();
   await legacy.cancel(own,id);
 });
+
+test("image-only startup reads existing active/draft without changing control records", async () => {
+  const { openControl } = await import("../../server/llm/control-bootstrap");
+  const before = await store.pool.query("SELECT (SELECT count(*) FROM hermes_agui_runtime.llm_admin_events) AS events, (SELECT count(*) FROM hermes_agui_runtime.llm_releases) AS releases");
+  const draft = await store.draft();
+  const active = await store.active();
+  const oldReader = process.env.AGUI_LLM_DATABASE_URL, oldAdmin = process.env.AGUI_LLM_ADMIN_DATABASE_URL;
+  process.env.AGUI_LLM_DATABASE_URL = url.href;
+  process.env.AGUI_LLM_ADMIN_DATABASE_URL = url.href;
+  try {
+    const runtime = await openControl(policy, llm, true, true);
+    try {
+      expect((await runtime.releases!.active()).release_id).toBe(active.release_id);
+      expect(await runtime.adminStore!.draft()).toEqual(draft);
+    } finally { await runtime.releases!.close(); await runtime.adminStore!.close(); }
+    expect((await store.pool.query("SELECT (SELECT count(*) FROM hermes_agui_runtime.llm_admin_events) AS events, (SELECT count(*) FROM hermes_agui_runtime.llm_releases) AS releases")).rows).toEqual(before.rows);
+  } finally {
+    if (oldReader === undefined) delete process.env.AGUI_LLM_DATABASE_URL; else process.env.AGUI_LLM_DATABASE_URL = oldReader;
+    if (oldAdmin === undefined) delete process.env.AGUI_LLM_ADMIN_DATABASE_URL; else process.env.AGUI_LLM_ADMIN_DATABASE_URL = oldAdmin;
+  }
+});

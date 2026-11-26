@@ -68,4 +68,4 @@ Start the read-only Host/Workers only after Runtime readiness; they fail readine
 per consumer; only the admin Runtime/CLI receives `AGUI_LLM_ADMIN_DATABASE_URL`.
 See [automatic initialization, deployment budgets and rollback](../../docs/llm-management-console-operations.md).
 The existing Vercel public variables, Provider Adapters, native loop and Tasks topology remain in use.
-Actual Vertex/GCS/Cloud Run staging acceptance is a separate BLOCKED gate until resources are provided.
+日常 image-only CI/CD 使用 disposable PG 與 Cloud Run no-traffic readonly smoke；live Vertex/GCS/Tasks/full Graph acceptance 另行執行，不是所有 push 的必要條件。啟用與限制見 [CI/CD 手冊](cicd/README.md)。
