@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Literal
 from urllib.parse import urlsplit
-
+import re
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -60,8 +60,11 @@ def _validate_vertex_model(model, provider, embedding):
     if embedding:
         if model.model != "gemini-embedding-001" or model.dimension > 3072 or provider.location == "global":
             raise ValueError("Unsupported Vertex embedding")
-    elif model.model not in {"gemini-2.5-flash", "gemini-2.5-pro", "google/gemini-2.5-flash", "google/gemini-2.5-pro"}:
-        raise ValueError("Unsupported Vertex chat")
+    elif not re.fullmatch(
+        r"(google/)?gemini-[a-zA-Z0-9._-]+",
+        model.model
+    ):
+        raise ValueError("Invalid Vertex Gemini model identifier")
 
 
 def _validate_model(model, providers, models, roles):

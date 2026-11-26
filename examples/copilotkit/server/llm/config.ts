@@ -43,10 +43,27 @@ function validateEndpoint(provider:ProviderConfig){
   const u=new URL(provider.baseUrl);
   if(!["https:","http:"].includes(u.protocol)||u.username||u.password||u.search||u.hash)throw new Error("Invalid provider endpoint");
 }
-function validateVertex(model:ModelConfig,provider:Extract<ProviderConfig,{driver:"vertex"}>,embedding:boolean){
-  if(embedding){
-    if(model.model!=="gemini-embedding-001"||!model.dimension||model.dimension>3072||provider.location==="global")throw new Error("Unsupported Vertex embedding model/region/dimension");
-  }else if(!["gemini-2.5-flash","gemini-2.5-pro","google/gemini-2.5-flash","google/gemini-2.5-pro"].includes(model.model))throw new Error("Unsupported Vertex structured model");
+function validateVertex(
+  model: ModelConfig,
+  provider: Extract<ProviderConfig, {driver: "vertex"}>,
+  embedding: boolean
+) {
+  if (embedding) {
+    if (
+      model.model !== "gemini-embedding-001" ||
+      !model.dimension ||
+      model.dimension > 3072 ||
+      provider.location === "global"
+    ) {
+      throw new Error(
+        "Unsupported Vertex embedding model/region/dimension"
+      );
+    }
+  } else {
+    if (!/^(google\/)?gemini-[a-zA-Z0-9._-]+$/.test(model.model)) {
+      throw new Error("Invalid Vertex Gemini model identifier");
+    }
+  }
 }
 function validateModel(registry:ModelRegistry,model:ModelConfig,roles:Set<string>){
   if(!roles.has(model.alias))throw new Error("Unknown model role");
