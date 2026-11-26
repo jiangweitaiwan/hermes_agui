@@ -24,10 +24,10 @@ env:
   GCP_IMAGE_REGION: asia-east1
   GCP_ARTIFACT_REPOSITORY: hermes
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/746997613973/locations/global/workloadIdentityPools/github-hermes/providers/github
-  GCP_SUBMIT_SERVICE_ACCOUNT: github-hermes-build@copilotkit-agui.iam.gserviceaccount.com
-  GCP_BUILD_SERVICE_ACCOUNT: hermes-build-executor@copilotkit-agui.iam.gserviceaccount.com
-  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
-  GCP_SMOKE_SERVICE_ACCOUNT: ${{ vars.GCP_SMOKE_SERVICE_ACCOUNT }}
+  GCP_SUBMIT_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
+  GCP_BUILD_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
+  GCP_DEPLOY_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
+  GCP_SMOKE_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
   GCP_BUILD_SOURCE_BUCKET: copilotkit-agui-hermes-data
 
 jobs:
