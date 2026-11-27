@@ -1,5 +1,6 @@
 """Host-owned completion notifications, with at-least-once delivery."""
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -26,14 +27,22 @@ class PostgresRunOutbox:
     def __init__(self, pool):
         self.pool = pool
 
-    def claim(self, *, seconds: int = 60) -> RunCompletion | None:
+    @contextmanager
+    def delivery_guard(self):
+        with self.pool.connection() as conn, conn.transaction():
+            row = conn.execute("SELECT hermes_agui_host.acquire_completion_delivery()").fetchone()
+            if row is None or not row[0]:
+                raise RuntimeError("Completion consumers sealed")
+            yield
+
+    def claim(self, *, seconds: int = 60, event_id: int | None = None) -> RunCompletion | None:
         if not 1 <= seconds <= 300:
             raise ValueError("Invalid delivery lease")
         with self.pool.connection() as conn:
             row = conn.execute("""WITH selected AS (
                 SELECT id FROM hermes_agui_host.run_outbox
-                WHERE (status='pending' AND available_at <= clock_timestamp())
-                   OR (status='leased' AND lease_until <= clock_timestamp())
+                WHERE (%s::bigint IS NULL OR id=%s) AND ((status='pending' AND available_at <= clock_timestamp())
+                   OR (status='leased' AND lease_until <= clock_timestamp()))
                 ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
             )
             UPDATE hermes_agui_host.run_outbox event
@@ -41,11 +50,17 @@ class PostgresRunOutbox:
                 lease_until=clock_timestamp()+make_interval(secs => %s)
             FROM selected WHERE event.id=selected.id
             RETURNING event.id,project,principal,bot,run_id,profile_revision,attempts,evidence_generation""",
-            (seconds,)).fetchone()
+            (event_id, event_id, seconds)).fetchone()
         if row is None:
             return None
         event_id, project, principal, bot, run_id, revision, attempt, generation = row
         return RunCompletion(event_id, BotScope(project, principal, bot), run_id, revision, attempt, generation)
+
+    def state(self, event_id):
+        with self.pool.connection() as conn:
+            row = conn.execute("SELECT status FROM hermes_agui_host.run_outbox WHERE id=%s",
+                               (event_id,)).fetchone()
+        return row[0] if row else None
 
     def acknowledge(self, event: RunCompletion) -> bool:
         with self.pool.connection() as conn:
@@ -79,6 +94,10 @@ class PostgresRunOutbox:
         return updated.rowcount == 1
 
     def dispatch_once(self, dispatcher: RunCompletionDispatcher, *, lease_seconds: int = 60) -> RunCompletion | None:
+        with self.delivery_guard():
+            return self._dispatch_once(dispatcher, lease_seconds=lease_seconds)
+
+    def _dispatch_once(self, dispatcher, *, lease_seconds):
         event = self.claim(seconds=lease_seconds)
         if event is None:
             return None

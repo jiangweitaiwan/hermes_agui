@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import signal
 import subprocess
+import time
 from urllib.request import Request, urlopen
 
 SERVICES = ('hermes-runtime', 'hermes-host', 'hermes-worker')
@@ -65,14 +66,29 @@ class Cloud:
         self.project, self.region, self.invoker = project, region, invoker
 
     def call(self, *args):
+        budget = (getattr(self, 'deadline', None) or float('inf')) - time.monotonic()
+        require(budget > 0, 'Drain budget exhausted')
         result = subprocess.run(['gcloud', 'run', *args, '--project=' + self.project,
                                  '--region=' + self.region, '--format=json', '--quiet'],
-                                capture_output=True, text=True, encoding='utf-8', timeout=420, check=False)
+                                capture_output=True, text=True, encoding='utf-8', timeout=min(420, budget), check=False)
         # Cloud errors may include environment data; retain only command class and code.
         require(result.returncode == 0, f'gcloud {args[0]} {args[1]} failed ({result.returncode})')
         return json.loads(result.stdout or '{}')
 
-    def smoke(self, url, audience, guarded):
+    def database_counts(self, execution):
+        require(re.fullmatch(r'[a-zA-Z0-9-]+', execution), 'Invalid execution identifier')
+        query = 'resource.type="cloud_run_job" AND labels."run.googleapis.com/execution_name"="' + execution + '" AND jsonPayload.event="database_drain_counts"'
+        result = subprocess.run(['gcloud','logging','read',query,'--project=' + self.project,
+            '--limit=1','--format=json(jsonPayload.counts)','--freshness=1d'], capture_output=True,text=True,timeout=30,check=False)
+        require(result.returncode == 0, 'Drain count evidence query failed')
+        entries = json.loads(result.stdout or '[]')
+        counts = entries[0].get('jsonPayload', {}).get('counts') if entries else None
+        require(isinstance(counts, dict) and counts and all(isinstance(v,int) and v>=0 for v in counts.values()), 'Drain count evidence not yet available')
+        allowed = {'hermes_agui_host.runs','hermes_agui_host.run_outbox','hermes_agui_runtime.graph_jobs'}
+        require(set(counts) <= allowed, 'Unknown drain evidence keys')
+        return counts
+
+    def identity(self, audience):
         access = subprocess.check_output(['gcloud', 'auth', 'print-access-token'],
                                          text=True, encoding='utf-8', timeout=30).strip()
         mint = Request('https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/' +
@@ -81,13 +97,22 @@ class Cloud:
                        headers={'Authorization': 'Bearer ' + access, 'Content-Type': 'application/json'})
         with urlopen(mint, timeout=20) as response:
             token = json.load(response)['token']
+        return token
+
+    def capabilities(self, url):
+        token = self.identity(url)
+        with urlopen(Request(url + "/internal/execution-capabilities", headers={"X-Serverless-Authorization":"Bearer " + token}), timeout=20) as response:
+            return json.load(response)
+
+    def smoke(self, url, audience, guarded, *, method="GET"):
+        token = self.identity(audience)
         request = Request(url + '/health', headers={'X-Serverless-Authorization': 'Bearer ' + token})
         with urlopen(request, timeout=20) as response:
             require(response.status == 200 and json.load(response) == {'status': 'ok'}, 'Read-only health smoke failed')
         # Missing app credentials must be rejected, even with Cloud Run invocation permission.
         from urllib.error import HTTPError
         try:
-            with urlopen(Request(url + guarded, headers={'X-Serverless-Authorization': 'Bearer ' + token}), timeout=20):
+            with urlopen(Request(url + guarded, method=method, headers={'X-Serverless-Authorization': 'Bearer ' + token}), timeout=20):
                 raise Blocked('API authentication guard missing')
         except HTTPError as error:
             require(error.code in (401, 403), 'Unexpected API guard response')
@@ -167,7 +192,9 @@ def main():
     from scripts.ci.database_rollout import DatabaseRollout
     DatabaseRollout(cloud, manifest, args.report, eligible,
                     database_job=os.environ['GCP_DATABASE_JOB'], host_job=os.environ['GCP_HOST_MIGRATION_JOB'],
-                    schedulers=json.loads(os.environ['GCP_SCHEDULER_JOBS'])).run()
+                    schedulers=json.loads(os.environ['GCP_SCHEDULER_JOBS']),
+                    queues=json.loads(os.environ['GCP_CLOUD_TASK_QUEUES']),
+                    drain_seconds=int(os.environ.get('GCP_DRAIN_SECONDS', '300'))).run()
 
 
 if __name__ == '__main__':

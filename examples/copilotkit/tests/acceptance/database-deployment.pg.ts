@@ -205,3 +205,20 @@ test("failed SQL migration rolls back schema and ledger; preparation CLI fences,
     expect((await pool.query("SELECT closed FROM hermes_agui_host.deployment_fence")).rows[0].closed).toBe(false);
   }finally{await pool.end();}
 });
+
+test("Graph consumer lock makes seal wait and the sealed fence rejects later consumers with only EXECUTE privilege",async()=>{
+  const url=await database();hostMigrate(url);runtimeMigrate(url);
+  const pool=new Pool({connectionString:url,max:3});
+  await pool.query("GRANT USAGE ON SCHEMA hermes_agui_runtime TO hermes_runtime");
+  const consumer=await pool.connect(),owner=await pool.connect();
+  try{
+    await consumer.query("BEGIN");await consumer.query("SET LOCAL ROLE hermes_runtime");
+    expect((await consumer.query("SELECT hermes_agui_runtime.acquire_graph_delivery() AS allowed")).rows[0].allowed).toBe(true);
+    const pid=(await owner.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+    const sealing=owner.query("UPDATE hermes_agui_runtime.deployment_fence SET jobs_closed=true");
+    await expect.poll(async()=>Number((await pool.query("SELECT count(*) AS n FROM pg_locks WHERE pid=$1 AND NOT granted",[pid])).rows[0].n)).toBeGreaterThan(0);
+    await consumer.query("ROLLBACK");await sealing;
+    await consumer.query("BEGIN");await consumer.query("SET LOCAL ROLE hermes_runtime");
+    expect((await consumer.query("SELECT hermes_agui_runtime.acquire_graph_delivery() AS allowed")).rows[0].allowed).toBe(false);
+  }finally{await consumer.query("ROLLBACK");consumer.release();owner.release();await pool.end();}
+});

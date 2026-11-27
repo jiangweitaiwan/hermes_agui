@@ -33,9 +33,10 @@ class RunRecord:
 class PostgresRunStore:
     """Use a bounded psycopg pool supplied by the Host application."""
 
-    def __init__(self, pool, *, publish_completions=False):
+    def __init__(self, pool, *, publish_completions=False, completion_tasks=None):
         self.pool = pool
         self.publish_completions = publish_completions
+        self.completion_tasks = completion_tasks
 
     def begin(self, scope: BotScope, thread_id: str, run_id: str, attempt: UUID, seconds: int,
               *, managed_revision: UUID | None = None) -> RunLease | None:
@@ -96,6 +97,7 @@ class PostgresRunStore:
         """Finish atomically with the optional publication of a staged profile."""
         if status not in {"completed", "failed", "interrupted"}:
             raise ValueError("Invalid terminal status")
+        event_id = None
         scope = self._scope_args(lease)
         with self.pool.connection() as conn, conn.transaction():
             if not self._lock_lease(conn, lease):
@@ -115,12 +117,14 @@ class PostgresRunStore:
                 WHERE (project,principal,bot,run_id)=(%s,%s,%s,%s)""",
                 (status, reason, *scope, lease.run_id))
             if self.publish_completions and status == "completed" and profile is not None:
-                conn.execute("""INSERT INTO hermes_agui_host.run_outbox
+                event_id = conn.execute("""INSERT INTO hermes_agui_host.run_outbox
                     (project,principal,bot,run_id,profile_revision,profile,evidence_generation)
-                    VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s)""",
-                    (*scope, lease.run_id, profile.revision, json.dumps(asdict(profile)), evidence_generation))
+                    VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s) RETURNING id""",
+                    (*scope, lease.run_id, profile.revision, json.dumps(asdict(profile)), evidence_generation)).fetchone()[0]
             conn.execute("""UPDATE hermes_agui_host.bot_state SET active_run=NULL, expires_at=NULL
                 WHERE (project,principal,bot)=(%s,%s,%s)""", scope)
+        if event_id is not None and self.completion_tasks is not None:
+            self.completion_tasks.notify(event_id)
         return True
 
     @staticmethod

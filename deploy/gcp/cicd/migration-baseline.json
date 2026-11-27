@@ -21,7 +21,8 @@
     "hermes_agui/storage/migrations/003_completion_evidence.sql": "3a902410159932a8ba70ab4104a1f6309743f028aed77badb9e5348d213d49c6",
     "hermes_agui/storage/migrations/004_managed_bots.sql": "b4f4508c245693d754ccf16741e4c33e851e51aa99e68d44582fde1015aef0af",
     "hermes_agui/storage/migrations/005_management_operations.sql": "e8f0db513b6049a388e7c987f96e9ed0da8e8dd180b5a5e187c70376a5816bd5",
-    "hermes_agui/storage/migrations/006_run_events.sql": "b814e29258d7b0a489fae36f0304c2f973b58b6feb6b0fb698deda5a9a6a3397"
+    "hermes_agui/storage/migrations/006_run_events.sql": "b814e29258d7b0a489fae36f0304c2f973b58b6feb6b0fb698deda5a9a6a3397",
+    "deploy/gcp/event-driven-grants.sql": "7d2e58f9a94fe2119e0e3a2dddf75c91d380308d725749b97cbb5065b399f3c6"
   },
   "format": 1
 }

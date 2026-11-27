@@ -65,7 +65,7 @@ class GCSObjects:
     def read(self, key: str, generation: str, *, limit: int) -> bytes:
         version = int(generation)
         blob = self.bucket.blob(key, generation=version)
-        blob.reload(if_generation_match=version, timeout=30)
+        blob.reload(if_generation_match=version, timeout=30, retry=None)
         if blob.size is None or blob.size > limit:
             raise ValueError("Object exceeds download limit")
-        return blob.download_as_bytes(if_generation_match=version, raw_download=True, timeout=30)
+        return blob.download_as_bytes(if_generation_match=version, raw_download=True, timeout=30, retry=None)

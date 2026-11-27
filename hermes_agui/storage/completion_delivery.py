@@ -4,7 +4,7 @@ import argparse
 import json
 import logging
 import re
-from time import sleep
+from time import monotonic, sleep
 from urllib.parse import urlsplit
 
 from hermes_agui.storage.run_outbox import PostgresRunOutbox
@@ -78,13 +78,38 @@ class GraphCompletionDispatcher:
         if self.audience:
             from hermes_agui.cloud_identity import identity_headers
 
-            headers.update(identity_headers(self.audience))
+            headers.update(identity_headers(self.audience, timeout=5))
         response = self.client.post(
             self.url, content=body, follow_redirects=False,
             headers=headers,
         )
         if response.status_code != 204:
             raise RuntimeError("Runtime did not acknowledge Graph completion")
+
+
+def drain(outbox, dispatcher, *, max_events=100, max_seconds=120, clock=monotonic):
+    if not 1 <= max_events <= 10000 or not 1 <= max_seconds <= 3600:
+        raise ValueError("Invalid completion drain budget")
+    deadline = clock() + max_seconds
+    counts = {"claimed": 0, "delivered": 0, "retry": 0, "budget_exhausted": False}
+    while counts["claimed"] < max_events and clock() < deadline:
+        with outbox.delivery_guard():
+            # Claim/database errors are global failures, never silently reported as an empty queue.
+            event = outbox.claim(seconds=180)
+            if event is None:
+                return counts
+            counts["claimed"] += 1
+            try:
+                dispatcher.deliver(event)
+            except Exception:  # health: allow BLE001 -- preserve sanitized per-event retry diagnostics
+                outbox.retry(event, seconds=min(300, 2 ** min(event.attempt, 9)))
+                counts["retry"] += 1
+                continue
+            if not outbox.acknowledge(event):
+                raise RuntimeError("Completion drain acknowledgement lease lost")
+            counts["delivered"] += 1
+    counts["budget_exhausted"] = True
+    return counts
 
 
 def main():
@@ -96,7 +121,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="Dispatch committed Host completions to Graph ingestion")
     parser.add_argument("--prefix", default="profiles")
-    parser.add_argument("--once", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--once", action="store_true")
+    mode.add_argument("--drain", action="store_true")
+    parser.add_argument("--max-events", type=int, default=100)
+    parser.add_argument("--max-seconds", type=int, default=120)
     parser.add_argument("--audience", help="Runtime HTTPS service audience for Google identity")
     args = parser.parse_args()
     # Delivery keys use the scope persisted by the writer. The worker handles
@@ -110,6 +139,9 @@ def main():
         )
         try:
             open_host_pool(pool)
+            if args.drain:
+                print(json.dumps(drain(outbox, dispatcher, max_events=args.max_events, max_seconds=args.max_seconds)))
+                return
             if args.once:
                 outbox.dispatch_once(dispatcher, lease_seconds=300)
                 return

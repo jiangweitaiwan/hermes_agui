@@ -1,6 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
 import { z } from "zod";
-import type { Pool } from "pg";
+import { Pool } from "pg";
 
 export const TasksSchema = z.object({
   project: z.string().regex(/^[a-z][a-z0-9-]+$/), location: z.string().regex(/^[a-z0-9-]+$/),
@@ -11,6 +11,9 @@ export const TasksSchema = z.object({
 export type TasksSettings = z.infer<typeof TasksSchema>;
 /** PG jobs + delivery rows remain authoritative even when task creation fails. */
 export class CloudTasksDelivery {
+  private guards?: Pool;
+  get consumerPool() { return this.guards ??= new Pool({connectionString:this.pool.options.connectionString,max:2,connectionTimeoutMillis:5000,idleTimeoutMillis:10000}); }
+  async close() { await this.guards?.end(); }
   private auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
   constructor(readonly pool: Pool, readonly settings: TasksSettings) {
     if (!process.env[settings.tokenEnv] || process.env[settings.tokenEnv]!.length < 32) throw new Error("Worker credential required");

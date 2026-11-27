@@ -142,7 +142,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     clearInterval(metricsTimer);
     internal?.close();
     internal?.closeAllConnections();
-    server.close(() => { void application.close().then(async () => { await threadMappings?.close(); await wiki?.close(); await releases?.close();await adminStore?.close();await vite?.close(); }).then(() => process.exit(0)); });
+    server.close(() => { void application.close().then(async () => { await tasks?.close(); await threadMappings?.close(); await wiki?.close(); await releases?.close();await adminStore?.close();await vite?.close(); }).then(() => process.exit(0)); });
     server.closeAllConnections();
   });
 }

@@ -46,3 +46,8 @@
 **/.git
 **/*.egg-info
 **/.DS_Store
+
+!/deploy/
+!/deploy/gcp/
+!/deploy/gcp/database-grants.sql
+!/deploy/gcp/event-driven-grants.sql

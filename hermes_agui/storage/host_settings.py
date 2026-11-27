@@ -11,7 +11,21 @@ from hermes_agui.storage.runs import PostgresRunStore
 
 class HostStorage:
     def __init__(self, pool, profiles, project, scratch, approved, *, graph_completions=False):
-        self.runs = PostgresRunStore(pool, publish_completions=graph_completions)
+        from hermes_agui.storage.completion_tasks import load_completion_tasks
+
+        self.completion_tasks = load_completion_tasks()
+        if self.completion_tasks and not graph_completions:
+            raise ValueError("Completion tasks require graph_completions")
+        if self.completion_tasks:
+            from hermes_agui.storage.completion_delivery import GraphCompletionDispatcher
+
+            if self.completion_tasks.token == os.environ.get("AGUI_GRAPH_COMPLETION_TOKEN"):
+                raise ValueError("Completion and Graph credentials must be independent")
+            GraphCompletionDispatcher(profiles, None, os.environ["AGUI_GRAPH_COMPLETION_URL"],
+                                      os.environ["AGUI_GRAPH_COMPLETION_TOKEN"],
+                                      audience=os.environ["AGUI_GRAPH_COMPLETION_AUDIENCE"])
+        self.runs = PostgresRunStore(pool, publish_completions=graph_completions,
+                                     completion_tasks=self.completion_tasks)
         self.profiles, self.project, self.scratch = profiles, project, scratch
         self.approved = approved
         self.graph_completions = graph_completions
@@ -46,7 +60,7 @@ def open_host_pool(pool):
     pool.open(wait=True, timeout=10)
     with pool.connection() as connection:
         row = connection.execute("SELECT max(version) FROM hermes_agui_host.schema_version").fetchone()
-        if row not in {(3,), (4,), (5,), (6,)}:
+        if row not in {(3,), (4,), (5,), (6,), (7,), (8,)}:
             raise RuntimeError("Apply the Host storage migrations before starting")
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOTS = ("hermes_agui/storage/migrations", "examples/copilotkit/server/storage/migrations")
-GRANTS = ("deploy/gcp/database-grants.sql", "deploy/gcp/llm-control-grants.sql")
+GRANTS = ("deploy/gcp/database-grants.sql", "deploy/gcp/llm-control-grants.sql", "deploy/gcp/event-driven-grants.sql")
 
 
 def inventory(root: Path) -> dict[str, str]:

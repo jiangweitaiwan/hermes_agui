@@ -48,7 +48,7 @@ export async function generate(adminURL:string, root:string, output:string) {
       contracts.push({schema,ledger,files,prefixes});
     }
     const grants:string[]=[];
-    for(const name of ["database-grants.sql","llm-control-grants.sql"]) {
+    for(const name of ["database-grants.sql","llm-control-grants.sql","event-driven-grants.sql"]) {
       const source=(await readFile(`${root}/deploy/gcp/${name}`,"utf8")).split("\n").filter(line=>!line.trimStart().startsWith("--")).join("\n");
       grants.push(...source.split(";").map(s=>s.trim()).filter(s=>s.startsWith("GRANT ") && s.includes("hermes_agui_runtime")));
     }

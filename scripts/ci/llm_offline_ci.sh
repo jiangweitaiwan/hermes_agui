@@ -23,11 +23,13 @@ AGUI_HOST_DATABASE_URL="$AGUI_LLM_TEST_ADMIN_URL" "$HERMES_PYTHON" -m hermes_agu
 (cd examples/copilotkit && AGUI_RUNTIME_DATABASE_URL="$AGUI_LLM_TEST_ADMIN_URL" node --import tsx server/storage/migrate-cli.ts)
 scripts/run_tests.sh tests/hermes_agui/test_server.py tests/hermes_agui/test_runtime_entrypoint.py \
   tests/hermes_agui/test_http_lifecycle.py tests/hermes_agui/test_storage_migrations.py \
-  tests/scripts/test_llm_image_rollout.py tests/scripts/test_llm_release_manifest.py \
+  tests/hermes_agui/test_completion_tasks.py tests/hermes_agui/test_completion_postgres.py \
+  tests/scripts/test_event_queues.py tests/scripts/test_llm_image_rollout.py tests/scripts/test_llm_release_manifest.py \
   tests/scripts/test_cicd_integrity.py -j 2
 cd examples/copilotkit
 npm run build
 npm test -- tests/runtime.test.ts tests/cloud.test.ts tests/llm-registry.test.ts tests/llm-managed-startup.test.ts --maxWorkers=2
+HERMES_AGUI_TEST_RUNTIME_DATABASE_URL="$AGUI_LLM_TEST_ADMIN_URL" npm test -- tests/cloud-tasks.test.ts tests/cloud-worker.test.ts tests/wiki-postgres-sources.test.ts tests/event-driven-postgres.test.ts --maxWorkers=2
 npm test -- --config vitest.database-deployment.config.ts
 node --import tsx --input-type=module - <<'JS' > "$CI_EVIDENCE_DIR/code-contract.json"
 import { SnapshotSchema, hash, taskManifest } from './server/llm/control-contract.ts';

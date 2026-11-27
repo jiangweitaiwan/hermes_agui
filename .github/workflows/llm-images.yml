@@ -143,6 +143,11 @@ jobs:
         env:
           GCP_DATABASE_JOB: hermes-database-prepare
           GCP_HOST_MIGRATION_JOB: hermes-host-migrate
+          GCP_DRAIN_SECONDS: ${{ vars.LLM_DRAIN_SECONDS || '300' }}
+          GCP_CLOUD_TASK_QUEUES: ${{ vars.LLM_CLOUD_TASK_QUEUES }}
+          LLM_COMPLETION_CONFIG: ${{ vars.LLM_COMPLETION_CONFIG }}
+          LLM_PAUSED_SCHEDULER_RUN_VERIFIED: ${{ vars.LLM_PAUSED_SCHEDULER_RUN_VERIFIED }}
+          LLM_MANAGED_PRODUCERS_CONFIRMED: ${{ vars.LLM_MANAGED_PRODUCERS_CONFIRMED }}
           GCP_SCHEDULER_JOBS: ${{ vars.LLM_SCHEDULER_JOBS }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_MANIFEST: ${{ runner.temp }}/llm-release/llm-release-manifest.json

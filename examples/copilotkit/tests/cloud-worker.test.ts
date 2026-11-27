@@ -9,7 +9,8 @@ afterEach(() => vi.useRealTimers());
 function setup(state = "completed") {
   const evolution = { options: {provider: {edgeVectors: {key:"fixture-model-v2"}}}, controller: new AbortController(), reconcile: vi.fn(),
     processJob: vi.fn(async () => ({ state })) };
-  const tasks = { settings: { deadlineSeconds: 30 }, reconcile: vi.fn(async () => ({ attempted: 1, failed: 0 })) };
+  const client = {query:vi.fn(async(_sql:string)=>({rows:[{allowed:true}]})),release:vi.fn()};
+  const tasks = {consumerPool:{connect:vi.fn(async()=>client)}, settings: { deadlineSeconds: 30 }, reconcile: vi.fn(async () => ({ attempted: 1, failed: 0 })) };
   const reconcileBots = vi.fn();
   const handle = workerHandler(evolution as unknown as MemoryEvolution, tasks as unknown as CloudTasksDelivery, token, reconcileBots);
   const request = (body: unknown = { schema: 1, jobId: randomUUID() }, headers: Record<string, string> = { "X-Worker-Token": token }, path = "process") =>
@@ -45,4 +46,14 @@ test("worker propagates bounded deadline before task dispatch expires", async ()
   const response = request();
   await vi.advanceTimersByTimeAsync(20_000);
   expect((await response).status).toBe(503);
+});
+
+test("sealed worker acknowledges terminal stale tasks and retries work without entering the compiler", async()=>{
+  const {request,tasks,evolution}=setup();
+  const client=await tasks.consumerPool.connect();
+  client.query.mockImplementation(async sql=>({rows:sql.includes("acquire_graph_delivery")?[{allowed:false}]:sql.includes("SELECT state")?[{state:"completed"}]:[]} as any));
+  expect((await request()).status).toBe(204);
+  expect((await request({},undefined,"reconcile")).status).toBe(503);
+  expect(evolution.processJob).not.toHaveBeenCalled();
+  expect(client.release).toHaveBeenCalledTimes(2);
 });

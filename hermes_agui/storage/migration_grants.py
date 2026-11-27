@@ -4,8 +4,11 @@ from pathlib import Path
 
 
 def apply_host_grants(connection):
-    path = Path(__file__).resolve().parents[2] / 'deploy/gcp/database-grants.sql'
-    source = '\n'.join(line for line in path.read_text().splitlines() if not line.lstrip().startswith('--'))
+    from hermes_cli._startup_fast import project_root_str
+
+    path = Path(project_root_str()) / 'deploy/gcp/database-grants.sql'
+    sources = [path, path.with_name('event-driven-grants.sql')]
+    source = '\n'.join(line for item in sources for line in item.read_text().splitlines() if not line.lstrip().startswith('--'))
     statements = [part.strip() for part in source.split(';')
                   if part.strip().upper().startswith('GRANT ') and 'hermes_agui_host' in part]
     checksum = hashlib.sha256('\n'.join(statements).encode()).hexdigest()

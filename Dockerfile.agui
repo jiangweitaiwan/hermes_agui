@@ -93,7 +93,7 @@ RUN ln -s libsqlite3.so.3.53.4 /usr/local/lib/libsqlite3.so.0 && ldconfig
 COPY --from=build /opt/hermes /opt/hermes
 COPY --from=llm_contract /contract/llm_task_contract.json /opt/hermes/hermes_agui/core/llm_task_contract.json
 COPY LICENSE /opt/hermes/LICENSE
-COPY deploy/gcp/database-grants.sql /opt/hermes/deploy/gcp/database-grants.sql
+COPY deploy/gcp/database-grants.sql deploy/gcp/event-driven-grants.sql /opt/hermes/deploy/gcp/
 ENV PATH=/opt/hermes/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
     HERMES_HOME=/srv/hermes/profile HERMES_RUNTIME_DIR=/opt/hermes/tools \

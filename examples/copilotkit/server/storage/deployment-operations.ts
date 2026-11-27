@@ -32,6 +32,8 @@ async function fence(context:Context,command:string) {
       // No duplicate writes when the desired fence state is already installed.
       const closed=command!=="resume";
       if(i===1 && command!=="fence") await clients[i].query(`UPDATE ${table} SET closed=$1,jobs_closed=$1 WHERE singleton AND (closed IS DISTINCT FROM $1 OR jobs_closed IS DISTINCT FROM $1)`,[closed]);
+      else if(i===0 && command!=="fence" && (await clients[i].query("SELECT 1 FROM information_schema.columns WHERE table_schema='hermes_agui_host' AND table_name='deployment_fence' AND column_name='deliveries_closed'")).rowCount)
+        await clients[i].query(`UPDATE ${table} SET closed=$1,deliveries_closed=$1 WHERE singleton AND (closed IS DISTINCT FROM $1 OR deliveries_closed IS DISTINCT FROM $1)`,[closed]);
       else await clients[i].query(`UPDATE ${table} SET closed=$1 WHERE singleton AND closed IS DISTINCT FROM $1`,[closed]);
       if(!(await clients[i].query(`SELECT 1 FROM ${table} WHERE singleton`)).rowCount) throw new Error("Deployment fence state missing");
     } else if(command==="resume") throw new Error("Deployment fence missing");
@@ -46,14 +48,18 @@ async function drain(context:Context) {
     [0,"hermes_agui_host.run_outbox","status IN ('pending','leased')"],
     [1,"hermes_agui_runtime.graph_jobs","state IN ('pending','running')"],
   ] as const;
-  const deadline=Date.now()+300_000;
+  const deadline=Date.now()+2_000;
   let pending:string[]=[];
   do {
     pending=[];
+    const counts:Record<string,number>={};
     for(const [i,table,predicate] of checks) {
       if(!(await clients[i].query("SELECT to_regclass($1) AS name",[table])).rows[0].name) continue;
-      if((await clients[i].query(`SELECT 1 FROM ${table} WHERE ${predicate} LIMIT 1`)).rowCount) pending.push(table);
+      const count=Number((await clients[i].query(`SELECT count(*) AS count FROM ${table} WHERE ${predicate}`)).rows[0].count);
+      counts[table]=count;
+      if(count) pending.push(table);
     }
+    console.log(JSON.stringify({event:"database_drain_counts",counts}));
     if(!pending.length) break;
     await clients[0].query("SELECT pg_sleep(2)");
   } while(Date.now()<deadline);

@@ -101,6 +101,10 @@ def create_host(bots, *, default_bot=None, max_active_runs=8,
 
     app = FastAPI(title="Hermes AG-UI", lifespan=lifespan)
 
+    if storage is not None and getattr(storage, "completion_tasks", None) is not None:
+        from hermes_agui.storage.completion_http import mount_completion
+        mount_completion(app, storage)
+
     if management:
         from hermes_agui.management import mount_management
         mount_management(app, management)
