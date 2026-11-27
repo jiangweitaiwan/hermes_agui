@@ -7,7 +7,7 @@
 - 基準：`4fffc212dc1d8effd38e0e503d9381556195a5f0`。
 - 工作分支：`codex/event-driven-execution`，本機分支，未推送。
 - 基準沒有計畫書；已比對並 fast-forward 至 `eca16c9ccce12cc6e589ced9637270d89d4a8268`，其唯一差異是新增計畫書，並完整閱讀。
-- Source commit：`1dfa7cf819f1f6561191ba3f0262c8d7efd9d375`；此後的報告 commit 不改執行程式。最終 branch tip 以 `git rev-parse codex/event-driven-execution` 查閱。
+- Source commit：`24ddbe310ebcdb66299b0076a8427aadccaaee50`；此後的報告 commit 不改執行程式。最終 branch tip 以 `git rev-parse codex/event-driven-execution` 查閱。
 - 程式、部署模板、CI critical gates、operator scripts 及必要本機驗收已交付。**Production deployment 仍為 BLOCKED：需要操作者完成下列一次性設定、舊 consumer bootstrap 與真實 GCP 驗證。這不是 DEPLOYED 證據。**
 
 ## 實作內容與設計
@@ -78,7 +78,7 @@ scripts/run_tests.sh \
 # 下列兩組使用 disposable PG17 URL，並設定 AGUI_LLM_TEST_HOST_PYTHON。
 npm --prefix examples/copilotkit test -- tests/event-driven-postgres.test.ts \
   tests/cloud-tasks.test.ts tests/cloud-worker.test.ts tests/wiki-postgres-sources.test.ts --maxWorkers=2
-# 20 PASS
+# 21 PASS
 npm --prefix examples/copilotkit test -- --config vitest.database-deployment.config.ts
 # 7 PASS
 npm --prefix examples/copilotkit run build
@@ -92,7 +92,7 @@ git diff --check
 # PASS
 ```
 
-不重複的必要案例合計 **102**（Python 75 + TS Graph 20 + PG deployment 7）。本機 logs 在 `work/`：`final-python-tests.log`、`rollout-final.log`、`graph-tests-final.log`、`database-tests-final.log`、`build-final.log`、`migration-gate.log`、`check-targeted-final.log`。
+不重複的必要案例合計 **103**（Python 75 + TS Graph 21 + PG deployment 7）。本機 logs 在 `work/`：`final-python-tests.log`、`rollout-final.log`、`graph-tests-final.log`、`database-tests-final.log`、`build-final.log`、`migration-gate.log`、`check-targeted-final.log`。
 
 完整 `python scripts/check` **沒有通過**：既有 artifacts/docs/host-config 的 no-tmp 命中，及 `work/` 內自行建立的 Python dependency archives 被 profile-archive guard 判定為 source archive。第一次掃描還掃到 toolchain；加入本機 ignore 後 code health 已通過。觸及的 install-root 問題已改用標準 project_root_str 修正，定向三項 check 已通過。沒有為本案放寬 lint baseline 或移除驗證。未跑無關全量 E2E、完整 Host Docker image build 或安全掃描。
 
