@@ -6,6 +6,7 @@ file for further schema changes; already applied files are left untouched.
 Legacy direct SQL installations are adopted using their committed schema_version rows.
 """
 
+import hashlib
 import os
 from pathlib import Path
 
@@ -32,14 +33,16 @@ def main():
     ) as connection:
         connection.execute("SELECT pg_advisory_lock(92017001)")
         try:
-            connection.execute("CREATE SCHEMA IF NOT EXISTS hermes_agui_host_migrations")
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS hermes_agui_host_migrations.host (name text PRIMARY KEY)"
-            )
-            applied = {
-                row[0]
-                for row in connection.execute("SELECT name FROM hermes_agui_host_migrations.host")
-            }
+            present = connection.execute("SELECT to_regclass('hermes_agui_host_migrations.host')").fetchone()[0]
+            if not present:
+                connection.execute("CREATE SCHEMA IF NOT EXISTS hermes_agui_host_migrations")
+                connection.execute("CREATE TABLE hermes_agui_host_migrations.host (name text PRIMARY KEY,sha256 text)")
+            if not connection.execute("SELECT 1 FROM information_schema.columns WHERE table_schema='hermes_agui_host_migrations' AND table_name='host' AND column_name='sha256'").fetchone():
+                connection.execute("ALTER TABLE hermes_agui_host_migrations.host ADD COLUMN sha256 text")
+            applied = dict(connection.execute("SELECT name,sha256 FROM hermes_agui_host_migrations.host ORDER BY name"))
+            paths = sorted(Path(__file__).with_name("migrations").glob("*.sql"))
+            if list(applied) != [p.name for p in paths[:len(applied)]]:
+                raise RuntimeError("Unknown Host migration or ledger gap")
             # SQL files were historically also applied directly, before the ledger
             # existed. Their version rows commit in the same transaction as DDL.
             versions = set()
@@ -60,8 +63,13 @@ def main():
                 "005_management_operations.sql": 5,
                 "006_run_events.sql": 6,
             }
-            for path in sorted(Path(__file__).with_name("migrations").glob("*.sql")):
+            for path in paths:
+                checksum = hashlib.sha256(path.read_bytes()).hexdigest()
                 if path.name in applied:
+                    if applied[path.name] and applied[path.name] != checksum:
+                        raise RuntimeError("Host migration checksum mismatch")
+                    if not applied[path.name]:
+                        connection.execute("UPDATE hermes_agui_host_migrations.host SET sha256=%s WHERE name=%s", (checksum,path.name))
                     continue
                 with connection.transaction():
                     sql = _migration_sql(path)
@@ -69,10 +77,13 @@ def main():
                         # Simple query protocol: migration files are multi-statement scripts.
                         connection.execute(sql, prepare=False)
                     connection.execute(
-                        "INSERT INTO hermes_agui_host_migrations.host VALUES (%s)",
-                        (path.name,),
+                        "INSERT INTO hermes_agui_host_migrations.host(name,sha256) VALUES (%s,%s)",
+                        (path.name,checksum),
                     )
                 print(path.name)
+            if os.environ.get("AGUI_APPLY_DATABASE_GRANTS") == "true":
+                from hermes_agui.storage.migration_grants import apply_host_grants
+                apply_host_grants(connection)
         finally:
             connection.execute("SELECT pg_advisory_unlock(92017001)")
 

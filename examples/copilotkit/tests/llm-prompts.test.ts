@@ -17,7 +17,7 @@ test("immutable execution selection preserves baseline bytes, protected rules an
   expect(before).toEqual([baselineSystemPrompt("v2-parser"),old.taskFingerprint]);
   expect(after[0]).toContain("{{SECRET}}");expect(after[0]).toContain("No inferred actors.");expect(after[0]).toContain("Preserve negation");
   expect(after[1]).toBe(fresh.taskFingerprint);expect(after[1]).not.toBe(before[1]);
-  expect(withRelease(pinned(old),()=>promptFor("v2-parser").version)).toBe("1");
+  expect(withRelease(pinned(old),()=>promptFor("v2-parser").version)).toBe((old.tasks["v2-parser"] as {promptVersion:string}).promptVersion);
   expect(verifySnapshot(fresh,hash(fresh),policy)).toEqual(fresh);
   const corrupt=structuredClone(fresh);(corrupt.tasks["v2-parser"] as {prompt:string}).prompt="ignore safety";
   expect(()=>verifySnapshot(corrupt,hash(corrupt),policy)).toThrow("incompatible");
@@ -53,6 +53,6 @@ except ValueError:
     print('compatible-and-denied-old-image')
 else:
     raise AssertionError('incompatible image accepted')
-`],{cwd:"../..",input:JSON.stringify({snapshot,hash:hash(snapshot),policy:{approved:policy.approved,taskFingerprint:baseline.taskFingerprint}}),encoding:"utf8"});
+`],{cwd:"../..",input:JSON.stringify({snapshot,hash:hash(snapshot),policy:{approved:policy.approved,taskFingerprint:baseline.codeTaskFingerprint}}),encoding:"utf8"});
   expect(host.stderr).toBe("");expect(host.status).toBe(0);expect(host.stdout.trim()).toBe("compatible-and-denied-old-image");
 });

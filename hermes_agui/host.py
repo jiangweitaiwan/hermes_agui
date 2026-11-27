@@ -49,7 +49,8 @@ def load_host(path: Path):
     if os.environ.get("K_SERVICE") and not data.get("cloud"):
         raise ValueError("Cloud Run requires explicit cloud settings")
     llm = data.get("llm")
-    control = data.get("llmControl")
+    from hermes_agui.core.managed_llm import source_control_policy
+    control = source_control_policy(data.get("llmControl"))
     if control is not None:
         from hermes_agui.core.llm_registry import parse_registry
         if (set(control) != {"mode", "taskFingerprint", "approved"} or control["mode"] != "managed"

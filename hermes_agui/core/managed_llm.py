@@ -7,8 +7,19 @@ import os
 import re
 import time
 import asyncio
+from pathlib import Path
 
 from hermes_agui.core.llm_registry import agent_route, fingerprint, parse_registry
+
+
+def source_control_policy(raw):
+    """The deployed Source owns task compatibility; YAML only owns approval policy."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or set(raw) - {"mode", "approved", "taskFingerprint"}:
+        raise ValueError("Invalid Host managed LLM policy")
+    contract = json.loads(Path(__file__).with_name("llm_task_contract.json").read_text())
+    return {**raw, "taskFingerprint": contract["taskFingerprint"]}
 
 
 class ManagedResolver:
@@ -55,15 +66,13 @@ def primary_route_key(raw, role):
 
 
 def validate_snapshot(snapshot, expected_hash, policy):
-    part2 = snapshot.get("contract") == "management-part-2"
-    expected_fields = {"version", "contract", "llm", "modelFingerprint", "taskFingerprint", "tasks"}
-    if part2:
-        expected_fields |= {"prompts", "codeTaskFingerprint"}
+    expected_fields = {"version", "contract", "llm", "modelFingerprint", "taskFingerprint", "tasks",
+                       "prompts", "codeTaskFingerprint"}
     if set(snapshot) != expected_fields:
         raise ValueError("Invalid release contract")
-    if (type(snapshot["version"]) is not int or snapshot["version"] != 1 or snapshot["contract"] not in {"management-part-1", "management-part-2"}
+    if (type(snapshot["version"]) is not int or snapshot["version"] != 1 or snapshot["contract"] != "management-part-2"
             or canonical_hash(snapshot) != expected_hash
-            or snapshot.get("codeTaskFingerprint", snapshot["taskFingerprint"]) != policy["taskFingerprint"]
+            or snapshot["codeTaskFingerprint"] != policy["taskFingerprint"]
             or canonical_hash(snapshot["tasks"]) != snapshot["taskFingerprint"]):
         raise ValueError("Incompatible release contract")
     registry = parse_registry(snapshot["llm"])

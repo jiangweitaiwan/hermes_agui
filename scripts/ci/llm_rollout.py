@@ -1,4 +1,4 @@
-"""Image-only coordinated rollout. No DDL, bootstrap, queue or application writes."""
+"""Cloud Run primitives and database-aware deployment entrypoint."""
 import argparse
 from copy import deepcopy
 import hashlib
@@ -93,9 +93,9 @@ class Cloud:
             require(error.code in (401, 403), 'Unexpected API guard response')
 
 
-class Rollout:
-    def __init__(self, cloud, manifest, approved, report, eligible):
-        self.cloud, self.manifest, self.approved = cloud, manifest, set(approved)
+class RolloutState:
+    def __init__(self, cloud, manifest, report, eligible):
+        self.cloud, self.manifest = cloud, manifest
         self.report, self.eligible = report, eligible
         self.contract = manifest['policy']['contract'][:40]
         self.old, self.candidates, self.changed_jobs, self.changed_traffic = {}, {}, [], []
@@ -109,9 +109,7 @@ class Rollout:
         self.result['attempted_traffic'] = list(self.changed_traffic)
         self.report.write_text(json.dumps(self.result, indent=2) + '\n', encoding='utf-8')
 
-    def compatible(self, image, labels):
-        require(image in self.approved or labels.get('ci-contract') == self.contract,
-                'MANUAL_REQUIRED: old image compatibility is unproven')
+    def immutable_image(self, image):
         require(re.fullmatch(r'.+@sha256:[a-f0-9]{64}', image), 'Old image is not immutable')
 
     def preflight(self):
@@ -127,7 +125,7 @@ class Rollout:
                 require('--worker' in task(resource)['containers'][0].get('args', []), 'Worker HTTP entrypoint flag is missing')
             for revision in set(traffic(resource)) | set(tags(resource).values()):
                 old = self.cloud.call('revisions', 'describe', revision)
-                self.compatible(old['status']['imageDigest'], old['metadata'].get('labels', {}))
+                self.immutable_image(old['status']['imageDigest'])
             self.old[name] = resource
         for name, module in JOBS.items():
             resource = self.cloud.call('jobs', 'describe', name)
@@ -135,113 +133,13 @@ class Rollout:
             require(len(task(resource, True)['containers']) == 1, 'Multi-container Job needs manual review')
             require(container.get('command') == ['python'] and container.get('args', [])[:2] == ['-m', module],
                     'Unexpected Job entrypoint')
-            self.compatible(container['image'], resource['metadata'].get('labels', {}))
+            self.immutable_image(container['image'])
             self.old[name] = resource
         self.result['previous'] = {
             name: {'traffic': traffic(value), 'tags': tags(value), 'config': config_hash(value)}
             if name in SERVICES else {'image': task(value, True)['containers'][0]['image'],
                                      'config': config_hash(value, True)} for name, value in self.old.items()}
         self.save()
-
-    def unchanged(self, name, job=False):
-        current = self.cloud.call('jobs' if job else 'services', 'describe', name)
-        require(config_hash(current, job) == config_hash(self.old[name], job), 'Concurrent template change; manual recovery required')
-        return current
-
-    def run(self):
-        try:
-            self.eligible()
-            self.preflight()
-            for name in SERVICES:
-                self.unchanged(name)
-                image = self.manifest['images']['host_image' if name == 'hermes-host' else 'runtime_image']
-                self.attempted_candidates.append(name)
-                self.save()
-                self.cloud.call('services', 'update', name, '--image=' + image, '--no-traffic',
-                                '--tag=' + TAG, '--deploy-health-check', '--update-labels=ci-contract=' + self.contract)
-                resource = self.unchanged(name)
-                require(traffic(resource) == traffic(self.old[name]), 'Candidate changed existing traffic')
-                revision = resource['status']['latestCreatedRevisionName']
-                require(revision == resource['status']['latestReadyRevisionName'], 'Candidate is not ready')
-                candidate = self.cloud.call('revisions', 'describe', revision)
-                require(any(c.get('type') == 'Ready' and c.get('status') == 'True'
-                            for c in candidate['status']['conditions']), 'Candidate readiness failed')
-                require(candidate['status']['imageDigest'] == image, 'Candidate digest mismatch')
-                self.candidates[name] = revision
-                self.result['revisions'][name] = revision
-                self.save()
-                url = next(t['url'] for t in resource['status']['traffic'] if t.get('tag') == TAG)
-                self.cloud.smoke(url, resource['status']['url'], '/internal/bots' if name == 'hermes-host' else '/api/bots')
-            self.eligible()
-            # Job entrypoints live in Host, never in the Node Runtime image. Do not execute jobs.
-            for name in JOBS:
-                current = self.unchanged(name, True)
-                require(task(current, True)['containers'][0]['image'] == task(self.old[name], True)['containers'][0]['image'], 'Concurrent Job update')
-                self.changed_jobs.append(name)  # Record intent before a possibly ambiguous API failure.
-                self.save()
-                self.cloud.call('jobs', 'update', name, '--image=' + self.manifest['images']['host_image'],
-                                '--update-labels=ci-contract=' + self.contract)
-                updated = self.unchanged(name, True)
-                require(task(updated, True)['containers'][0]['image'] == self.manifest['images']['host_image'], 'Job image read-back failed')
-            for name in SERVICES:
-                self.eligible()
-                current = self.unchanged(name)
-                require(traffic(current) == traffic(self.old[name]), 'Concurrent traffic change')
-                self.changed_traffic.append(name)
-                self.save()
-                self.cloud.call('services', 'update-traffic', name, '--to-revisions=' + self.candidates[name] + '=100')
-                require(traffic(self.unchanged(name)) == {self.candidates[name]: 100}, 'Traffic read-back failed')
-            for name in SERVICES:
-                current = self.unchanged(name)
-                self.cloud.smoke(current['status']['url'], current['status']['url'],
-                                 '/internal/bots' if name == 'hermes-host' else '/api/bots')
-            self.cleanup_tags()
-            self.result['result'] = 'DEPLOYED'
-        except (Blocked, subprocess.SubprocessError, OSError, ValueError, KeyError, StopIteration, KeyboardInterrupt) as error:
-            self.result['reason'] = str(error) if isinstance(error, Blocked) else type(error).__name__
-            self.result['result'] = 'FAILED_SAFE'
-            try:
-                self.rollback()
-                self.cleanup_tags()
-                if self.changed_jobs or self.changed_traffic:
-                    self.result['result'] = 'ROLLED_BACK'
-            except (Blocked, subprocess.SubprocessError, OSError, ValueError, KeyError, StopIteration):
-                self.result['result'] = 'RECOVERY_REQUIRED'
-            self.save()
-            raise Blocked(self.result['result']) from None
-        finally:
-            self.save()
-
-    def cleanup_tags(self):
-        for name in self.attempted_candidates:
-            current = self.unchanged(name)
-            observed = tags(current)
-            if TAG not in observed:
-                require(observed == tags(self.old[name]), 'External tag change')
-                continue
-            revision = self.cloud.call('revisions', 'describe', observed[TAG])
-            expected_image = self.manifest['images']['host_image' if name == 'hermes-host' else 'runtime_image']
-            require(revision['spec']['containers'][0]['image'] == expected_image, 'Unknown tagged candidate')
-            require({k: v for k, v in observed.items() if k != TAG} == tags(self.old[name]), 'External tag change')
-            self.cloud.call('services', 'update-traffic', name, '--remove-tags=' + TAG)
-            require(tags(self.unchanged(name)) == tags(self.old[name]), 'Tag cleanup failed')
-
-    def rollback(self):
-        # Compatibility was established before mutation. Never reverse a schema or release pin.
-        for name in reversed(self.changed_traffic):
-            current = self.unchanged(name)
-            require(traffic(current) in (traffic(self.old[name]), {self.candidates[name]: 100}), 'External traffic change; stop rollback')
-            allocation = ','.join(f'{rev}={percent}' for rev, percent in traffic(self.old[name]).items())
-            self.cloud.call('services', 'update-traffic', name, '--to-revisions=' + allocation)
-            require(traffic(self.unchanged(name)) == traffic(self.old[name]), 'Traffic restore failed')
-        for name in reversed(self.changed_jobs):
-            current = self.unchanged(name, True)
-            old_image = task(self.old[name], True)['containers'][0]['image']
-            require(task(current, True)['containers'][0]['image'] in (old_image, self.manifest['images']['host_image']), 'External Job update; stop rollback')
-            old_label = self.old[name]['metadata'].get('labels', {}).get('ci-contract')
-            label_arg = '--update-labels=ci-contract=' + old_label if old_label else '--remove-labels=ci-contract'
-            self.cloud.call('jobs', 'update', name, '--image=' + old_image, label_arg)
-            require(task(self.unchanged(name, True), True)['containers'][0]['image'] == old_image, 'Job restore failed')
 
 
 def main():
@@ -266,7 +164,10 @@ def main():
         require(tip == manifest['commit'], 'Stale main candidate')
     cloud = Cloud(os.environ['GCP_PROJECT_ID'], os.environ['GCP_BUILD_REGION'], os.environ['GCP_SMOKE_SERVICE_ACCOUNT'])
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-    Rollout(cloud, manifest, json.loads(os.environ.get('APPROVED_ROLLBACK_IMAGES', '[]')), args.report, eligible).run()
+    from scripts.ci.database_rollout import DatabaseRollout
+    DatabaseRollout(cloud, manifest, args.report, eligible,
+                    database_job=os.environ['GCP_DATABASE_JOB'], host_job=os.environ['GCP_HOST_MIGRATION_JOB'],
+                    schedulers=json.loads(os.environ['GCP_SCHEDULER_JOBS'])).run()
 
 
 if __name__ == '__main__':

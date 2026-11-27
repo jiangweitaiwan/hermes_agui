@@ -141,7 +141,7 @@ from hermes_agui.core.managed_llm import canonical_hash,validate_snapshot
 v=json.load(sys.stdin)
 validate_snapshot(v['snapshot'],v['hash'],v['policy'])
 print(canonical_hash(v['snapshot']))
-`], { cwd: "../..", input: JSON.stringify({ snapshot, hash: hash(snapshot), policy: { approved: policy.approved, taskFingerprint: snapshot.taskFingerprint } }), encoding: "utf8",
+`], { cwd: "../..", input: JSON.stringify({ snapshot, hash: hash(snapshot), policy: { approved: policy.approved, taskFingerprint: snapshot.codeTaskFingerprint } }), encoding: "utf8",
     env: { ...process.env, PYTHONPATH: process.cwd() + "/../.." } });
   expect(result.stderr).toBe(""); expect(result.status).toBe(0); expect(result.stdout.trim()).toBe(hash(snapshot));
 });

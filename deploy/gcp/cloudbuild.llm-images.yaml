@@ -39,7 +39,15 @@ steps:
         docker build --file=deploy/gcp/Dockerfile.llm-ci \
           --build-arg=HOST_IMAGE=${_IMAGE_PREFIX}/hermes-host:${_IMAGE_TAG} \
           --tag=hermes-llm-contracts .
-        docker run --rm --volume=/workspace:/workspace \
+        docker network create llm-schema
+        docker run -d --name llm-schema-pg --network llm-schema \
+          --env POSTGRES_USER=hermes --env POSTGRES_HOST_AUTH_METHOD=trust \
+          postgres:17@sha256:b60e90042aa6b8dbecd58e224b3e36114dbf8ad754465264c2476ad58a86e45c
+        for attempt in $$(seq 1 30); do
+          docker exec llm-schema-pg pg_isready -U hermes && break
+          sleep 1
+        done
+        docker run --rm --network llm-schema --volume=/workspace:/workspace \
           --workdir=/workspace/examples/copilotkit \
           --env=HERMES_PYTHON=/opt/hermes/.venv/bin/python \
           hermes-llm-contracts -ceu '
@@ -47,7 +55,12 @@ steps:
             npm ci --ignore-scripts --no-audit --no-fund
             npm test -- tests/runtime.test.ts tests/cloud.test.ts tests/llm-registry.test.ts --maxWorkers=2
             npm run build
+            node --import tsx server/storage/schema-contract.ts \
+              postgres://hermes@llm-schema-pg/postgres /workspace \
+              server/storage/schema-contract.json
           '
+        docker rm -f llm-schema-pg
+        docker network rm llm-schema
   - id: runtime-image
     name: gcr.io/cloud-builders/docker@sha256:2d89b48c704ddcc4a199dd1cc70c21813fb675227600f19cb77e5bbf368012bc
     args:

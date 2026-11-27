@@ -5,6 +5,14 @@
 # Pinned by the multi-arch index digest: uv and node already come from pm's
 # sha-verified lock, and a tag alone would let the base drift under them.
 
+# Package the current TypeScript task contract into Host without a Node runtime dependency.
+FROM node:22.18.0-bookworm-slim@sha256:752ea8a2f758c34002a0461bd9f1cee4f9a3c36d48494586f60ffce1fc708e0e AS llm_contract
+WORKDIR /contract
+COPY examples/copilotkit/package.json examples/copilotkit/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY examples/copilotkit/server/ server/
+RUN node --import tsx --input-type=module -e 'import {hash,taskManifest} from "./server/llm/control-contract.ts"; console.log(JSON.stringify({taskFingerprint:hash(taskManifest())}));' > llm_task_contract.json
+
 FROM debian:trixie-20261020@sha256:4c25275446ca371766b8b093c696782eabce06263fccacb8d5d813b3dc44b308 AS sqlite_build
 ARG SQLITE_AUTOCONF_VERSION=3530400
 ARG SQLITE_SHA256=0e9483900e92cd5de8fd48d16bf9200145a61f7fd5be542a5ac81d8a9516eb9c
@@ -83,7 +91,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=sqlite_build /opt/sqlite-fixed/lib/libsqlite3.so.3.53.4 /usr/local/lib/
 RUN ln -s libsqlite3.so.3.53.4 /usr/local/lib/libsqlite3.so.0 && ldconfig
 COPY --from=build /opt/hermes /opt/hermes
+COPY --from=llm_contract /contract/llm_task_contract.json /opt/hermes/hermes_agui/core/llm_task_contract.json
 COPY LICENSE /opt/hermes/LICENSE
+COPY deploy/gcp/database-grants.sql /opt/hermes/deploy/gcp/database-grants.sql
 ENV PATH=/opt/hermes/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
     HERMES_HOME=/srv/hermes/profile HERMES_RUNTIME_DIR=/opt/hermes/tools \

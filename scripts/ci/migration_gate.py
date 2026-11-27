@@ -23,10 +23,14 @@ def verify(root: Path, declaration: dict) -> dict[str, str]:
         raise ValueError("BLOCKED: unknown migration declaration format")
     actual = inventory(root)
     expected = declaration["files"]
-    if actual != expected:
-        changed = sorted(name for name in actual.keys() | expected.keys()
-                         if actual.get(name) != expected.get(name))
-        raise ValueError("BLOCKED: unreviewed migration/grants bytes: " + ", ".join(changed))
+    changed = [name for name, checksum in expected.items() if actual.get(name) != checksum]
+    if changed:
+        raise ValueError("BLOCKED: historical migration/grants modified: " + ", ".join(sorted(changed)))
+    for name in actual.keys() - expected.keys():
+        directory = str(Path(name).parent)
+        previous = [Path(p).name for p in expected if str(Path(p).parent) == directory]
+        if directory not in ROOTS or not previous or Path(name).name <= max(previous):
+            raise ValueError("BLOCKED: migration must append a new version: " + name)
     # The initial checksum baseline is not an old-reader compatibility attestation.
     return actual
 

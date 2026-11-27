@@ -119,7 +119,7 @@ jobs:
     needs: build
     if: vars.AUTO_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.deploy)
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment: llm-deploy
     permissions:
       contents: read
@@ -139,10 +139,12 @@ jobs:
         with:
           name: llm-release-manifest
           path: ${{ runner.temp }}/llm-release
-      - name: Image-only deployment with candidate smoke and partial rollback
+      - name: Database preparation, maintenance rollout and candidate smoke
         env:
+          GCP_DATABASE_JOB: hermes-database-prepare
+          GCP_HOST_MIGRATION_JOB: hermes-host-migrate
+          GCP_SCHEDULER_JOBS: ${{ vars.LLM_SCHEDULER_JOBS }}
           GH_TOKEN: ${{ github.token }}
-          APPROVED_ROLLBACK_IMAGES: ${{ vars.APPROVED_ROLLBACK_IMAGES }}
           RELEASE_MANIFEST: ${{ runner.temp }}/llm-release/llm-release-manifest.json
           DEPLOY_REPORT: ${{ runner.temp }}/llm-deploy-report.json
         run: bash scripts/ci/deploy_llm_cloud_run.sh

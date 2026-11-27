@@ -128,7 +128,7 @@ export class PostgresDocumentIngestor implements IngestStore {
   async claim(ns: Namespace, _now?: number, leaseMs = 30000, jobId: string | null = null) {
     leaseDuration(leaseMs);
     return this.store.transaction(ns, async client => {
-      await client.query("SELECT set_config('hermes.llm_contract','management-part-1',true)");
+      await client.query("SELECT set_config('hermes.llm_contract','management-part-2',true)");
       const key = namespaceKey(ns);
       await client.query(`UPDATE ${schema}.graph_jobs SET state='failed',error='lease_expired',token=NULL,lease=NULL
         WHERE ns=$1 AND state='running' AND lease<=clock_timestamp() AND attempt>=3 AND ($2::uuid IS NULL OR id=$2)`, [key, jobId]);

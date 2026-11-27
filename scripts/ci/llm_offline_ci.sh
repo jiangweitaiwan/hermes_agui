@@ -15,6 +15,8 @@ if not Path(os.environ['HERMES_AGUI_TEST_DB_SOCKET']).is_dir():
     raise SystemExit('Disposable PostgreSQL socket required')
 import ag_ui, psycopg, psycopg_pool, pytest
 PY
+# Match the generated artifact packaged by Dockerfile.agui, including future task changes.
+(cd examples/copilotkit && node --import tsx --input-type=module -e 'import {hash,taskManifest} from "./server/llm/control-contract.ts"; console.log(JSON.stringify({taskFingerprint:hash(taskManifest())}));' > ../../hermes_agui/core/llm_task_contract.json)
 "$HERMES_PYTHON" -m scripts.ci.rollout_policy --baseline "$COMPATIBILITY_BASE_COMMIT" > "$CI_EVIDENCE_DIR/policy.json"
 "$HERMES_PYTHON" -m scripts.ci.migration_gate > "$CI_EVIDENCE_DIR/migrations.json"
 AGUI_HOST_DATABASE_URL="$AGUI_LLM_TEST_ADMIN_URL" "$HERMES_PYTHON" -m hermes_agui.storage.migrate
@@ -26,7 +28,7 @@ scripts/run_tests.sh tests/hermes_agui/test_server.py tests/hermes_agui/test_run
 cd examples/copilotkit
 npm run build
 npm test -- tests/runtime.test.ts tests/cloud.test.ts tests/llm-registry.test.ts tests/llm-managed-startup.test.ts --maxWorkers=2
-npm test -- --config vitest.llm-control.config.ts --reporter=verbose
+npm test -- --config vitest.database-deployment.config.ts
 node --import tsx --input-type=module - <<'JS' > "$CI_EVIDENCE_DIR/code-contract.json"
 import { SnapshotSchema, hash, taskManifest } from './server/llm/control-contract.ts';
 process.stdout.write(JSON.stringify({accepted_release_contracts: SnapshotSchema.shape.contract.options, task_fingerprint: hash(taskManifest())}));

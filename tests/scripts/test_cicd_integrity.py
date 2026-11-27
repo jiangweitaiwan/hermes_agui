@@ -63,11 +63,14 @@ def test_migration_integrity_rejects_unknown_bytes(tmp_path, mutation):
         migration.unlink()
     else:
         (tmp_path / GRANTS[0]).write_text("GRANT ALL ON SCHEMA public TO PUBLIC;")
-    with pytest.raises(ValueError, match="BLOCKED"):
-        verify_sql(tmp_path, declaration)
+    if mutation == "add":
+        assert len(verify_sql(tmp_path, declaration)) == len(declaration["files"]) + 1
+    else:
+        with pytest.raises(ValueError, match="BLOCKED"):
+            verify_sql(tmp_path, declaration)
 
 
-def test_policy_allows_ordinary_code_and_blocks_contract_or_infra_changes(tmp_path):
+def test_policy_binds_contract_changes_without_claiming_old_image_compatibility(tmp_path):
     import subprocess
     from scripts.ci.rollout_policy import check
     def git(*args):
@@ -85,5 +88,4 @@ def test_policy_allows_ordinary_code_and_blocks_contract_or_infra_changes(tmp_pa
     (tmp_path / 'app.py').write_text('ordinary fix')
     assert check(tmp_path, baseline) == original
     (tmp_path / 'deploy' / 'config.yaml').write_text('changed infrastructure')
-    with pytest.raises(ValueError, match='MANUAL_REQUIRED'):
-        check(tmp_path, baseline)
+    assert check(tmp_path, baseline)['contract'] != original['contract']

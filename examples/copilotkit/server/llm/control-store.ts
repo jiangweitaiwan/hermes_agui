@@ -38,7 +38,7 @@ export class ControlStore {
     }
   }
   close() { return this.pool.end(); }
-  private async transaction<T>(run: (client: PoolClient) => Promise<T>) {
+  async transaction<T>(run: (client: PoolClient) => Promise<T>) {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -86,7 +86,7 @@ export class ControlStore {
       issues: [], regression, promptDiff:{active:active.snapshot.prompts??{},candidate:snapshot.prompts??{}}, diff: snapshot.llm.models.filter(model => JSON.stringify(model) !==
         JSON.stringify(active.snapshot.llm.models.find(old => old.alias === model.alias))) };
   }
-  private async insert(client: PoolClient, snapshot: Snapshot, actor: string, reason: string, parent: string | null, id: string) {
+  async insert(client: PoolClient, snapshot: Snapshot, actor: string, reason: string, parent: string | null, id: string) {
     const parentTasks=parent?(await client.query(`SELECT snapshot FROM ${schema}.llm_releases WHERE scope=$1 AND release_id=$2`,[this.policy.scope,parent])).rows[0]?.snapshot.tasks:{};
     if(snapshot.prompts)for(const [task,value] of Object.entries(snapshot.tasks)){
       const item=value as {promptVersion:string;prompt:string;editableText?:string;protectedContractId?:string;protectedContractHash?:string;effectivePromptHash?:string;schemaVersion:number;validatorVersion:string};
@@ -139,7 +139,7 @@ export class ControlStore {
       const jobs = await client.query(`SELECT 1 FROM ${schema}.graph_jobs WHERE llm_release_id IS NOT NULL LIMIT 1`);
       if (jobs.rowCount) throw new ControlError(503, "Managed job history has no active release");
       await this.insert(client, snapshot, actor, "Trusted baseline initialization", null, "release-001");
-      await client.query(`INSERT INTO ${schema}.llm_drafts(scope,config,revision,updated_by) VALUES ($1,$2,1,$3)`, [this.policy.scope, snapshot.llm, actor]);
+      await client.query(`INSERT INTO ${schema}.llm_drafts(scope,config,revision,updated_by,prompts) VALUES ($1,$2,1,$3,'{}'::jsonb)`, [this.policy.scope, snapshot.llm, actor]);
       await client.query(`INSERT INTO ${schema}.llm_active_release(scope,release_id,generation,updated_by) VALUES ($1,'release-001',1,$2)`, [this.policy.scope, actor]);
       await this.audit(client, "bootstrap", actor, "Trusted baseline initialization", undefined, "release-001");
       return { candidateHash: hash(snapshot), applied: true };

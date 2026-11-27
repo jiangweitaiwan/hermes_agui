@@ -1,5 +1,5 @@
 
-"""Fail closed on unreviewed infrastructure and persistent-data contracts."""
+"""Bind source contracts to a reviewed ancestor; live database checks own compatibility."""
 
 import argparse
 import hashlib
@@ -37,18 +37,8 @@ def check(root, baseline):
 
     git('merge-base', '--is-ancestor', base, 'HEAD')
 
-    risky = [
-        name
-        for name in git('diff', '--name-only', base, '--').splitlines()
-        if protected(name)
-    ]
-
-    if risky:
-        raise ValueError(
-            'MANUAL_REQUIRED: reviewed baseline must advance for: '
-            + ', '.join(risky)
-        )
-
+    # Source integrity evidence is not an old-Image SQL compatibility attestation.
+    # Schema drift, migration versions and releases are checked inside Cloud Run Jobs.
     files = [
         name
         for name in git('ls-tree', '-r', '--name-only', 'HEAD').splitlines()

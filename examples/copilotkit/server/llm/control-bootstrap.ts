@@ -11,7 +11,7 @@ export function parseControl(registry:any){
   if(policy.mode==="managed" && (process.env.AGUI_STORAGE_BACKEND!=="gcp" || !registry.management || registry.storage?.botRegistry!=="postgres" || registry.storage?.threadMappings!=="postgres" || registry.graph?.evolution?.compiler))throw new Error("Managed mode requires durable registry Graph and trusted management");
   return policy;
 }
-export async function openControl(policy?:ControlPolicy, baseline?:unknown, initialize = true, requireExisting = false){
+export async function openControl(policy?:ControlPolicy, baseline?:unknown, initialize = true, requireExisting = true){
   const managed=policy?.mode==="managed";
   if(!policy || (!managed && !process.env.AGUI_LLM_DATABASE_URL))return {};
   const releases=new ControlStore(process.env.AGUI_LLM_DATABASE_URL ?? "",policy);
@@ -25,7 +25,7 @@ export async function openControl(policy?:ControlPolicy, baseline?:unknown, init
       if(requireExisting)await adminStore.draft();
       else await adminStore.ensureInitialRelease(baseline);
     }
-    // Readers fail readiness immediately. Deploy Runtime first; orchestration may retry startup.
+    // Deployment Jobs prepare/activate the latest release before any candidate starts.
     if(managed)await releases.active();
     return {releases,adminStore};
   }catch(error){await releases.close();await adminStore?.close();throw error;}

@@ -23,9 +23,9 @@ export function taskManifest() {
     [stage, { ...contract, prompt: systemPrompt(stage), schema: outputSchema(schemas[stage]) }]));
 }
 export const SnapshotSchema = z.object({
-  version: z.literal(1), contract: z.enum(["management-part-1", "management-part-2"]), llm: RegistryConfig,
+  version: z.literal(1), contract: z.enum(["management-part-2"]), llm: RegistryConfig,
   modelFingerprint: z.string().regex(/^[a-f0-9]{64}$/), taskFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-  tasks: z.record(z.unknown()), prompts: PromptEdits.optional(), codeTaskFingerprint:z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  tasks: z.record(z.unknown()), prompts: PromptEdits, codeTaskFingerprint:z.string().regex(/^[a-f0-9]{64}$/),
 }).strict();
 export type Snapshot = z.infer<typeof SnapshotSchema>;
 
@@ -34,7 +34,8 @@ export function candidate(raw: unknown, policy: ControlPolicy, prompts?: unknown
   try{return buildCandidate(raw,policy,prompts);}
   catch(error){
     if(error instanceof ControlError)throw error;
-    throw new ControlError(422,"Invalid registry configuration");
+    if(error instanceof z.ZodError) throw new ControlError(422,"Invalid release settings: "+error.issues.map(issue=>`${issue.path.join(".")}: ${issue.message}`).join("; "));
+    throw new ControlError(422,error instanceof Error ? error.message : "Invalid registry configuration");
   }
 }
 function buildCandidate(raw:unknown,policy:ControlPolicy,edits?:unknown):Snapshot{
@@ -53,7 +54,7 @@ function buildCandidate(raw:unknown,policy:ControlPolicy,edits?:unknown):Snapsho
   for (const model of registry.config.models) {
     if (!approved.config.models.some(m => m.provider === model.provider && m.model === model.model &&
         (m.alias === model.alias || (m.alias !== "graph_embedding" && model.alias !== "graph_embedding")))) {
-      throw new ControlError(422, "Model is not approved");
+      throw new ControlError(422, `Model is not approved: ${model.alias} (${model.provider}/${model.model})`);
     }
   }
   if (registry.model("agent_primary").fallback.length) throw new ControlError(422, "Native fallback must be empty");
@@ -63,13 +64,9 @@ function buildCandidate(raw:unknown,policy:ControlPolicy,edits?:unknown):Snapsho
       canonical(registry.provider(embedding.provider)) !== canonical(approved.provider(baseline.provider))) {
     throw new ControlError(422, "Embedding is read only");
   }
-  if(edits!==undefined){
-    const prompts=PromptEdits.parse(edits), tasks=promptManifest(taskManifest(),prompts);
-    return {version:1,contract:"management-part-2",llm:registry.config,modelFingerprint:registry.fingerprint,
-      taskFingerprint:hash(tasks),tasks,prompts,codeTaskFingerprint:hash(taskManifest())};
-  }
-  return { version: 1, contract: "management-part-1", llm: registry.config,
-    modelFingerprint: registry.fingerprint, taskFingerprint: hash(taskManifest()), tasks: taskManifest() };
+  const prompts=PromptEdits.parse(edits ?? {}), tasks=promptManifest(taskManifest(),prompts);
+  return {version:1,contract:"management-part-2",llm:registry.config,modelFingerprint:registry.fingerprint,
+    taskFingerprint:hash(tasks),tasks,prompts,codeTaskFingerprint:hash(taskManifest())};
 }
 export function verifySnapshot(raw: unknown, fingerprint: string, policy: ControlPolicy): Snapshot {
   try{
