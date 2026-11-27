@@ -57,3 +57,11 @@ test("sealed worker acknowledges terminal stale tasks and retries work without e
   expect(evolution.processJob).not.toHaveBeenCalled();
   expect(client.release).toHaveBeenCalledTimes(2);
 });
+
+test("database outage releases the consumer connection even when rollback also fails",async()=>{
+  const {request,tasks}=setup();
+  const client=await tasks.consumerPool.connect();
+  client.query.mockRejectedValue(new Error("database unavailable"));
+  await expect(request()).rejects.toThrow("database unavailable");
+  expect(client.release).toHaveBeenCalledOnce();
+});

@@ -32,7 +32,7 @@ export function workerHandler(evolution: MemoryEvolution, tasks: CloudTasksDeliv
         return new Response(null,{status:503});
       }
       return await handle(request,path);
-    } finally { await client.query("ROLLBACK");client.release(); }
+    } finally { try { await client.query("ROLLBACK"); } finally { client.release(); } }
   };
   async function handle(request:Request,path:string) {
     if (path === "/internal/jobs/reconcile") {

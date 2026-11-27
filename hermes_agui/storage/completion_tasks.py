@@ -29,6 +29,8 @@ class CompletionTasks:
             raise ValueError("Completion Host URL must be an HTTPS service base URL")
         if not re.fullmatch(r"[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.iam\.gserviceaccount\.com", service_account):
             raise ValueError("Invalid completion dispatch identity")
+        if not service_account.endswith("@" + project + ".iam.gserviceaccount.com"):
+            raise ValueError("Dispatch identity must belong to the queue project")
         self.parent = f"projects/{project}/locations/{location}/queues/{queue}"
         self.host_url, self.service_account = host_url, service_account
         self.token, self.credentials = validate_token(token), credentials
