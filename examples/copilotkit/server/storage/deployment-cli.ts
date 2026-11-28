@@ -10,6 +10,7 @@ export async function deployment(command:string, configPath:string, contractPath
   const contract=JSON.parse(await readFile(contractPath,"utf8"));
   if(contract.format!==1 || contract.postgresMajor!==17) throw new Error("Unknown schema contract format");
   const config=JSON.parse(await readFile(configPath,"utf8"));
+  if(process.env.CLEAN_BOOTSTRAP_CONFIG) config.cleanBootstrap=JSON.parse(await readFile(process.env.CLEAN_BOOTSTRAP_CONFIG,"utf8"));
   const policy=ControlSettings.parse(config.llmControl);
   if(policy.mode!=="managed") throw new Error("Database-aware deployment requires managed control");
   const hostURL=process.env.AGUI_HOST_DATABASE_URL, runtimeURL=process.env.AGUI_RUNTIME_DATABASE_URL;

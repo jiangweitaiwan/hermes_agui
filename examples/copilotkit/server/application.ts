@@ -1,3 +1,5 @@
+import { deploymentEpoch } from "./storage/epoch";
+import { PostgresWikiStore } from "./graph/postgres-wiki-store";
 import { V3Orchestrator } from "./memory/v3-orchestrator";
 import type { PrepareManagedRun } from "./llm/run-pinning";
 import { ContextAssembler } from "./memory/assembler";
@@ -64,7 +66,10 @@ export function createApplication(initialBots: Record<string, RuntimeSettings>, 
     throw new Error("Graph completions require Graph evolution");
   }
   const receiveCompletion = options.graphCompletionToken !== undefined
-    ? createCompletionApi(evolution!.sessions, options.graphCompletionToken) : undefined;
+    ? createCompletionApi(evolution!.sessions, options.graphCompletionToken, async () => {
+      const store=evolution!.options.provider.store;
+      return store instanceof PostgresWikiStore ? deploymentEpoch(store.pool) : null;
+    }) : undefined;
   const streamIngestion = receiveCompletion ? undefined : evolution?.sessions;
   if (management && evolution) management.manager.options.onChange = () => { void Promise.resolve(evolution.reconcile()).catch(() => { evolution.metrics.errors++; }); };
   const memory = new RuntimeMemoryMiddleware(new RuntimeMemoryManager(new MemoryRetriever(graph), new ContextAssembler(), new V3Orchestrator(graph, options.graph?.storyteller ?? options.graph?.provider?.storyteller, options.graph?.provider?.runtimeDeadlineMs)), graph.scope);

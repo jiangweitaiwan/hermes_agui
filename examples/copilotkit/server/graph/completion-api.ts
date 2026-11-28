@@ -13,7 +13,7 @@ const completion = z.object({
   assistants: z.tuple([z.object({ id: z.literal("final"), text: bounded(65536) }).strict()]),
 }).strict();
 
-export function createCompletionApi(ingestor: SessionIngestor<IngestStore>, token: string) {
+export function createCompletionApi(ingestor: SessionIngestor<IngestStore>, token: string, epoch: () => Promise<string|null> = async () => null) {
   if (!/^[\x21-\x7e]{32,}$/.test(token)) throw new Error("Invalid Graph completion token");
   const expected = Buffer.from(`Bearer ${token}`);
   return async (request: Request): Promise<Response> => {
@@ -21,6 +21,13 @@ export function createCompletionApi(ingestor: SessionIngestor<IngestStore>, toke
     if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
       return new Response(null, { status: 401 });
     }
+    const current=await epoch();
+    const suppliedEpoch=request.headers.get("x-deployment-epoch");
+    if(current && suppliedEpoch!==current) {
+      if(suppliedEpoch!==null && !z.string().uuid().safeParse(suppliedEpoch).success) return new Response(null,{status:400});
+      return new Response(null,{status:204});
+    }
+    if(!current && suppliedEpoch!==null) return new Response(null,{status:409});
     const value = completion.safeParse(await request.json().catch(() => undefined));
     if (!value.success) return new Response(null, { status: 400 });
     if (!ingestor.authorized(value.data.namespace)) return new Response(null, { status: 403 });

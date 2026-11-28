@@ -6,7 +6,7 @@ set -euo pipefail
 : "${HOST_OWNER_SECRET:?secret-name:numeric-version}" "${RUNTIME_OWNER_SECRET:?secret-name:numeric-version}"
 : "${LLM_ADMIN_SECRET:?secret-name:numeric-version}" "${RUNTIME_CONFIG_SECRET:?secret-name:numeric-version}"
 region="${GCP_BUILD_REGION:-asia-east1}"
-account="github-hermes-cicd@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+account="${GCP_PREPARATION_SERVICE_ACCOUNT:-github-hermes-cicd@${GCP_PROJECT_ID}.iam.gserviceaccount.com}"
 for value in "$HOST_IMAGE" "$RUNTIME_IMAGE"; do
   [[ "$value" =~ @sha256:[a-f0-9]{64}$ ]] || { echo 'Immutable image digest required' >&2; exit 1; }
 done

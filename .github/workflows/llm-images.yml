@@ -5,6 +5,19 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      deployment_mode:
+        description: Rolling upgrade preserves data; clean bootstrap rebuilds Hermes schemas
+        type: choice
+        options: [rolling-upgrade, clean-bootstrap]
+        default: rolling-upgrade
+      recovery_operation:
+        description: 'Forward recovery only: original failed workflow run ID (leave empty for new reset)'
+        type: string
+        default: ''
+      confirm_reset:
+        description: 'Clean only: RESET copilotkit-agui/hermes'
+        type: string
+        default: ''
       deploy:
         description: Deploy the built images to existing Cloud Run services
         type: boolean
@@ -26,7 +39,7 @@ env:
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/746997613973/locations/global/workloadIdentityPools/github-hermes/providers/github
   GCP_SUBMIT_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
   GCP_BUILD_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
-  GCP_DEPLOY_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
+  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.LLM_DEPLOY_SERVICE_ACCOUNT || 'github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com' }}
   GCP_SMOKE_SERVICE_ACCOUNT: github-hermes-cicd@copilotkit-agui.iam.gserviceaccount.com
   GCP_BUILD_SOURCE_BUCKET: copilotkit-agui-hermes-data
 
@@ -56,6 +69,22 @@ jobs:
         with:
           name: llm-offline-ci
           path: ${{ runner.temp }}/llm-ci-evidence
+      - name: Validate clean bootstrap inputs before any cloud mutation
+        env:
+          CLEAN_RECOVERY_OPERATION: ${{ inputs.recovery_operation }}
+          DEPLOYMENT_MODE: ${{ inputs.deployment_mode || 'rolling-upgrade' }}
+          DEPLOY_REQUESTED: ${{ inputs.deploy && 'true' || 'false' }}
+          CONFIRM_RESET: ${{ inputs.confirm_reset }}
+          AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED }}
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          from scripts.ci.clean_bootstrap import authorize
+          # Build has no deployment approval yet. Validate all other inputs;
+          # independent environment review is verified in the deploy job.
+          env = dict(os.environ, CLEAN_APPROVAL_VERIFIED='true')
+          authorize(env)
+          PYTHON
       - name: Validate configuration and prepare tracked source
         shell: bash
         run: |
@@ -122,6 +151,7 @@ jobs:
     timeout-minutes: 90
     environment: llm-deploy
     permissions:
+      actions: read
       contents: read
       id-token: write
     steps:
@@ -139,8 +169,18 @@ jobs:
         with:
           name: llm-release-manifest
           path: ${{ runner.temp }}/llm-release
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.recovery_operation || github.run_id }}
       - name: Database preparation, maintenance rollout and candidate smoke
         env:
+          CLEAN_RECOVERY_OPERATION: ${{ inputs.recovery_operation }}
+          DEPLOYMENT_MODE: ${{ github.event_name == 'push' && 'rolling-upgrade' || inputs.deployment_mode }}
+          DEPLOY_REQUESTED: ${{ inputs.deploy && 'true' || 'false' }}
+          AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED }}
+          CONFIRM_RESET: ${{ inputs.confirm_reset }}
+          CLEAN_SQL_INSTANCE: ${{ vars.LLM_CLEAN_SQL_INSTANCE }}
+          CLEAN_JOURNAL_BUCKET: ${{ env.GCP_BUILD_SOURCE_BUCKET }}
+          CLEAN_APPLICATION_BINDINGS: ${{ vars.LLM_CLEAN_APPLICATION_BINDINGS }}
           GCP_DATABASE_JOB: hermes-database-prepare
           GCP_HOST_MIGRATION_JOB: hermes-host-migrate
           GCP_DRAIN_SECONDS: ${{ vars.LLM_DRAIN_SECONDS || '300' }}

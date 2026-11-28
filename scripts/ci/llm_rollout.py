@@ -141,7 +141,11 @@ class RolloutState:
         require(self.manifest['phase'] == 'BUILT', 'Missing built manifest')
         for name in SERVICES:
             resource = self.cloud.call('services', 'describe', name)
-            require(TAG not in tags(resource), 'Unfinished candidate tag; manual recovery required')
+            if TAG in tags(resource):
+                require(getattr(self, 'recovering', False) and name in self.recovery_record.get('attempted_candidates', []), 'Unfinished candidate tag; manual recovery required')
+                tagged=self.cloud.call('revisions', 'describe', tags(resource)[TAG])
+                expected=self.manifest['images']['host_image' if name=='hermes-host' else 'runtime_image']
+                require(tagged['status']['imageDigest']==expected, 'Recovery candidate digest mismatch')
             require(len(task(resource)['containers']) == 1, 'Multi-container service needs manual review')
             if name == 'hermes-runtime':
                 require('--require-existing-control' in task(resource)['containers'][0].get('args', []),
@@ -172,6 +176,9 @@ def main():
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
     args = parser.parse_args()
+    from scripts.ci.clean_bootstrap import authorize, verify_approval
+    verify_approval(os.environ)
+    mode = authorize(os.environ)
     manifest = json.loads(args.manifest.read_text(encoding='utf-8-sig'))
     from scripts.ci.llm_release_manifest import OFFLINE_GATES
     from scripts.ci.rollout_policy import check
@@ -190,7 +197,9 @@ def main():
     cloud = Cloud(os.environ['GCP_PROJECT_ID'], os.environ['GCP_BUILD_REGION'], os.environ['GCP_SMOKE_SERVICE_ACCOUNT'])
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     from scripts.ci.database_rollout import DatabaseRollout
-    DatabaseRollout(cloud, manifest, args.report, eligible,
+    from scripts.ci.clean_rollout import CleanRollout
+    rollout = CleanRollout if mode == 'clean-bootstrap' else DatabaseRollout
+    rollout(cloud, manifest, args.report, eligible,
                     database_job=os.environ['GCP_DATABASE_JOB'], host_job=os.environ['GCP_HOST_MIGRATION_JOB'],
                     schedulers=json.loads(os.environ['GCP_SCHEDULER_JOBS']),
                     queues=json.loads(os.environ['GCP_CLOUD_TASK_QUEUES']),

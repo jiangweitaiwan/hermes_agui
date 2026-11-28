@@ -1,0 +1,71 @@
+{
+  "oldRoles": [
+    "hermes_host",
+    "hermes_runtime",
+    "hermes_llm_admin",
+    "hermes_llm_runtime",
+    "hermes_llm_reader",
+    "hermes_llm_host_reader"
+  ],
+  "newRoles": [
+    "hermes_host_clean",
+    "hermes_runtime_clean",
+    "hermes_llm_admin_clean",
+    "hermes_llm_runtime_clean",
+    "hermes_llm_reader_clean",
+    "hermes_llm_host_reader_clean"
+  ],
+  "bindingsHash": "REPLACE_WITH_CANONICAL_BINDINGS_SHA256",
+  "credentials": [
+    {
+      "env": "AGUI_CLEAN_HOST_URL",
+      "role": "hermes_host_clean"
+    },
+    {
+      "env": "AGUI_CLEAN_RUNTIME_URL",
+      "role": "hermes_runtime_clean"
+    },
+    {
+      "env": "AGUI_CLEAN_LLM_ADMIN_URL",
+      "role": "hermes_llm_admin_clean"
+    },
+    {
+      "env": "AGUI_CLEAN_LLM_RUNTIME_URL",
+      "role": "hermes_llm_runtime_clean"
+    },
+    {
+      "env": "AGUI_CLEAN_LLM_READER_URL",
+      "role": "hermes_llm_reader_clean"
+    },
+    {
+      "env": "AGUI_CLEAN_LLM_HOST_READER_URL",
+      "role": "hermes_llm_host_reader_clean"
+    }
+  ],
+  "oldCredentials": [
+    {
+      "env": "AGUI_OLD_HOST_URL",
+      "role": "hermes_host"
+    },
+    {
+      "env": "AGUI_OLD_RUNTIME_URL",
+      "role": "hermes_runtime"
+    },
+    {
+      "env": "AGUI_OLD_LLM_ADMIN_URL",
+      "role": "hermes_llm_admin"
+    },
+    {
+      "env": "AGUI_OLD_LLM_RUNTIME_URL",
+      "role": "hermes_llm_runtime"
+    },
+    {
+      "env": "AGUI_OLD_LLM_READER_URL",
+      "role": "hermes_llm_reader"
+    },
+    {
+      "env": "AGUI_OLD_LLM_HOST_READER_URL",
+      "role": "hermes_llm_host_reader"
+    }
+  ]
+}

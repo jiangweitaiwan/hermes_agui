@@ -1,6 +1,7 @@
 import { GoogleAuth } from "google-auth-library";
 import { z } from "zod";
 import { Pool } from "pg";
+import { deploymentEpoch } from "../storage/epoch";
 
 export const TasksSchema = z.object({
   project: z.string().regex(/^[a-z][a-z0-9-]+$/), location: z.string().regex(/^[a-z0-9-]+$/),
@@ -21,13 +22,14 @@ export class CloudTasksDelivery {
   async ready() { await this.pool.query("SELECT job FROM hermes_agui_runtime.task_deliveries LIMIT 0"); }
   async enqueue(id: string) {
     const { project, location, queue, workerUrl, serviceAccount, deadlineSeconds, tokenEnv } = this.settings;
+    const epoch = await deploymentEpoch(this.pool);
     const client = await this.auth.getClient();
     await client.request({
       url: `https://cloudtasks.googleapis.com/v2/projects/${project}/locations/${location}/queues/${queue}/tasks`, method: "POST",
       data: { task: { dispatchDeadline: `${deadlineSeconds}s`, httpRequest: {
         httpMethod: "POST", url: `${workerUrl.replace(/\/$/, "")}/internal/jobs/process`,
         headers: { "Content-Type": "application/json", "X-Worker-Token": process.env[tokenEnv]! },
-        body: Buffer.from(JSON.stringify({ schema: 1, jobId: id })).toString("base64"),
+        body: Buffer.from(JSON.stringify(epoch ? { schema: 2, jobId: id, epoch } : { schema: 1, jobId: id })).toString("base64"),
         oidcToken: { serviceAccountEmail: serviceAccount, audience: workerUrl },
       } } }, timeout: 15000,
     });

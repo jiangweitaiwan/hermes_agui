@@ -143,3 +143,40 @@ def test_enqueue_timeout_retains_completed_run_for_manual_fallback(storage):
     assert runs.get(scope,'run').status=='completed'
     result=drain(PostgresRunOutbox(pool),SimpleNamespace(deliver=lambda event:None))
     assert result['delivered']==1 and result['retry']==0
+
+
+def test_reset_epoch_stale_id_collision_never_claims_new_event(storage, monkeypatch):
+    from unittest.mock import Mock
+    from hermes_agui.storage.completion_tasks import CompletionTasks
+    from hermes_agui.storage.host_settings import load_adapters
+    pool, scope = storage
+    current = str(uuid4())
+    with pool.connection() as conn:
+        conn.execute('UPDATE hermes_agui_host.deployment_epoch SET epoch=%s WHERE singleton', (current,))
+    runs = PostgresRunStore(pool, publish_completions=True)
+    lease = runs.begin(scope, 'new-thread', 'new-run', uuid4(), 90)
+    assert runs.finish(lease, status='completed', profile=ProfileRevision('a'*32, ()))
+    outbox = PostgresRunOutbox(pool)
+    with pool.connection() as conn:
+        identifier = conn.execute('SELECT id FROM hermes_agui_host.run_outbox').fetchone()[0]
+    dispatcher = Mock()
+    for payload in ({'schema':1,'eventId':str(identifier)},
+                    {'schema':2,'epoch':str(uuid4()),'eventId':str(identifier)}):
+        assert process(outbox, dispatcher, identifier, payload) == 204
+        assert outbox.state(identifier) == 'pending'
+    dispatcher.deliver.assert_not_called()
+    assert process(outbox, dispatcher, identifier, {'schema':2,'epoch':current,'eventId':str(identifier)}) == 204
+    assert outbox.state(identifier) == 'delivered'
+    dispatcher.deliver.assert_called_once()
+    producer = CompletionTasks('fixture-project','asia-east1','completion','https://host.run.app',
+                               'dispatch@fixture-project.iam.gserviceaccount.com','x'*32,None)
+    producer.enqueue = Mock()
+    producer.notify(identifier)
+    producer.enqueue.assert_called_once_with(identifier, current)
+    monkeypatch.setenv('AGUI_GCS_BUCKET','fixture-bucket')
+    monkeypatch.setattr('hermes_agui.storage.objects.GCSObjects.from_adc', lambda _: Mock())
+    adapter_pool, profiles = load_adapters('profiles')
+    try:
+        assert profiles.prefix == 'epochs/' + current + '/profiles'
+    finally:
+        adapter_pool.close()

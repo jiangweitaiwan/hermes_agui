@@ -35,7 +35,7 @@ class CompletionTasks:
         self.host_url, self.service_account = host_url, service_account
         self.token, self.credentials = validate_token(token), credentials
 
-    def enqueue(self, identifier):
+    def enqueue(self, identifier, epoch=None):
         import httpx
         from google.auth.transport.requests import Request
 
@@ -46,7 +46,8 @@ class CompletionTasks:
             kwargs['timeout'] = 2
             return Request()(**kwargs)
         self.credentials.before_request(bounded_request, 'POST', 'https://cloudtasks.googleapis.com/', headers)
-        body = base64.b64encode(json.dumps({'schema': 1, 'eventId': identifier}).encode()).decode()
+        payload = {'schema': 1, 'eventId': identifier} if epoch is None else {'schema': 2, 'eventId': identifier, 'epoch': epoch}
+        body = base64.b64encode(json.dumps(payload).encode()).decode()
         task = {'httpRequest': {'httpMethod': 'POST', 'url': self.host_url + '/internal/completions/process',
                 'headers': {'Content-Type': 'application/json', 'x-completion-token': self.token},
                 'body': body, 'oidcToken': {'serviceAccountEmail': self.service_account, 'audience': self.host_url}},
@@ -59,7 +60,11 @@ class CompletionTasks:
 
     def notify(self, identifier):
         try:
-            self.enqueue(identifier)
+            from hermes_agui.storage.epoch import epoch
+            import psycopg
+            with psycopg.connect(os.environ["AGUI_HOST_DATABASE_URL"], connect_timeout=3, options="-c statement_timeout=3000") as connection:
+                current = epoch(connection)
+            self.enqueue(identifier, current)
         except Exception:  # health: allow BLE001 -- committed work must survive notification failure
             logging.warning('completion_enqueue_failed event_id=%s', identifier)
 

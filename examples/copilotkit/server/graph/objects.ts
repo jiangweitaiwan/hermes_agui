@@ -70,7 +70,7 @@ export class FilesystemGraphObjects implements GraphObjects {
 export class GcsGraphObjects implements GraphObjects {
   private readonly auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/devstorage.read_write"] });
 
-  constructor(readonly bucket: string, readonly prefix = "graph") {
+  constructor(readonly bucket: string, public prefix = "graph") {
     if (!/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(bucket)) throw new Error("Invalid Graph bucket");
     validateKey(prefix);
   }

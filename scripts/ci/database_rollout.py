@@ -53,16 +53,18 @@ class DatabaseRollout(RolloutState):
         return current
 
     def inventory(self):
-        require(os.environ.get('LLM_PAUSED_SCHEDULER_RUN_VERIFIED') == 'true', 'Operator verification of paused Scheduler RunJob is required before maintenance')
-        self.queues.verify('RUNNING')
+        if not getattr(self, 'clean', False):
+            require(os.environ.get('LLM_PAUSED_SCHEDULER_RUN_VERIFIED') == 'true', 'Operator verification of paused Scheduler RunJob is required before maintenance')
+        self.queues.verify('PAUSED' if getattr(self, 'recovering', False) else 'RUNNING')
         for name in ('hermes-host', 'hermes-worker'):
             policy = self.cloud.call('services', 'get-iam-policy', name)
             require(not any(b.get('role') == 'roles/run.invoker' and any(m in {'allUsers','allAuthenticatedUsers'} for m in b.get('members', [])) for b in policy.get('bindings', [])), 'Private Cloud Run invoker policy required: ' + name)
             require(self.old[name].get('metadata', {}).get('annotations', {}).get('run.googleapis.com/invoker-iam-disabled') != 'true', 'Cloud Run IAM check must remain enabled')
-        for name, key in (('hermes-host', 'completionFence'), ('hermes-worker', 'graphFence')):
-            capability = self.cloud.capabilities(self.old[name]['status']['url'])
-            require(capability.get(key) == 1, 'Legacy consumer requires operator bootstrap before automatic rollout: ' + name)
-        require(task(self.old['hermes-completion'], True)['containers'][0]['image'] == task(self.old['hermes-host'])['containers'][0]['image'], 'Completion Job must use the fence-aware Host image')
+        if not getattr(self, 'clean', False):
+            for name, key in (('hermes-host', 'completionFence'), ('hermes-worker', 'graphFence')):
+                capability = self.cloud.capabilities(self.old[name]['status']['url'])
+                require(capability.get(key) == 1, 'Legacy consumer requires operator bootstrap before automatic rollout: ' + name)
+            require(task(self.old['hermes-completion'], True)['containers'][0]['image'] == task(self.old['hermes-host'])['containers'][0]['image'], 'Completion Job must use the fence-aware Host image')
         require(os.environ.get('LLM_MANAGED_PRODUCERS_CONFIRMED') == 'true',
                 'Operator must confirm queue producers/consumers are fully managed')
         scheduled = self.scheduler('list')
@@ -75,7 +77,7 @@ class DatabaseRollout(RolloutState):
                 value['status']['url'].split('://')[-1] in uri for key, value in self.old.items() if key in SERVICES)
             require(not consumes or name in self.schedulers, 'Unknown application Scheduler: ' + name)
         for name in self.schedulers:
-            require(found[name]['state'] == 'ENABLED', 'Scheduler must start ENABLED: ' + name)
+            require(found[name]['state'] in ({'PAUSED', 'ENABLED'} if getattr(self, 'recovering', False) else {'ENABLED'}), 'Scheduler must start ENABLED: ' + name)
         for name in (self.database_job, self.host_job):
             resource = self.cloud.call('jobs', 'describe', name)
             spec = task(resource, True)
@@ -102,7 +104,8 @@ class DatabaseRollout(RolloutState):
         from scripts.ci.completion_rollout import prepare_completion
         prepare_completion(self)
         completion = task(self.old['hermes-completion'], True)['containers'][0]
-        require('--once' in completion.get('args', []) or '--drain' in completion.get('args', []),
+        if not getattr(self, 'clean', False):
+            require('--once' in completion.get('args', []) or '--drain' in completion.get('args', []),
                 'Legacy Completion Job must use bounded --once or --drain')
         self.idle_jobs([self.database_job, self.host_job])
 
@@ -231,6 +234,22 @@ class DatabaseRollout(RolloutState):
                 args[args.index('--once')] = '--drain'
             require(all('|' not in a for a in args), 'Unsupported Completion argument delimiter')
             options.append('--args=^|^' + '|'.join(args))
+        if getattr(self, 'clean', False) and name in JOBS:
+            expected = deepcopy(self.clean_expected[name])
+            options.extend(self.service_options[name])
+            if name == 'hermes-completion':
+                container = task(expected, True)['containers'][0]
+                from scripts.ci.completion_rollout import clean_completion_args
+                container['args'] = clean_completion_args(container['args'])
+                task(expected, True)['timeoutSeconds'] = max(300, int(task(expected, True).get('timeoutSeconds', 300)))
+                task(expected, True)['maxRetries'] = 0
+                options = [o for o in options if not o.startswith('--args=')]
+                options.extend(['--args=^|^' + '|'.join(container['args']), '--task-timeout=' + str(task(expected, True)['timeoutSeconds']), '--max-retries=0'])
+        if getattr(self, 'clean', False):
+            hashes = self.result.get('approved_template_hashes', {}).get(name)
+            if hashes is not None:
+                hashes.append(config_hash(expected, True))
+                self.save()
         self.cloud.call('jobs', 'update', name, '--image=' + image, *options)
         self.old[name] = expected
         current = self.cloud.call('jobs', 'describe', name)
@@ -274,51 +293,9 @@ class DatabaseRollout(RolloutState):
             self.database('seal')  # Also installs the closed state on brand-new schemas.
             self.verify_templates()
             self.database('release')  # Atomic bootstrap/upgrade and activation, all old consumers stopped.
-            for name in SERVICES:
-                image = self.manifest['images']['host_image' if name == 'hermes-host' else 'runtime_image']
-                self.attempted_candidates.append(name)
-                self.save()
-                self.cloud.call('services', 'update', name, '--image=' + image, '--no-traffic',
-                                '--tag=' + TAG, '--no-deploy-health-check', '--update-labels=ci-contract=' + self.contract,
-                                *(self.host_options if name == 'hermes-host' else []))
-                if name == 'hermes-host':
-                    self.old[name] = self.host_expected
-                resource = self.cloud.call('services', 'describe', name)
-                revision = resource['status']['latestCreatedRevisionName']
-                self.candidates[name] = revision
-                self.result['revisions'][name] = revision
-                self.save()
-                # Maintenance window: select the new revision before waking service instances.
-                # Admission remains database-fenced until every service passes smoke.
-                self.changed_traffic.append(name)
-                self.save()
-                self.cloud.call('services', 'update-traffic', name, '--to-revisions=' + revision + '=100')
-                self.cloud.call('services', 'update', name, '--scaling=auto')
-                resource = self.cloud.call('services', 'describe', name)
-                require(traffic(resource) == {revision: 100}, 'Candidate traffic read-back failed')
-                candidate = self.cloud.call('revisions', 'describe', revision)
-                require(candidate['status']['imageDigest'] == image, 'Candidate digest mismatch')
-                require(any(c.get('type') == 'Ready' and c.get('status') == 'True'
-                            for c in candidate['status']['conditions']), 'Candidate readiness failed')
-                url = next(t['url'] for t in resource['status']['traffic'] if t.get('tag') == TAG)
-                self.cloud.smoke(url, resource['status']['url'], '/internal/bots' if name == 'hermes-host' else '/api/bots')
-            for name in JOBS:
-                self.update_job(name, 'host_image')
-            for name in SERVICES:
-                self.cloud.call('services', 'update-traffic', name, '--remove-tags=' + TAG)
-                current = self.cloud.call('services', 'describe', name)
-                require(not tags(current) and traffic(current) == {self.candidates[name]: 100}, 'Final traffic/tag read-back failed')
-                self.cloud.smoke(current['status']['url'], current['status']['url'],
-                                 '/internal/bots' if name == 'hermes-host' else '/api/bots')
-            self.cloud.smoke(self.old['hermes-host']['status']['url'], self.old['hermes-host']['status']['url'], '/internal/completions/process', method='POST')
-            self.eligible()
-            self.verify_templates()
-            self.database('resume')
-            self.queues.transition('resume')
-            for name in self.schedulers:
-                self.scheduler('resume', name)
+            self.deploy_candidates()
             self.result['result'] = 'DEPLOYED'
-        except (Exception, KeyboardInterrupt) as error:
+        except (Exception, KeyboardInterrupt) as error:  # health: allow BLE001 -- sanitize cloud errors while containing maintenance failures
             self.deadline = self.cloud.deadline = None
             self.result['reason'] = str(error) if isinstance(error, Blocked) else type(error).__name__
             self.result['result'] = 'RECOVERY_REQUIRED' if self.maintenance else 'FAILED_SAFE'
@@ -328,9 +305,61 @@ class DatabaseRollout(RolloutState):
                                   *[lambda name=name: self.scheduler('pause', name) for name in self.schedulers]):
                     try:
                         operation()
-                    except Exception:
+                    except Exception:  # health: allow BLE001 -- retain containment status without exposing cloud credentials
                         self.result['containment_incomplete'] = True
             self.save()
             raise Blocked(self.result['result']) from None
         finally:
             self.save()
+
+    def deploy_candidates(self):
+        for name in SERVICES:
+            image = self.manifest['images']['host_image' if name == 'hermes-host' else 'runtime_image']
+            self.attempted_candidates.append(name)
+            self.save()
+            self.cloud.call('services', 'update', name, '--image=' + image, '--no-traffic',
+                            '--tag=' + TAG, '--no-deploy-health-check', '--update-labels=ci-contract=' + self.contract,
+                            *(self.host_options if name == 'hermes-host' else []),
+                            *getattr(self, 'service_options', {}).get(name, []))
+            if name == 'hermes-host':
+                self.old[name] = self.host_expected
+            if getattr(self, 'clean', False):
+                self.old[name] = self.clean_expected[name]
+            resource = self.cloud.call('services', 'describe', name)
+            revision = resource['status']['latestCreatedRevisionName']
+            self.candidates[name] = revision
+            self.result['revisions'][name] = revision
+            self.save()
+            # Maintenance window: select the new revision before waking service instances.
+            # Admission remains database-fenced until every service passes smoke.
+            self.changed_traffic.append(name)
+            self.save()
+            self.cloud.call('services', 'update-traffic', name, '--to-revisions=' + revision + '=100')
+            self.cloud.call('services', 'update', name, '--scaling=auto')
+            resource = self.cloud.call('services', 'describe', name)
+            require(traffic(resource) == {revision: 100}, 'Candidate traffic read-back failed')
+            candidate = self.cloud.call('revisions', 'describe', revision)
+            require(candidate['status']['imageDigest'] == image, 'Candidate digest mismatch')
+            require(any(c.get('type') == 'Ready' and c.get('status') == 'True'
+                        for c in candidate['status']['conditions']), 'Candidate readiness failed')
+            url = next(t['url'] for t in resource['status']['traffic'] if t.get('tag') == TAG)
+            self.cloud.smoke(url, resource['status']['url'], '/internal/bots' if name == 'hermes-host' else '/api/bots')
+        for name in JOBS:
+            self.update_job(name, 'host_image')
+        for name in SERVICES:
+            self.cloud.call('services', 'update-traffic', name, '--remove-tags=' + TAG)
+            current = self.cloud.call('services', 'describe', name)
+            require(not tags(current) and traffic(current) == {self.candidates[name]: 100}, 'Final traffic/tag read-back failed')
+            self.cloud.smoke(current['status']['url'], current['status']['url'],
+                             '/internal/bots' if name == 'hermes-host' else '/api/bots')
+        self.cloud.smoke(self.old['hermes-host']['status']['url'], self.old['hermes-host']['status']['url'], '/internal/completions/process', method='POST')
+        for name, key in (('hermes-host', 'completionFence'), ('hermes-worker', 'graphFence')):
+            require(self.cloud.capabilities(self.old[name]['status']['url']).get(key) == 1, 'New consumer fence capability missing')
+        if getattr(self, 'clean', False):
+            self.database('verify-isolation')
+        self.eligible()
+        self.verify_templates()
+        self.database('resume')
+        self.queues.transition('resume')
+        for name in self.schedulers:
+            self.scheduler('resume', name)

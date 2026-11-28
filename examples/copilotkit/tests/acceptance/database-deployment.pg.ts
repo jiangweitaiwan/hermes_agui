@@ -127,12 +127,13 @@ test("SQL additions execute only pending migrations; unknown ledger/schema drift
   try{
     await pool.query("CREATE SCHEMA hermes_agui_runtime_migrations; CREATE TABLE hermes_agui_runtime_migrations.runtime(name text PRIMARY KEY)");
     const dir=resolve("server/storage/migrations");
-    for(const name of (await readdir(dir)).filter(n=>n.endsWith(".sql")).sort().slice(0,-2)) {
+    const names=(await readdir(dir)).filter(n=>n.endsWith(".sql")).sort();
+    for(const name of names.slice(0,-2)) {
       await pool.query(migrationSQL(await readFile(join(dir,name),"utf8")));
       await pool.query("INSERT INTO hermes_agui_runtime_migrations.runtime VALUES($1)",[name]);
     }
     expect((await schemaStatus(url,1)).pending).toBe(2);
-    expect(runtimeMigrate(url)).toContain("014_deployment_fence.sql");expect(runtimeMigrate(url)).toBe("");
+    expect(runtimeMigrate(url)).toContain(names.at(-2)!);expect(runtimeMigrate(url)).toBe("");
     expect((await schemaStatus(url,1)).pending).toBe(0);
     await pool.query("ALTER TABLE hermes_agui_runtime.llm_drafts ADD COLUMN unexpected text");
     await expect(schemaStatus(url,1)).rejects.toThrow("Schema drift");

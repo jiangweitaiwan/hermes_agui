@@ -75,6 +75,8 @@ class GraphCompletionDispatcher:
         body = self.profiles.objects.read(_key(self.profiles, event.scope, event.profile_revision),
                                           event.evidence_generation, limit=_MAX_EVIDENCE)
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
+        if getattr(self.profiles, "epoch", None):
+            headers["X-Deployment-Epoch"] = self.profiles.epoch
         if self.audience:
             from hermes_agui.cloud_identity import identity_headers
 

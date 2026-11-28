@@ -1,3 +1,5 @@
+import { deploymentEpoch } from "../storage/epoch";
+import { GcsGraphObjects } from "./objects";
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import type { EmbeddingSection, EmbeddingStore } from "./embedding";
@@ -31,6 +33,8 @@ export class PostgresWikiStore implements RetrievalStore, EmbeddingStore {
   }
 
   async ready() {
+    const epoch = await deploymentEpoch(this.pool);
+    if(this.objects instanceof GcsGraphObjects) this.objects.prefix=epoch?`epochs/${epoch}/graph`:"graph";
     // Readiness checks schema/grants, not relationships between stored rows.
     // A large LIMIT 0 join can exhaust the statement budget during planning.
     const probes = {

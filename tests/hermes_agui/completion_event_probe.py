@@ -23,13 +23,18 @@ def main():
     os.environ['AGUI_GRAPH_COMPLETION_TOKEN'] = 'runtime-fixture-' + 'a'*32
     profiles = ProfileObjects(FilesystemObjects(root))
     with ConnectionPool(os.environ['HERMES_AGUI_TEST_RUNTIME_DATABASE_URL'], min_size=1, max_size=4) as pool:
+        from hermes_agui.storage.epoch import epoch
         with pool.connection() as conn:
+            current = epoch(conn)
+            profiles.epoch = current
+            if current:
+                profiles.prefix = 'epochs/' + current + '/profiles'
             conn.execute('INSERT INTO hermes_agui_host.bot_state(project,principal,bot) VALUES(%s,%s,%s)',
                          (scope.project,scope.principal,scope.bot))
         outbox, notifications = PostgresRunOutbox(pool), []
         def notify(identifier):
             assert outbox.state(identifier) == 'pending'
-            notifications.append({'schema':1,'eventId':str(identifier)})
+            notifications.append({'schema':2,'epoch':current,'eventId':str(identifier)} if current else {'schema':1,'eventId':str(identifier)})
             assert client.post('/internal/completions/process',json=notifications[-1],
                 headers={'x-completion-token':'completion-fixture-'+'b'*32}).status_code == 204
         runs = PostgresRunStore(pool, publish_completions=True, completion_tasks=SimpleNamespace(notify=notify))

@@ -60,7 +60,7 @@ def open_host_pool(pool):
     pool.open(wait=True, timeout=10)
     with pool.connection() as connection:
         row = connection.execute("SELECT max(version) FROM hermes_agui_host.schema_version").fetchone()
-        if row not in {(3,), (4,), (5,), (6,), (7,), (8,)}:
+        if row not in {(3,), (4,), (5,), (6,), (7,), (8,), (9,)}:
             raise RuntimeError("Apply the Host storage migrations before starting")
 
 
@@ -70,7 +70,12 @@ def load_adapters(prefix):
         raise ValueError("Durable Host requires AGUI_HOST_DATABASE_URL and AGUI_GCS_BUCKET")
     from psycopg_pool import ConnectionPool
 
-    profiles = ProfileObjects(GCSObjects.from_adc(bucket), prefix=prefix)
+    import psycopg
+    from hermes_agui.storage.epoch import epoch
+    with psycopg.connect(database, connect_timeout=5, options="-c statement_timeout=5000") as connection:
+        current = epoch(connection)
+    profiles = ProfileObjects(GCSObjects.from_adc(bucket), prefix=f"epochs/{current}/{prefix}" if current else prefix)
+    profiles.epoch = current
     return ConnectionPool(database, min_size=1, max_size=4, timeout=10, open=False), profiles
 
 

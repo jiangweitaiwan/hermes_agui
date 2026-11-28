@@ -8,8 +8,12 @@ from hermes_agui.storage.completion_tasks import event_id
 from hermes_agui.storage.run_outbox import PostgresRunOutbox
 
 
-def process(outbox, dispatcher, identifier):
+def process(outbox, dispatcher, identifier, payload=None):
     with outbox.pool.connection() as conn, conn.transaction():
+        if payload is not None:
+            from hermes_agui.storage.epoch import epoch, payload_status
+            if payload_status(payload, epoch(conn), "eventId") == "stale":
+                return 204
         closed = conn.execute("SELECT hermes_agui_host.acquire_completion_delivery()").fetchone()
         if closed is None or not closed[0]:
             return 204 if outbox.state(identifier) in {None, "delivered", "failed"} else 503
@@ -53,8 +57,10 @@ def mount_completion(app, storage):
                 return Response(status_code=400)
         try:
             value = json.loads(body)
-            if not isinstance(value, dict) or set(value) != {'schema', 'eventId'} or type(value['schema']) is not int or value['schema'] != 1:
+            if not isinstance(value, dict) or 'eventId' not in value:
                 raise ValueError('Invalid schema')
+            from hermes_agui.storage.epoch import payload_status
+            payload_status(value, value.get('epoch'), 'eventId')
             identifier = event_id(value['eventId'])
         except (ValueError, TypeError):
             return Response(status_code=400)
@@ -64,7 +70,7 @@ def mount_completion(app, storage):
                 dispatcher = GraphCompletionDispatcher(storage.profiles, client,
                     os.environ['AGUI_GRAPH_COMPLETION_URL'], os.environ['AGUI_GRAPH_COMPLETION_TOKEN'],
                     audience=os.environ.get('AGUI_GRAPH_COMPLETION_AUDIENCE'))
-                return process(PostgresRunOutbox(storage.runs.pool), dispatcher, identifier)
+                return process(PostgresRunOutbox(storage.runs.pool), dispatcher, identifier, value)
         try:
             status = await anyio.to_thread.run_sync(deliver)
         except Exception:  # health: allow BLE001 -- DB/HTTP errors may contain credentials

@@ -1,3 +1,4 @@
+import { cleanOperation as clean, type CleanConfig } from "./clean-operations";
 /** Database Job operations; the CLI owns connection lifetime and preparation locks. */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -6,7 +7,7 @@ import { checkSchema, type SchemaContract } from "./schema-contract";
 import { ControlStore } from "../llm/control-store";
 import type { ControlPolicy } from "../llm/control-contract";
 import { upgradeRelease } from "../llm/control-upgrade";
-interface Context { clients:PoolClient[]; contracts:SchemaContract[]; policy:ControlPolicy; config:{llm:unknown}; grants:unknown }
+interface Context { clients:PoolClient[]; contracts:SchemaContract[]; policy:ControlPolicy; config:{llm:unknown;cleanBootstrap?:CleanConfig}; grants:unknown }
 export interface DeploymentResult {status:string;[key:string]:unknown}
 
 async function check(context:Context) {
@@ -14,6 +15,17 @@ async function check(context:Context) {
   const status=[];
   for(let i=0;i<clients.length;i++) status.push(await checkSchema(clients[i],contracts[i]));
   return {status:"SCHEMA_CHECKED",schemas:status};
+}
+
+async function markResumed(clients:PoolClient[],contracts:SchemaContract[]) {
+  const epochs=[];
+  for(let i=0;i<clients.length;i++) epochs.push((await clients[i].query(`SELECT epoch::text FROM ${contracts[i].schema}.deployment_epoch WHERE singleton`)).rows[0]?.epoch);
+  if(epochs[0]!==epochs[1]) throw new Error("Host/Runtime epoch mismatch");
+  for(let i=0;i<clients.length;i++) await clients[i].query(`UPDATE ${contracts[i].schema}.deployment_epoch SET resumed=true WHERE singleton AND NOT resumed`);
+}
+
+function missingFence(command:string,schema:string) {
+  if(command==="resume" || (command==="seal" && process.env.CLEAN_BOOTSTRAP_INTENT)) throw new Error(`Consumer seal unavailable: ${schema}`);
 }
 
 async function fence(context:Context,command:string) {
@@ -26,6 +38,7 @@ async function fence(context:Context,command:string) {
     const store=new ControlStore(process.env.AGUI_LLM_ADMIN_DATABASE_URL??"",policy);
     try{await store.active();}finally{await store.close();}
   }
+  if(command==="resume") await markResumed(clients,contracts);
   for(let i=0;i<clients.length;i++) {
     const table=`${contracts[i].schema}.deployment_fence`;
     if((await clients[i].query("SELECT to_regclass($1) AS name",[table])).rows[0].name) {
@@ -36,7 +49,7 @@ async function fence(context:Context,command:string) {
         await clients[i].query(`UPDATE ${table} SET closed=$1,deliveries_closed=$1 WHERE singleton AND (closed IS DISTINCT FROM $1 OR deliveries_closed IS DISTINCT FROM $1)`,[closed]);
       else await clients[i].query(`UPDATE ${table} SET closed=$1 WHERE singleton AND closed IS DISTINCT FROM $1`,[closed]);
       if(!(await clients[i].query(`SELECT 1 FROM ${table} WHERE singleton`)).rowCount) throw new Error("Deployment fence state missing");
-    } else if(command==="resume") throw new Error("Deployment fence missing");
+    } else missingFence(command,contracts[i].schema);
   }
   return {status:command==="resume"?"RESUMED":"FENCED"};
 }
@@ -105,5 +118,12 @@ async function release(context:Context) {
 
 export const operations:Record<string,(context:Context)=>Promise<DeploymentResult>>={
   check,drain,migrate,release,
+  "reset-preflight":context=>clean(context,"reset-preflight"),
+  isolate:context=>clean(context,"isolate"),
+  "verify-isolation":context=>clean(context,"verify-isolation"),
+  "recovery-check":context=>clean(context,"recovery-check"),
+  "reset-host":context=>clean(context,"reset-host"),
+  "reset-runtime":context=>clean(context,"reset-runtime"),
+  reset:context=>clean(context,"reset"),epoch:context=>clean(context,"epoch"),
   fence:context=>fence(context,"fence"),seal:context=>fence(context,"seal"),resume:context=>fence(context,"resume"),
 };

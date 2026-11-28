@@ -1,0 +1,63 @@
+{
+  "hermes-host": {
+    "service_account": "hermes-clean-app@copilotkit-agui.iam.gserviceaccount.com",
+    "secrets": {
+      "AGUI_HOST_DATABASE_URL": {
+        "name": "hermes-clean-host-dsn",
+        "version": "1"
+      },
+      "AGUI_LLM_DATABASE_URL": {
+        "name": "hermes-clean-llm-host-reader-dsn",
+        "version": "1"
+      }
+    }
+  },
+  "hermes-runtime": {
+    "service_account": "hermes-clean-app@copilotkit-agui.iam.gserviceaccount.com",
+    "secrets": {
+      "AGUI_RUNTIME_DATABASE_URL": {
+        "name": "hermes-clean-runtime-dsn",
+        "version": "1"
+      },
+      "AGUI_LLM_DATABASE_URL": {
+        "name": "hermes-clean-llm-runtime-dsn",
+        "version": "1"
+      },
+      "AGUI_LLM_ADMIN_DATABASE_URL": {
+        "name": "hermes-clean-llm-admin-dsn",
+        "version": "1"
+      }
+    }
+  },
+  "hermes-worker": {
+    "service_account": "hermes-clean-app@copilotkit-agui.iam.gserviceaccount.com",
+    "secrets": {
+      "AGUI_RUNTIME_DATABASE_URL": {
+        "name": "hermes-clean-runtime-dsn",
+        "version": "1"
+      },
+      "AGUI_LLM_DATABASE_URL": {
+        "name": "hermes-clean-llm-reader-dsn",
+        "version": "1"
+      }
+    }
+  },
+  "hermes-completion": {
+    "service_account": "hermes-clean-app@copilotkit-agui.iam.gserviceaccount.com",
+    "secrets": {
+      "AGUI_HOST_DATABASE_URL": {
+        "name": "hermes-clean-host-dsn",
+        "version": "1"
+      }
+    }
+  },
+  "hermes-reconcile": {
+    "service_account": "hermes-clean-app@copilotkit-agui.iam.gserviceaccount.com",
+    "secrets": {
+      "AGUI_HOST_DATABASE_URL": {
+        "name": "hermes-clean-host-dsn",
+        "version": "1"
+      }
+    }
+  }
+}

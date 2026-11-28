@@ -46,3 +46,22 @@ def graph_destination(rollout):
     return {'AGUI_GRAPH_COMPLETION_URL':{'value':url+'/internal/graph/completions'},
             'AGUI_GRAPH_COMPLETION_AUDIENCE':{'value':url},
             'AGUI_GRAPH_COMPLETION_TOKEN':{'valueFrom':{'secretKeyRef':deepcopy(binding)}}}
+
+
+def clean_completion_args(args):
+    """Replace budgets while preserving audience, prefix and other destination args."""
+    result = []
+    skip = False
+    for value in args:
+        if skip:
+            skip = False
+            continue
+        if value in {'--once', '--drain'}:
+            continue
+        if value in {'--max-events', '--max-seconds'}:
+            skip = True
+            continue
+        if value.startswith(('--max-events=', '--max-seconds=')):
+            continue
+        result.append(value)
+    return [*result, '--drain', '--max-events', '100', '--max-seconds', '120']
